@@ -4,7 +4,6 @@
 #include <Esp.h>
 #include <esp_task_wdt.h>
 #include <time.h>
-#include "MQTT.h"
 #include "Actimetre.h"
 
 // GLOBALS
