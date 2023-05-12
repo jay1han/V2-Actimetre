@@ -91,7 +91,7 @@ void initClockNoNTP() {
     startHalfMinuteCount();
     
     Serial.print("setting dummy clock ");
-    timeval epoch = {1671408000L, 0};  // Approx. 2023/1/1
+    timeval epoch = {1684380000L, 0};  // Approx. 2023/5/1
     settimeofday((const timeval*) &epoch, 0);
 
     time_t now = time(NULL);

@@ -62,7 +62,7 @@ static void sendMessage(unsigned char *message, int length) {
     int sent = wifiClient.write(message, length);
     if (sent != length) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, length);
-//        ESP.restart();
+        ESP.restart();
     }
 }
 
@@ -214,7 +214,7 @@ static void printAndSaveNetwork() {
     my.rssi = WiFi.RSSI();
 
     wifiClient.setNoDelay(true);
-    int err = wifiClient.connect(my.serverIP, MQTT_PORT);
+    int err = wifiClient.connect(my.serverIP, MQTT_PORT + my.serverPort);
     Serial.printf("connect() returned %d\n", err);
 }
 
