@@ -14,8 +14,7 @@ unsigned long nSamples = 0;
 // FILE-WIDE GLOBAL
 
 static DataPoint data;
-static unsigned char message[PAYLOAD_PER_SENSOR * 4 + PAYLOAD_NUM_SENSORS];
-// 75 bytes, also defined as MQTT_MSG_LENGTH
+static unsigned char message[MSG_LENGTH];
 
 // STATISTICS
 
@@ -54,6 +53,7 @@ void formatData(int port, int address, unsigned char *message) {
 void loop() {
     static int firstloop = 1;
     static unsigned long cycle_time = 0L;
+    
     unsigned long time_spent;
     esp_task_wdt_reset();
 
@@ -74,31 +74,22 @@ void loop() {
         }
     }
     
-    sendCast();
-    
     cycle_time = micros();
 
-    int length = PAYLOAD_NUM_SENSORS;
-    int port, address, nSensors = 0;
+    int port, address = 0;
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
                 if (readSensor(port, address, &data)) {
-                    formatData(port, address, message + length);
-                    length += PAYLOAD_PER_SENSOR;
+                    formatData(port, address, message);
+                    sendMessageProcess(message);
                     nSamples += 1;
-                    nSensors ++;
                 } else {
                     nError ++;
                 }
             }
         }
     }
-
-    message[0] = nSensors;
-
-    if (nSensors > 0)
-        sendMessageProcess(message, length);
 }
 
 // UTILITY FUNCTION
@@ -112,5 +103,5 @@ void ERROR_FATAL(char *where) {
 
 void shortPress() {
     Serial.print("\nButton pressed, turn screen on");
-    displayLoop(1);
+    displayLoop(2);
 }

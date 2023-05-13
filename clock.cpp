@@ -21,7 +21,7 @@ static bool init_complete = false;
 static time_t minuteTimer = 0;
 static time_t castTimer = 0;
 
-static void startHalfMinuteCount() {
+static void startMinuteCount() {
     minuteTimer = time(NULL);
     castTimer   = time(NULL);
 }
@@ -36,9 +36,9 @@ int isCastTime() {
     }
 }
 
-int isHalfMinutePast() {
+int isMinutePast() {
     unsigned long seconds = time(NULL) - minuteTimer;
-    if (seconds >= 30) {
+    if (seconds >= 60) {
         minuteTimer = time(NULL);
         return 1;
     } else {
@@ -64,16 +64,9 @@ void initClock() {
     time_t now = time(NULL);
     struct tm timeinfo;
 
-    Serial.print("initializing clock ");
-    writeLine("Getting time");
-    
-    while (now < 946080000L) {  // Approx. 2000/1/1
-        delay(100);
-        now = time(NULL);
-    }
     while (time(NULL) == now);
     my.bootTime = now;
-    startHalfMinuteCount();
+    startMinuteCount();
     
     micros_last = micros();
     micros_offset = ONE_MEGA - (micros_last % ONE_MEGA);
@@ -83,31 +76,7 @@ void initClock() {
     now = time(NULL);
     gmtime_r(&now, &timeinfo);
     Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
-                  timeinfo.tm_year + 1900, timeinfo.tm_mon, timeinfo.tm_mday,
-                  timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-}
-
-void initClockNoNTP() {
-    startHalfMinuteCount();
-    
-    Serial.print("setting dummy clock ");
-    timeval epoch = {1671408000L, 0};  // Approx. 2023/1/1
-    settimeofday((const timeval*) &epoch, 0);
-
-    time_t now = time(NULL);
-    while (time(NULL) == now);
-    my.bootTime = now;
-
-    micros_last = micros();
-    micros_offset = ONE_MEGA - (micros_last % ONE_MEGA);
-    Serial.printf("offset=%ld ", micros_offset);
-    init_complete = true;
-
-    struct tm timeinfo;
-    now = time(NULL);
-    gmtime_r(&now, &timeinfo);
-    Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
-                  timeinfo.tm_year + 1900, timeinfo.tm_mon, timeinfo.tm_mday,
+                  timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 }
 
@@ -150,17 +119,16 @@ unsigned long micros_diff_10(unsigned long end, unsigned long start) {
         return (((end % TEN_MEGA) + ROLLOVER_TEN_MICROS + TEN_MEGA) - (start % TEN_MEGA)) % TEN_MEGA;
 }
 
+#define BOGUS_CYCLE     50000L
 int nMissed[CoreNumMax] = {0, 0};
-#define BOGUS_CYCLE     500000L
-float avgCycleTime[CoreNumMax];
+float avgCycleTime[CoreNumMax] = {0.0, 0.0};
+static unsigned long mark = time(NULL);
+static unsigned long nCycles[CoreNumMax] = {0, 0};
 
 void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
-    static unsigned long mark = time(NULL);
-    static unsigned long nCycles[CoreNumMax] = {0, 0};
-
     if (time_spent > BOGUS_CYCLE) return;  // don't count outliers
 
-    if (time(NULL) - mark > MEASURE_CYCLE) {
+    if (time(NULL) - mark > MEASURE_SECS || nCycles[1] > MEASURE_CYCLES) {
         nCycles[0] = nCycles[1] = 0;
         nMissed[0] = nMissed[1] = 0;
         nUnqueue = 0;
@@ -169,5 +137,22 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     }
     avgCycleTime[coreNum] = (avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
     nCycles[coreNum] ++;
+
+    if (nCycles[coreNum] < 10) return;
+    
+    if (nMissed[0] >= 100 || nError >= 10 || nMissed[1] >= 100 || nUnqueue >= 100
+        || avgCycleTime[0] > cycleMicroseconds || avgCycleTime[1] > cycleMicroseconds) {
+        Serial.printf("M%d,%d E%d Q%d Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, nUnqueue,
+                      avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+        Serial.println("System slowdown, rebooting");
+        ESP.restart();
+    }
 }
 
+void clearCycleTime() {
+    nCycles[0] = nCycles[1] = 0;
+    nMissed[0] = nMissed[1] = 0;
+    nUnqueue = 0;
+    nError = 0;
+    mark = time(NULL);
+}

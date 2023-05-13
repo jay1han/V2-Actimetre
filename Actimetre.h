@@ -11,7 +11,7 @@
 
 // CONSTANTS
 
-#define I2C_BAUDRATE 1000000
+#define I2C_BAUDRATE 1000000  
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -20,12 +20,9 @@
 #define LCD_V_RES 64
 
 #define SCREENSAVER_SECS 300
-#define MEASURE_CYCLE    300
-
-#define PAYLOAD_NUM_SENSORS 1
-#define PAYLOAD_PER_SENSOR  18  // port/address(1), time(4), usec(3), accel(6), gyro(4)
-#define MQTT_MSG_LENGTH     (PAYLOAD_NUM_SENSORS + 4 * PAYLOAD_PER_SENSOR)
-#define MQTT_CAST_LENGTH    14 // See reseau.cpp
+#define MEASURE_CYCLES   3000
+#define MEASURE_SECS     30
+#define MSG_LENGTH       18       // port/address(1), time(4), usec(3), accel(6), gyro(4)
 
 // TYPES
 
@@ -89,8 +86,7 @@ void writeLine(char *message);
 // reseau.cpp
 void netInit();
 int isConnected();
-void sendMessageProcess(unsigned char *message, int length);
-void sendCast();
+void sendMessageProcess(unsigned char *message);
 void netCore0(void *dummy_to_match_argument_signatue);
 extern unsigned long nSamples;
 extern QueueHandle_t mqttQueue;
@@ -128,7 +124,7 @@ void setupCore0(void (*code0Loop)(void*));
 void feedWatchdog();
 void initClock();
 void initClockNoNTP();
-int isHalfMinutePast();
+int isMinutePast();
 int isCastTime();
 void getTime(unsigned long *sec, unsigned long *usec);
 unsigned long millis_diff(unsigned long end, unsigned long start);
@@ -137,6 +133,7 @@ unsigned long micros_diff(unsigned long end, unsigned long start);
 unsigned long micros_diff_10(unsigned long end, unsigned long start);
 void waitNextCycle(unsigned long cycle_time);
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
+void clearCycleTime();
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);
