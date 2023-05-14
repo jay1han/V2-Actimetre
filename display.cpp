@@ -260,19 +260,21 @@ void displayLoop(int force) {
         scanLine = 0;
     } else if (force == 2) {
         saver = 0;
+        ssd1306_on();
     } else {
         if(isMinutePast()) {
             uptime++;
             saver++;
-            if (saver == SCREENSAVER_SECS) {
+            if (saver == SCREENSAVER_MINS) {
                 Serial.println("Screensaver");
                 ssd1306_off();
-            } else if (saver > SCREENSAVER_SECS) {
+            } else if (saver > SCREENSAVER_MINS) {
                 Serial.printf("%dh%02d %.1f,%.1f ", uptime / 60, uptime % 60,
                               avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
                 Serial.printf("M%d,%d Q%d E%d\n", nMissed[1], nMissed[0], nUnqueue, nError);
             }
-        } else if (saver < SCREENSAVER_SECS) {
+        }
+        if (saver < SCREENSAVER_MINS) {
             displayScan(scanLine);
             scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
         }

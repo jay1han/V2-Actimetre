@@ -1,15 +1,13 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-// APPLICATION CONFIGURATION
-
 #define VERSION_STR "v200>"
-#define ACTISERVER  "Actis"
-#define MQTT_TOPIC  "Acti"
-#define MQTT_CAST   "ActiCast"
-#define LONGPRESS_MILLIS  2000L
 
 // CONSTANTS
+
+#define ACTISERVER  "Actis"
+#define MQTT_TOPIC  "Acti"
+#define LONGPRESS_MILLIS  2000L
 
 #define I2C_BAUDRATE 1000000  
 
@@ -19,7 +17,7 @@
 #define LCD_H_RES 128
 #define LCD_V_RES 64
 
-#define SCREENSAVER_SECS 300
+#define SCREENSAVER_MINS 5
 #define MEASURE_CYCLES   3000
 #define MEASURE_SECS     30
 #define MSG_LENGTH       18       // port/address(1), time(4), usec(3), accel(6), gyro(4)
@@ -29,7 +27,7 @@
 typedef struct {
     unsigned long time;
     unsigned long micros;
-    unsigned char readBuffer[14];
+    unsigned char readBuffer[12];
 } DataPoint;
 typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
 
@@ -88,7 +86,6 @@ void netInit();
 int isConnected();
 void sendMessageProcess(unsigned char *message);
 void netCore0(void *dummy_to_match_argument_signatue);
-extern unsigned long nSamples;
 extern QueueHandle_t mqttQueue;
 extern int mqttQueueSize;
 extern int nUnqueue;

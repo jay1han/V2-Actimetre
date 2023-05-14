@@ -40,7 +40,7 @@ static void getActimId() {
         }
     }
 
-    Serial.printf("read(): %d bytes, response=%02X%02X, %02X %02X %02X %02X\n",
+    Serial.printf("read: %d bytes, response=%02X%02X, %02X %02X %02X %02X\n",
                   err, response[0], response[1],
                   response[2], response[3], response[4], response[5]);
     if (err < 0) ESP.restart();
@@ -64,8 +64,10 @@ static void sendMessage(unsigned char *message) {
     int sent = wifiClient.write(message, MSG_LENGTH);
     if (sent != MSG_LENGTH) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, MSG_LENGTH);
+        wifiClient.stop();
         ESP.restart();
     }
+    wifiClient.flush();
 }
 
 static void queueMessage(unsigned char *message) {
@@ -203,9 +205,10 @@ static void printAndSaveNetwork() {
     writeLine(myIPstring);
     my.rssi = WiFi.RSSI();
 
-    wifiClient.setNoDelay(true);
     int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
+    wifiClient.setNoDelay(false);
+    wifiClient.setTimeout(1);
 }
 
 // Huge and ugly but that's the way it is.

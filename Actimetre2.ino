@@ -9,7 +9,6 @@
 // GLOBALS
 
 MyInfo my;
-unsigned long nSamples = 0;
 
 // FILE-WIDE GLOBAL
 
@@ -83,7 +82,6 @@ void loop() {
                 if (readSensor(port, address, &data)) {
                     formatData(port, address, message);
                     sendMessageProcess(message);
-                    nSamples += 1;
                 } else {
                     nError ++;
                 }
@@ -102,6 +100,6 @@ void ERROR_FATAL(char *where) {
 // SHORT PRESS TO TURN ON SCREEN
 
 void shortPress() {
-    Serial.print("\nButton pressed, turn screen on");
+    Serial.println("\nScreen on");
     displayLoop(2);
 }

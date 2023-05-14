@@ -19,21 +19,9 @@ static unsigned long micros_offset = 0L;
 static unsigned long micros_actual;
 static bool init_complete = false;
 static time_t minuteTimer = 0;
-static time_t castTimer = 0;
 
 static void startMinuteCount() {
     minuteTimer = time(NULL);
-    castTimer   = time(NULL);
-}
-
-int isCastTime() {
-    unsigned long seconds = time(NULL) - castTimer;
-    if (seconds >= 15) {
-        castTimer = time(NULL);
-        return 1;
-    } else {
-        return 0;
-    }
 }
 
 int isMinutePast() {
