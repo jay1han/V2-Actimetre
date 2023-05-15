@@ -37,12 +37,14 @@ void setup() {
 // MAIN LOOP
 
 void formatData(int port, int address, unsigned char *message) {
-    message[0] = port << 4 | address;
+    data.time -= my.bootTime;
+    message[0] = port << 4 | address | 0x80;
     message[1] = (data.time / (1L << 16)) % 256;
     message[2] = (data.time / (1L << 8)) % 256;
     message[3] = data.time % 256;
-    message[4] = (data.micros / (1L << 8)) % 256;
-    message[5] = data.micros % 256;
+    unsigned long millis = data.micros / 1000;
+    message[4] = (millis / (1L << 8)) % 256;
+    message[5] = millis % 256;
     memcpy(message + 6, data.readBuffer, 6);
     memcpy(message + 12, data.readBuffer + 8, 4);
 }
@@ -74,15 +76,13 @@ void loop() {
     cycle_time = micros();
 
     int port, address = 0;
-    int nSensors = 0, offset = 1;
+    int offset = 0;
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
                 if (readSensor(port, address, &data)) {
-                    data.time -= my.bootTime;
                     formatData(port, address, message + offset);
                     offset += DATA_LENGTH;
-                    nSensors ++;
                 } else {
                     nError ++;
                 }
@@ -90,7 +90,7 @@ void loop() {
         }
     }
 
-    message[0] = nSensors;
+    message[offset] = 0;
     sendMessageProcess(message);
 }
 

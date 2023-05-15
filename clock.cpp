@@ -35,17 +35,20 @@ int isMinutePast() {
 }
 
 void waitNextCycle(unsigned long cycle_time) {
-    unsigned long remain, now;
+    unsigned long remain, elapsed;
 
+#if 0
     do {
-        now = micros_diff(micros(), cycle_time);
-        if (now < cycleMicroseconds) {
-            remain = cycleMicroseconds - now;
-            if (remain > 20L) {
+        elapsed = micros_diff(micros(), cycle_time);
+        if (elapsed < cycleMicroseconds) {
+            remain = cycleMicroseconds - elapsed;
+            if (remain > 100L) {
                 delayMicroseconds(remain / 2);
             }
         } else remain = 0L;
-    } while (remain > 20L);
+    } while (remain > 100L);
+#endif
+    while (micros_diff(micros(), cycle_time) < (cycleMicroseconds - 10));
 }
 
 void initClock() {

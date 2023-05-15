@@ -61,7 +61,8 @@ static void getActimId() {
 // Messaging functions
 
 static void sendMessage(unsigned char *message) {
-    int length = message[0] * DATA_LENGTH + 1;
+    int length = DATA_LENGTH;
+    while (message[length] != 80) length += DATA_LENGTH;
     int sent = wifiClient.write(message, length);
     if (sent != length) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, length);
