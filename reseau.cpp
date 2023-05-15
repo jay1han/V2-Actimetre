@@ -10,7 +10,7 @@ static WiFiClient wifiClient;
 static int testMode = 0;
 
 QueueHandle_t msgQueue;
-#define QUEUE_SIZE 100
+#define QUEUE_SIZE 400
 unsigned char msgBuffer[MSG_LENGTH];
 int nUnqueue = 0;
 
@@ -61,9 +61,10 @@ static void getActimId() {
 // Messaging functions
 
 static void sendMessage(unsigned char *message) {
-    int sent = wifiClient.write(message, MSG_LENGTH);
-    if (sent != MSG_LENGTH) {
-        Serial.printf("Sent only %d bytes out of %d\n", sent, MSG_LENGTH);
+    int length = message[0] * DATA_LENGTH + 1;
+    int sent = wifiClient.write(message, length);
+    if (sent != length) {
+        Serial.printf("Sent only %d bytes out of %d\n", sent, length);
         wifiClient.stop();
         ESP.restart();
     }
@@ -254,7 +255,7 @@ void netInit() {
     displayLoop(1);
     displayLoop(1);
 
-    if (my.boardType >= 3)
+    if (my.dualCore)
         setupCore0(Core0Loop);
 }
 

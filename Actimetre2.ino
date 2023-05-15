@@ -38,15 +38,13 @@ void setup() {
 
 void formatData(int port, int address, unsigned char *message) {
     message[0] = port << 4 | address;
-    message[1] = (data.time / (1L << 24)) % 256; // we have MSB first
-    message[2] = (data.time / (1L << 16)) % 256;
-    message[3] = (data.time / (1L << 8)) % 256;
-    message[4] = data.time % 256;
-    message[5] = (data.micros / (1L << 16)) % 256;
-    message[6] = (data.micros / (1L << 8)) % 256;
-    message[7] = data.micros % 256;
-    memcpy(message + 8, data.readBuffer, 6);
-    memcpy(message + 14, data.readBuffer + 8, 4);
+    message[1] = (data.time / (1L << 16)) % 256;
+    message[2] = (data.time / (1L << 8)) % 256;
+    message[3] = data.time % 256;
+    message[4] = (data.micros / (1L << 8)) % 256;
+    message[5] = data.micros % 256;
+    memcpy(message + 6, data.readBuffer, 6);
+    memcpy(message + 12, data.readBuffer + 8, 4);
 }
 
 void loop() {
@@ -76,18 +74,24 @@ void loop() {
     cycle_time = micros();
 
     int port, address = 0;
+    int nSensors = 0, offset = 1;
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
                 if (readSensor(port, address, &data)) {
-                    formatData(port, address, message);
-                    sendMessageProcess(message);
+                    data.time -= my.bootTime;
+                    formatData(port, address, message + offset);
+                    offset += DATA_LENGTH;
+                    nSensors ++;
                 } else {
                     nError ++;
                 }
             }
         }
     }
+
+    message[0] = nSensors;
+    sendMessageProcess(message);
 }
 
 // UTILITY FUNCTION

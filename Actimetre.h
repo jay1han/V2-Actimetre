@@ -20,7 +20,8 @@
 #define SCREENSAVER_MINS 5
 #define MEASURE_CYCLES   3000
 #define MEASURE_SECS     30
-#define MSG_LENGTH       18       // port/address(1), time(4), usec(3), accel(6), gyro(4)
+#define DATA_LENGTH      16       // port/address(1), time(3), msec(2), accel(6), gyro(4)
+#define MSG_LENGTH       (4 * DATA_LENGTH + 1)
 
 // TYPES
 
