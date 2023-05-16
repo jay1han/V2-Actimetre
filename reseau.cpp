@@ -4,96 +4,95 @@
 #include <time.h>
 #include "Actimetre.h"
 
-#define MQTT_PORT 2883
+#define ACTI_PORT 2883
 
 static WiFiClient wifiClient;
 static int testMode = 0;
 
-QueueHandle_t mqttQueue;
-#define MQTT_QUEUE_SIZE 100
+QueueHandle_t msgQueue;
+#define QUEUE_SIZE 400
+unsigned char msgBuffer[MSG_LENGTH];
 int nUnqueue = 0;
 
-static unsigned char mqttBuffer[MQTT_MSG_LENGTH];
-static unsigned char mqttCastMessage[MQTT_CAST_LENGTH];
-// marker = 1(0x40), boardName = 3, MAC = 6, bootTime = 4 : Total 14
-
-// Register by HTTP to Actiserver
-
+#define INIT_LENGTH      9   // boardName = 3, MAC = 6 : Total 9
+#define RESPONSE_LENGTH  6   // actimId = 2, time = 4 : Total 6
 static void getActimId() {
-    Serial.print("Getting name ");
+    static unsigned char initMessage[INIT_LENGTH];
+    Serial.print("Getting name and time ");
 
-    mqttCastMessage[0] = 0x40;
-    memcpy(mqttCastMessage + 1, my.boardName, 3);
-    memcpy(mqttCastMessage + 4, my.mac, 6);
-    mqttCastMessage[10] = my.bootTime / (1 << 24);
-    mqttCastMessage[11] = (my.bootTime / (1 << 16)) % 256;
-    mqttCastMessage[12] = (my.bootTime / (1 << 8)) % 256;
-    mqttCastMessage[13] = my.bootTime % 256;
+    memcpy(initMessage, my.boardName, 3);
+    memcpy(initMessage + 3, my.mac, 6);
 
-    int i;
-    for (i = 0; i < 14; i++) {
-        Serial.printf("%02x ", mqttCastMessage[i]);
+    int err = wifiClient.write(initMessage, INIT_LENGTH);
+    if (err != INIT_LENGTH) {
+        Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
+        ESP.restart();
     }
-    Serial.println();
-    wifiClient.write(mqttCastMessage, MQTT_CAST_LENGTH);
-    unsigned char response[2];
+    unsigned char response[RESPONSE_LENGTH];
 
-    delay(1000);
-    int err = 0;
-    while (err == 0)
-        err = wifiClient.read(response, 2);
+    err = 0;
+    time_t timeout = time(NULL);
+    while (err < 6) {
+        err += wifiClient.read(response + err, RESPONSE_LENGTH - err);
+        if ((time(NULL) - timeout) > 10) {
+            Serial.println("No response from Actiserver");
+            ESP.restart();
+        }
+    }
 
-    Serial.printf("Return from read(): %d, response=%02X%02X\n", err, response[0], response[1]);
+    Serial.printf("read: %d bytes, response=%02X%02X, %02X %02X %02X %02X\n",
+                  err, response[0], response[1],
+                  response[2], response[3], response[4], response[5]);
+    if (err < 0) ESP.restart();
+    
     my.clientId = response[0] * 256 + response[1];
-
+    unsigned long bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
+    struct timeval timeofday = {bootTime, 500000} ;
+    settimeofday(&timeofday, 0);
+    
     sprintf(my.clientName, "Actim%04d", my.clientId);
-    Serial.println(my.clientName);
-
-    mqttCastMessage[0] = 0x20;
+    Serial.printf("%s, boot time = %lu\n", my.clientName, bootTime);
 
     char message[16];
     sprintf(message, "%s%04d  %d", VERSION_STR, my.clientId, my.serverId);
     displayTitle(message);
 }
 
-// MQTT functions
+// Messaging functions
 
-static void sendMessage(unsigned char *message, int length) {
+static void sendMessage(unsigned char *message) {
+    int length = DATA_LENGTH;
+    while (message[length] != 80) length += DATA_LENGTH;
     int sent = wifiClient.write(message, length);
     if (sent != length) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, length);
+        wifiClient.stop();
         ESP.restart();
     }
+    wifiClient.flush();
 }
 
-static void queueMessage(unsigned char *message, int length) {
-    if (xQueueSend(mqttQueue, message, 1) != pdPASS) {
+static void queueMessage(unsigned char *message) {
+    if (xQueueSend(msgQueue, message, 0) != pdPASS) {
         nUnqueue++;
     }
 }
 
-void sendMessageProcess(unsigned char *message, int length) {
+void sendMessageProcess(unsigned char *message) {
     if (testMode) return;
-    if (my.boardType >= BOARD_S3) {
-        queueMessage(message, length);
+    if (my.dualCore) {
+        queueMessage(message);
     } else {
-        sendMessage(message, length);
+        sendMessage(message);
     }
-}
-
-void sendCast() {
-    if (testMode) return;
-    if (my.boardType >= BOARD_S3) return; // Done in Core0
-    if (isCastTime())
-        sendMessage(mqttCastMessage, MQTT_CAST_LENGTH);
 }
 
 static void Core0Loop(void *dummy_to_match_argument_signatue) {
     if (testMode) return;
 
     Serial.printf("Core %d started\n", xPortGetCoreID());
-    mqttQueue = xQueueCreate(MQTT_QUEUE_SIZE, MQTT_MSG_LENGTH);
-    if (mqttQueue == 0) {
+    msgQueue = xQueueCreate(QUEUE_SIZE, MSG_LENGTH);
+    if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
         ESP.restart();
     }
@@ -101,7 +100,7 @@ static void Core0Loop(void *dummy_to_match_argument_signatue) {
     int availableSpaces;
     unsigned long startWork;
     for (;;) {
-        while (xQueueReceive(mqttQueue, mqttBuffer, 1) != pdTRUE) {
+        while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
             esp_task_wdt_reset();
         }
         startWork = micros();
@@ -111,15 +110,11 @@ static void Core0Loop(void *dummy_to_match_argument_signatue) {
 
         blinkLed(-1);
 
-        if (isCastTime())
-            sendMessage(mqttCastMessage, MQTT_CAST_LENGTH);
-
-        int messageLength = PAYLOAD_NUM_SENSORS + mqttBuffer[0] * PAYLOAD_PER_SENSOR;
-        sendMessage(mqttBuffer, messageLength);
-        if ((availableSpaces = uxQueueSpacesAvailable(mqttQueue)) < MQTT_QUEUE_SIZE / 5) {
-            nMissed[Core0Net] += MQTT_QUEUE_SIZE - availableSpaces;
-            xQueueReset(mqttQueue);
-            Serial.print("MQTT Queue less than 20% remaining, cleared");
+        sendMessage(msgBuffer);
+        if ((availableSpaces = uxQueueSpacesAvailable(msgQueue)) < QUEUE_SIZE / 5) {
+            nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
+            xQueueReset(msgQueue);
+            Serial.print("Queue more than 80%, cleared");
         }
         
         logCycleTime(Core0Net, micros_diff(micros(), startWork));
@@ -150,7 +145,6 @@ static int scanNetworks() {
         Serial.println("\nCan't find AP. Rebooting");
         ESP.restart();
     }
-
     return nScan;
 }
 
@@ -213,9 +207,10 @@ static void printAndSaveNetwork() {
     writeLine(myIPstring);
     my.rssi = WiFi.RSSI();
 
-    wifiClient.setNoDelay(true);
-    int err = wifiClient.connect(my.serverIP, MQTT_PORT + my.serverPort);
+    int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
+    wifiClient.setNoDelay(false);
+    wifiClient.setTimeout(1);
 }
 
 // Huge and ugly but that's the way it is.
@@ -233,7 +228,6 @@ void netInit() {
     if (buttonPressed()) {
         testMode = 1;
         displayTitle("TEST MODE");
-        initClockNoNTP();
     } else {
         char ssid[10] = "";
         findSsid(nScan, ssid);
@@ -256,21 +250,13 @@ void netInit() {
         WiFi.setAutoReconnect(true);
         blinkLed(1);
     
-        if (my.serverPort > 0) {
-            Serial.print("Skipping NTP");
-            initClockNoNTP();
-        } else {
-            Serial.print("Getting time ");
-            configTime(0, 0, my.serverIP);
-            initClock();
-        }
-        
         getActimId();
+        initClock();
     }    
     displayLoop(1);
     displayLoop(1);
 
-    if (my.boardType >= 3)
+    if (my.dualCore)
         setupCore0(Core0Loop);
 }
 

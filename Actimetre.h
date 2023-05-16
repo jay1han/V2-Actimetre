@@ -1,17 +1,15 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-// APPLICATION CONFIGURATION
-
 #define VERSION_STR "v200>"
-#define ACTISERVER  "Actis"
-#define MQTT_TOPIC  "Acti"
-#define MQTT_CAST   "ActiCast"
-#define LONGPRESS_MILLIS  2000L
 
 // CONSTANTS
 
-#define I2C_BAUDRATE 1000000
+#define ACTISERVER  "Actis"
+#define MQTT_TOPIC  "Acti"
+#define LONGPRESS_MILLIS  2000L
+
+#define I2C_BAUDRATE 1000000  
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -19,20 +17,18 @@
 #define LCD_H_RES 128
 #define LCD_V_RES 64
 
-#define SCREENSAVER_SECS 300
-#define MEASURE_CYCLE    300
-
-#define PAYLOAD_NUM_SENSORS 1
-#define PAYLOAD_PER_SENSOR  18  // port/address(1), time(4), usec(3), accel(6), gyro(4)
-#define MQTT_MSG_LENGTH     (PAYLOAD_NUM_SENSORS + 4 * PAYLOAD_PER_SENSOR)
-#define MQTT_CAST_LENGTH    14 // See reseau.cpp
+#define SCREENSAVER_MINS 5
+#define MEASURE_CYCLES   3000
+#define MEASURE_SECS     30
+#define DATA_LENGTH      16       // port/address(1), time(3), msec(2), accel(6), gyro(4)
+#define MSG_LENGTH       (4 * DATA_LENGTH + 1)
 
 // TYPES
 
 typedef struct {
     unsigned long time;
     unsigned long micros;
-    unsigned char readBuffer[14];
+    unsigned char readBuffer[12];
 } DataPoint;
 typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
 
@@ -89,10 +85,8 @@ void writeLine(char *message);
 // reseau.cpp
 void netInit();
 int isConnected();
-void sendMessageProcess(unsigned char *message, int length);
-void sendCast();
+void sendMessageProcess(unsigned char *message);
 void netCore0(void *dummy_to_match_argument_signatue);
-extern unsigned long nSamples;
 extern QueueHandle_t mqttQueue;
 extern int mqttQueueSize;
 extern int nUnqueue;
@@ -128,7 +122,7 @@ void setupCore0(void (*code0Loop)(void*));
 void feedWatchdog();
 void initClock();
 void initClockNoNTP();
-int isHalfMinutePast();
+int isMinutePast();
 int isCastTime();
 void getTime(unsigned long *sec, unsigned long *usec);
 unsigned long millis_diff(unsigned long end, unsigned long start);
@@ -137,6 +131,7 @@ unsigned long micros_diff(unsigned long end, unsigned long start);
 unsigned long micros_diff_10(unsigned long end, unsigned long start);
 void waitNextCycle(unsigned long cycle_time);
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
+void clearCycleTime();
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);

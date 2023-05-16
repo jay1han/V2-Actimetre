@@ -68,9 +68,7 @@ static int detectSensor(int port, int address) {
 
 int readSensor(int port, int address, DataPoint *data) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
-
-    int i, n = 14;
-    memset(data, 0, sizeof(DataPoint));
+    int n;
 
     getTime(&data->time, &data->micros);
     wire.beginTransmission(MPU6050_ADDR + address);
@@ -82,11 +80,11 @@ int readSensor(int port, int address, DataPoint *data) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> endTransmission", port + 1, 'A' + address);
         return 0;
     }
-    if (wire.requestFrom(MPU6050_ADDR + address, 14) != 14) {
+    if (wire.requestFrom(MPU6050_ADDR + address, 12) != 12) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
         return 0;
     }
-    if ((n = wire.readBytes(data->readBuffer, 14)) != 14) {
+    if ((n = wire.readBytes(data->readBuffer, 12)) != 12) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
         memset(data, 0, sizeof(DataPoint));
         return 0;

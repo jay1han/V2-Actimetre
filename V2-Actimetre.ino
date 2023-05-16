@@ -9,13 +9,11 @@
 // GLOBALS
 
 MyInfo my;
-unsigned long nSamples = 0;
 
 // FILE-WIDE GLOBAL
 
 static DataPoint data;
-static unsigned char message[PAYLOAD_PER_SENSOR * 4 + PAYLOAD_NUM_SENSORS];
-// 75 bytes, also defined as MQTT_MSG_LENGTH
+static unsigned char message[MSG_LENGTH];
 
 // STATISTICS
 
@@ -39,21 +37,22 @@ void setup() {
 // MAIN LOOP
 
 void formatData(int port, int address, unsigned char *message) {
-    message[0] = port << 4 | address;
-    message[1] = (data.time / (1L << 24)) % 256; // we have MSB first
-    message[2] = (data.time / (1L << 16)) % 256;
-    message[3] = (data.time / (1L << 8)) % 256;
-    message[4] = data.time % 256;
-    message[5] = (data.micros / (1L << 16)) % 256;
-    message[6] = (data.micros / (1L << 8)) % 256;
-    message[7] = data.micros % 256;
-    memcpy(message + 8, data.readBuffer, 6);
-    memcpy(message + 14, data.readBuffer + 8, 4);
+    data.time -= my.bootTime;
+    message[0] = port << 4 | address | 0x80;
+    message[1] = (data.time / (1L << 16)) % 256;
+    message[2] = (data.time / (1L << 8)) % 256;
+    message[3] = data.time % 256;
+    unsigned long millis = data.micros / 1000;
+    message[4] = (millis / (1L << 8)) % 256;
+    message[5] = millis % 256;
+    memcpy(message + 6, data.readBuffer, 6);
+    memcpy(message + 12, data.readBuffer + 8, 4);
 }
 
 void loop() {
     static int firstloop = 1;
     static unsigned long cycle_time = 0L;
+    
     unsigned long time_spent;
     esp_task_wdt_reset();
 
@@ -74,20 +73,16 @@ void loop() {
         }
     }
     
-    sendCast();
-    
     cycle_time = micros();
 
-    int length = PAYLOAD_NUM_SENSORS;
-    int port, address, nSensors = 0;
+    int port, address = 0;
+    int offset = 0;
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
                 if (readSensor(port, address, &data)) {
-                    formatData(port, address, message + length);
-                    length += PAYLOAD_PER_SENSOR;
-                    nSamples += 1;
-                    nSensors ++;
+                    formatData(port, address, message + offset);
+                    offset += DATA_LENGTH;
                 } else {
                     nError ++;
                 }
@@ -95,10 +90,8 @@ void loop() {
         }
     }
 
-    message[0] = nSensors;
-
-    if (nSensors > 0)
-        sendMessageProcess(message, length);
+    message[offset] = 0;
+    sendMessageProcess(message);
 }
 
 // UTILITY FUNCTION
@@ -111,6 +104,6 @@ void ERROR_FATAL(char *where) {
 // SHORT PRESS TO TURN ON SCREEN
 
 void shortPress() {
-    Serial.print("\nButton pressed, turn screen on");
-    displayLoop(1);
+    Serial.println("\nScreen on");
+    displayLoop(2);
 }
