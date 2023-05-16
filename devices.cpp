@@ -106,9 +106,13 @@ void deviceScanInit() {
     }
 
     int port, address;
+    my.sensorBits = 0;
     for (port = 0; port <= 1; port++)
         for (address = 0; address <= 1; address++)
-            if (detectSensor(port, address)) my.nSensors++;
+            if (detectSensor(port, address)) {
+                my.sensorBits |= 1 << (port * 4 + address);
+                my.nSensors++;
+            }
 
     my.sensorList[0] = 0;
     

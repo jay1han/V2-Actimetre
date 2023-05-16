@@ -191,7 +191,7 @@ static void displayRssi(int step) {
             int bars;
             if (my.rssi > -32) bars = 7;
             else if (my.rssi <= -116) bars = 0;
-            else bars = (my.rssi + 116) / 12;
+            else bars = (my.rssi + 102) / 10;
             textRssi = 0x81 + bars;
         }
         write_char16(RSSI_POS, 0, textRssi);

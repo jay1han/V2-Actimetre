@@ -61,6 +61,7 @@ typedef struct {
 
     int displayPresent;
     int sensorPresent[2][2];
+    unsigned char sensorBits;
     int nSensors;
     char sensorList[10];
 } MyInfo;
