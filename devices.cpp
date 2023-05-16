@@ -70,7 +70,7 @@ int readSensor(int port, int address, DataPoint *data) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     int n;
 
-    getTime(&data->time, &data->micros);
+    getTime(NULL, &data->micros);
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(0x3B) != 1) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> write", port + 1, 'A' + address);

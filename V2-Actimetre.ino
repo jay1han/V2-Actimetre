@@ -13,7 +13,7 @@ MyInfo my;
 // FILE-WIDE GLOBAL
 
 static DataPoint data;
-static unsigned char message[MSG_LENGTH];
+static unsigned char message[BUFFER_LENGTH];
 
 // STATISTICS
 
@@ -36,17 +36,29 @@ void setup() {
 
 // MAIN LOOP
 
-void formatData(int port, int address, unsigned char *message) {
-    data.time -= my.bootTime;
-    message[0] = port << 4 | address | 0x80;
-    message[1] = (data.time / (1L << 16)) % 256;
-    message[2] = (data.time / (1L << 8)) % 256;
-    message[3] = data.time % 256;
-    unsigned long millis = data.micros / 1000;
-    message[4] = (millis / (1L << 8)) % 256;
-    message[5] = millis % 256;
-    memcpy(message + 6, data.readBuffer, 6);
-    memcpy(message + 12, data.readBuffer + 8, 4);
+static long msgEpoch;
+static long msgMicros;
+
+void formatHeader(unsigned char *message) {
+  getTime(&msgEpoch, &msgMicros);
+  msgEpoch -= my.bootTime;
+  unsigned long millis = msgMicros / 1000L;
+  message[0] = (msgEpoch << 16L) % 256L;
+  message[1] = (msgEpoch << 8L) % 256L;
+  message[2] = msgEpoch % 256L;
+  message[3] = millis / 256L;
+  message[4] = millis % 256L;
+}
+
+void formatData(unsigned char *message) {
+    long millis, micros;
+    getTime(NULL, &micros);
+    if (micros >= msgMicros) millis = (micros - msgMicros) / 1000L;
+    else millis = (micros + 1000000L - msgMicros) / 1000L;
+    message[0] = millis / 256;
+    message[1] = millis % 256;
+    memcpy(message + 2, data.readBuffer, 6);
+    memcpy(message + 8, data.readBuffer + 8, 4);
 }
 
 void loop() {
@@ -76,12 +88,14 @@ void loop() {
     cycle_time = micros();
 
     int port, address = 0;
-    int offset = 0;
+    formatHeader(message);
+    int offset = HEADER_LENGTH;
+
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
                 if (readSensor(port, address, &data)) {
-                    formatData(port, address, message + offset);
+                    formatData(message + offset);
                     offset += DATA_LENGTH;
                 } else {
                     nError ++;
@@ -90,7 +104,6 @@ void loop() {
         }
     }
 
-    message[offset] = 0;
     sendMessageProcess(message);
 }
 

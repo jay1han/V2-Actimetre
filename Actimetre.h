@@ -20,14 +20,14 @@
 #define SCREENSAVER_MINS 5
 #define MEASURE_CYCLES   3000
 #define MEASURE_SECS     30
-#define DATA_LENGTH      16       // port/address(1), time(3), msec(2), accel(6), gyro(4)
-#define MSG_LENGTH       (4 * DATA_LENGTH + 1)
+#define HEADER_LENGTH    5     // epoch(3), msec(2) 
+#define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
+#define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
 
 // TYPES
 
 typedef struct {
-    unsigned long time;
-    unsigned long micros;
+    long micros;
     unsigned char readBuffer[12];
 } DataPoint;
 typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
@@ -124,7 +124,7 @@ void initClock();
 void initClockNoNTP();
 int isMinutePast();
 int isCastTime();
-void getTime(unsigned long *sec, unsigned long *usec);
+void getTime(long *sec, long *usec);
 unsigned long millis_diff(unsigned long end, unsigned long start);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);

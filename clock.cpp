@@ -71,12 +71,12 @@ void initClock() {
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 }
 
-void getTime(unsigned long *sec, unsigned long *usec) {
+void getTime(long *sec, long *usec) {
     if (!init_complete) initClock();
+    if (sec != NULL) time(sec);
     if (micros() < micros_last) {
         micros_offset = (micros_offset + ROLLOVER_MICROS) % ONE_MEGA;
     }
-    time((time_t*)sec);
     micros_last = micros();
     micros_actual = ((micros_last % ONE_MEGA) + micros_offset) % ONE_MEGA;
     *usec = micros_actual;

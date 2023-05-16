@@ -11,7 +11,7 @@ static int testMode = 0;
 
 QueueHandle_t msgQueue;
 #define QUEUE_SIZE 400
-unsigned char msgBuffer[MSG_LENGTH];
+unsigned char msgBuffer[BUFFER_LENGTH];
 int nUnqueue = 0;
 
 #define INIT_LENGTH      9   // boardName = 3, MAC = 6 : Total 9
@@ -61,8 +61,7 @@ static void getActimId() {
 // Messaging functions
 
 static void sendMessage(unsigned char *message) {
-    int length = DATA_LENGTH;
-    while (message[length] != 80) length += DATA_LENGTH;
+    int length = HEADER_LENGTH + DATA_LENGTH * my.nSensors;
     int sent = wifiClient.write(message, length);
     if (sent != length) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, length);
@@ -91,7 +90,7 @@ static void Core0Loop(void *dummy_to_match_argument_signatue) {
     if (testMode) return;
 
     Serial.printf("Core %d started\n", xPortGetCoreID());
-    msgQueue = xQueueCreate(QUEUE_SIZE, MSG_LENGTH);
+    msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
         ESP.restart();
