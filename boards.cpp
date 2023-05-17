@@ -73,7 +73,7 @@ int cycleFrequency;
 unsigned long cycleMicroseconds;
 typedef enum {FREQ_BASE = 0, FREQ_TURBO, FREQ_COUNT} FreqCode;
 FreqCode freqCode = FREQ_BASE;
-static int Frequencies[BOARD_TYPES][FREQ_COUNT] = {{1, 50}, {50, 100}, {50, 100}, {100, 200}};
+static int Frequencies[BOARD_TYPES][FREQ_COUNT] = {{50, 1}, {50, 1}, {50, 1}, {100, 1}};
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", ".S3"};
 
 void setupBoard() {
@@ -90,8 +90,6 @@ void setupBoard() {
         else my.boardType = BOARD_S2_NO_UART;
     }
     strcpy(my.boardName, BoardName[my.boardType]);
-
-    setCpuFrequencyMhz(240);
 
     pinMode(PIN_BUTTON    = PINS[my.boardType][_PIN_BUTTON],   INPUT_PULLUP);
     pinMode(PIN_LED       = PINS[my.boardType][_PIN_LED],      OUTPUT);

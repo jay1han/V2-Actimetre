@@ -41,13 +41,13 @@ void waitNextCycle(unsigned long cycle_time) {
         elapsed = micros_diff(micros(), cycle_time);
         if (elapsed < cycleMicroseconds) {
             remain = cycleMicroseconds - elapsed;
-            if (remain > 200L) {
+            if (remain > 1000L) {
+                delayMicroseconds(remain - 500L);
+            } else if (remain > 100L) {
                 delayMicroseconds(remain / 2);
             }
         } else remain = 0L;
-    } while (remain > 200L);
-
-    while (micros_diff(micros(), cycle_time) < (cycleMicroseconds - 10));
+    } while (remain > 100L);
 }
 
 void initClock() {

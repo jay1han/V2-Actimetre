@@ -19,7 +19,7 @@
 
 #define SCREENSAVER_MINS 5
 #define MEASURE_CYCLES   3000
-#define MEASURE_SECS     30
+#define MEASURE_SECS     60
 #define HEADER_LENGTH    5     // epoch(3), msec(2) 
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
 #define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)

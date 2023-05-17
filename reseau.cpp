@@ -10,7 +10,7 @@ static WiFiClient wifiClient;
 static int testMode = 0;
 
 QueueHandle_t msgQueue;
-#define QUEUE_SIZE 400
+#define QUEUE_SIZE 100
 unsigned char msgBuffer[BUFFER_LENGTH];
 int nUnqueue = 0;
 
@@ -64,7 +64,7 @@ static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
     while (sent == 0 && micros_diff(micros(), timeout) < 1000) {
-        sent = wifiClient.write(message, my.msgLength);
+        sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, my.msgLength);
@@ -208,7 +208,7 @@ static void printAndSaveNetwork() {
 
     int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
-    wifiClient.setNoDelay(false);
+    wifiClient.setNoDelay(true);
     wifiClient.setTimeout(1);
 }
 
