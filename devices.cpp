@@ -70,7 +70,6 @@ int readSensor(int port, int address, DataPoint *data) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     int n;
 
-    getTime(NULL, &data->micros);
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(0x3B) != 1) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
@@ -107,15 +106,16 @@ void deviceScanInit() {
 
     int port, address;
     my.sensorBits = 0;
+    my.nSensors = 0;
     for (port = 0; port <= 1; port++)
         for (address = 0; address <= 1; address++)
             if (detectSensor(port, address)) {
                 my.sensorBits |= 1 << (port * 4 + address);
                 my.nSensors++;
             }
-
-    my.sensorList[0] = 0;
+    my.msgLength = HEADER_LENGTH + DATA_LENGTH * my.nSensors;
     
+    my.sensorList[0] = 0;
     for (port = 0; port < 2; port++) {
         if (my.sensorPresent[port][0] || my.sensorPresent[port][1])
             sprintf(my.sensorList + strlen(my.sensorList), "%d", port + 1);

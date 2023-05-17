@@ -36,27 +36,23 @@ void setup() {
 
 // MAIN LOOP
 
-static long msgEpoch;
-static long msgMicros;
+static time_t msgBootEpoch;
+static int msgMicros;
 
 void formatHeader(unsigned char *message) {
-  getTime(&msgEpoch, &msgMicros);
-  msgEpoch -= my.bootTime;
-  unsigned long millis = msgMicros / 1000L;
-  message[0] = (msgEpoch << 16L) % 256L;
-  message[1] = (msgEpoch << 8L) % 256L;
-  message[2] = msgEpoch % 256L;
+  getTimeSinceBoot(&msgBootEpoch, &msgMicros);
+  int millis = msgMicros / 1000L;
+  message[0] = (msgBootEpoch << 16L) % 256L;
+  message[1] = (msgBootEpoch << 8L) % 256L;
+  message[2] = msgBootEpoch % 256L;
   message[3] = millis / 256L;
   message[4] = millis % 256L;
 }
 
 void formatData(unsigned char *message) {
-    long millis, micros;
-    getTime(NULL, &micros);
-    if (micros >= msgMicros) millis = (micros - msgMicros) / 1000L;
-    else millis = (micros + 1000000L - msgMicros) / 1000L;
-    message[0] = millis / 256;
-    message[1] = millis % 256;
+    int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
+    message[0] = offsetMillis / 256;
+    message[1] = offsetMillis % 256;
     memcpy(message + 2, data.readBuffer, 6);
     memcpy(message + 8, data.readBuffer + 8, 4);
 }
@@ -67,8 +63,8 @@ void loop() {
     
     unsigned long time_spent;
     esp_task_wdt_reset();
+    if (!isConnected()) ESP.restart();
 
-    displayLoop(0);
     manageButton();
 
     if (firstloop == 1) { // ignore first loop()
@@ -81,6 +77,7 @@ void loop() {
             Serial.println("Missed Cycle");
             nMissed[Core1I2C]++;
         } else {
+            displayLoop(0);
             waitNextCycle(cycle_time);
         }
     }

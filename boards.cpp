@@ -73,7 +73,7 @@ int cycleFrequency;
 unsigned long cycleMicroseconds;
 typedef enum {FREQ_BASE = 0, FREQ_TURBO, FREQ_COUNT} FreqCode;
 FreqCode freqCode = FREQ_BASE;
-static int Frequencies[BOARD_TYPES][FREQ_COUNT] = {{50, 100}, {50, 100}, {50, 100}, {100, 200}};
+static int Frequencies[BOARD_TYPES][FREQ_COUNT] = {{1, 50}, {50, 100}, {50, 100}, {100, 200}};
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", ".S3"};
 
 void setupBoard() {

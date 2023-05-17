@@ -44,15 +44,14 @@ static void getActimId() {
     Serial.printf("read: %d bytes, response=%02X%02X, %02X %02X %02X %02X\n",
                   err, response[0], response[1],
                   response[2], response[3], response[4], response[5]);
-    if (err < 0) ESP.restart();
     
     my.clientId = response[0] * 256 + response[1];
-    unsigned long bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
+    int bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
     struct timeval timeofday = {bootTime, 500000} ;
     settimeofday(&timeofday, 0);
     
     sprintf(my.clientName, "Actim%04d", my.clientId);
-    Serial.printf("%s, boot time = %lu\n", my.clientName, bootTime);
+    Serial.printf("%s, boot time = %d\n", my.clientName, bootTime);
 
     char message[16];
     sprintf(message, "%s%04d  %03d", VERSION_STR, my.clientId, my.serverId);
@@ -62,14 +61,16 @@ static void getActimId() {
 // Messaging functions
 
 static void sendMessage(unsigned char *message) {
-    int length = HEADER_LENGTH + DATA_LENGTH * my.nSensors;
-    int sent = wifiClient.write(message, length);
-    if (sent != length) {
-        Serial.printf("Sent only %d bytes out of %d\n", sent, length);
+    int timeout = micros();
+    int sent = 0;
+    while (sent == 0 && micros_diff(micros(), timeout) < 1000) {
+        sent = wifiClient.write(message, my.msgLength);
+    }
+    if (sent != my.msgLength) {
+        Serial.printf("Sent only %d bytes out of %d\n", sent, my.msgLength);
         wifiClient.stop();
         ESP.restart();
     }
-    wifiClient.flush();
 }
 
 static void queueMessage(unsigned char *message) {
@@ -106,8 +107,6 @@ static void Core0Loop(void *dummy_to_match_argument_signatue) {
         startWork = micros();
         esp_task_wdt_reset();
         
-        if (!isConnected()) ESP.restart();
-
         blinkLed(-1);
 
         sendMessage(msgBuffer);
@@ -165,7 +164,7 @@ static void findSsid(int nScan, char *ssid) {
     strcpy(my.ssid, ssid);
     sscanf(ssid + 5, "%d", &my.serverId);
     if (my.serverId == 997) {
-	      my.serverId = 117;
+        my.serverId = 3;
         my.serverPort = 60000;
     }
     else {
@@ -253,8 +252,7 @@ void netInit() {
         getActimId();
         initClock();
     }    
-    displayLoop(1);
-    displayLoop(1);
+    displayLoop(2);
 
     if (my.dualCore)
         setupCore0(Core0Loop);

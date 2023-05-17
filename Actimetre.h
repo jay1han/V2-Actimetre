@@ -58,11 +58,13 @@ typedef struct {
     unsigned int serverPort;
     int rssi;
     time_t bootTime;
+    float temperature;
 
     int displayPresent;
     int sensorPresent[2][2];
     unsigned char sensorBits;
     int nSensors;
+    int msgLength;
     char sensorList[10];
 } MyInfo;
 
@@ -125,7 +127,8 @@ void initClock();
 void initClockNoNTP();
 int isMinutePast();
 int isCastTime();
-void getTime(long *sec, long *usec);
+void getTimeSinceBoot(time_t *sec, int *usec);
+int getRelMicroseconds(time_t sec, int usec);
 unsigned long millis_diff(unsigned long end, unsigned long start);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);

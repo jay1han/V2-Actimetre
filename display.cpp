@@ -189,9 +189,9 @@ static void displayRssi(int step) {
     case 0:
         if (my.rssi != 0) {
             int bars;
-            if (my.rssi > -32) bars = 7;
-            else if (my.rssi <= -116) bars = 0;
-            else bars = (my.rssi + 102) / 10;
+            if (my.rssi > -28) bars = 7;
+            else if (my.rssi <= -98) bars = 0;
+            else bars = (my.rssi + 98) / 10;
             textRssi = 0x81 + bars;
         }
         write_char16(RSSI_POS, 0, textRssi);
@@ -252,6 +252,7 @@ void displayLoop(int force) {
     static int saver = 0;
     static int scanLine = 0;
 
+    if (!my.displayPresent) return;
     if ((force == 1) || (cycleFrequency < 30)) {
         ssd1306_on();
         saver = 0;
