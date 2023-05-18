@@ -133,7 +133,7 @@ static unsigned long nCycles[CoreNumMax] = {0, 0};
 void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     if (time_spent > BOGUS_CYCLE) return;  // don't count outliers
 
-    if (time(NULL) - mark > MEASURE_SECS || nCycles[1] > MEASURE_CYCLES) {
+    if (time(NULL) - mark > MEASURE_SECS) {
         nCycles[0] = nCycles[1] = 0;
         nMissed[0] = nMissed[1] = 0;
         nUnqueue = 0;

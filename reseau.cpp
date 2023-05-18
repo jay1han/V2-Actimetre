@@ -101,7 +101,7 @@ int isConnected(unsigned long startMicros) {
         xQueueReset(msgQueue);
         Serial.print("Queue more than 80%, cleared");
     } else {
-        while ((micros_diff(micros(), startMicros) > 1000L)
+        while ((cycleMicroseconds - micros_diff(micros(), startMicros) > 1000L)
                && xQueueReceive(msgQueue, msgBuffer, 1) == pdTRUE) {
             sendMessage(msgBuffer);
         }
@@ -227,7 +227,6 @@ static void printAndSaveNetwork() {
     int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
     wifiClient.setNoDelay(false);
-    wifiClient.setTimeout(1);
 }
 
 // Huge and ugly but that's the way it is.

@@ -18,7 +18,6 @@
 #define LCD_V_RES 64
 
 #define SCREENSAVER_MINS 5
-#define MEASURE_CYCLES   3000
 #define MEASURE_SECS     60
 #define HEADER_LENGTH    5     // epoch(3), msec(2) 
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
