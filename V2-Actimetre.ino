@@ -63,7 +63,7 @@ void loop() {
     
     unsigned long time_spent;
     esp_task_wdt_reset();
-    if (!isConnected()) ESP.restart();
+    if (!isConnected(cycle_time)) ESP.restart();
 
     manageButton();
 

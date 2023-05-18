@@ -81,22 +81,40 @@ static void queueMessage(unsigned char *message) {
 
 void sendMessageProcess(unsigned char *message) {
     if (testMode) return;
-    if (my.dualCore) {
-        queueMessage(message);
-    } else {
-        sendMessage(message);
+    queueMessage(message);
+}
+
+// Check connection still working and process message queue
+
+int isConnected(unsigned long startMicros) {
+    if (testMode) return 1;
+    
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("\nNetwork disconnected. Rebooting");
+        writeLine("WiFi lost");
+        ESP.restart();
     }
+
+    int availableSpaces;
+    if ((availableSpaces = uxQueueSpacesAvailable(msgQueue)) < QUEUE_SIZE / 5) {
+        nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
+        xQueueReset(msgQueue);
+        Serial.print("Queue more than 80%, cleared");
+    } else {
+        while ((micros_diff(micros(), startMicros) > 1000L)
+               && xQueueReceive(msgQueue, msgBuffer, 1) == pdTRUE) {
+            sendMessage(msgBuffer);
+        }
+    }    
+
+    my.rssi = WiFi.RSSI();
+    return 1;
 }
 
 static void Core0Loop(void *dummy_to_match_argument_signatue) {
     if (testMode) return;
 
     Serial.printf("Core %d started\n", xPortGetCoreID());
-    msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
-    if (msgQueue == 0) {
-        Serial.println("Error creating queue, rebooting");
-        ESP.restart();
-    }
     
     int availableSpaces;
     unsigned long startWork;
@@ -208,7 +226,7 @@ static void printAndSaveNetwork() {
 
     int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
-    wifiClient.setNoDelay(true);
+    wifiClient.setNoDelay(false);
     wifiClient.setTimeout(1);
 }
 
@@ -254,21 +272,12 @@ void netInit() {
     }    
     displayLoop(2);
 
-    if (my.dualCore)
-        setupCore0(Core0Loop);
-}
-
-// Check connection still working, otherwise reboot
-
-int isConnected() {
-    if (testMode) return 1;
-    
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("\nNetwork disconnected. Rebooting");
-        writeLine("WiFi lost");
+    msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
+    if (msgQueue == 0) {
+        Serial.println("Error creating queue, rebooting");
         ESP.restart();
     }
 
-    my.rssi = WiFi.RSSI();
-    return 1;
+    if (my.dualCore)
+        setupCore0(Core0Loop);
 }

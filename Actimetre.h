@@ -87,7 +87,7 @@ void writeLine(char *message);
 
 // reseau.cpp
 void netInit();
-int isConnected();
+int isConnected(unsigned long startMicros);
 void sendMessageProcess(unsigned char *message);
 void netCore0(void *dummy_to_match_argument_signatue);
 extern QueueHandle_t mqttQueue;
@@ -110,7 +110,7 @@ void setupBoard();
 void blinkLed(int color);
 int buttonPressed();
 void manageButton();
-void setupCore0(void (*code0Loop)(void*));
+void setupCore0(void (*core0Loop)(void*));
 
 #define COLOR_WHITE   0x0FFF
 #define COLOR_BLUE    0x000F
