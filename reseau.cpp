@@ -7,7 +7,6 @@
 #define ACTI_PORT 2883
 
 static WiFiClient wifiClient;
-static int testMode = 0;
 
 QueueHandle_t msgQueue;
 #define QUEUE_SIZE 100
@@ -75,22 +74,15 @@ static void sendMessage(unsigned char *message) {
     }
 }
 
-static void queueMessage(unsigned char *message) {
+void queueMessage(unsigned char *message) {
     if (xQueueSend(msgQueue, message, 0) != pdPASS) {
         nUnqueue++;
     }
 }
 
-void sendMessageProcess(unsigned char *message) {
-    if (testMode) return;
-    queueMessage(message);
-}
-
 // Check connection still working and process message queue
 
-int isConnected(unsigned long startMicros) {
-    if (testMode) return 1;
-    
+int isConnected() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("\nNetwork disconnected. Rebooting");
         writeLine("WiFi lost");
@@ -103,7 +95,8 @@ int isConnected(unsigned long startMicros) {
         xQueueReset(msgQueue);
         Serial.print("Queue more than 80%, cleared");
     } else {
-        while ((cycleMicroseconds - micros_diff(micros(), startMicros) > 1200L)
+        unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
+        while (cycleMicroseconds - micros_diff(micros(), startMicros) > 2000L
                && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
             sendMessage(msgBuffer);
         }
@@ -114,8 +107,6 @@ int isConnected(unsigned long startMicros) {
 }
 
 static void Core0Loop(void *dummy_to_match_argument_signatue) {
-    if (testMode) return;
-
     Serial.printf("Core %d started\n", xPortGetCoreID());
     
     int availableSpaces;
@@ -245,34 +236,30 @@ void netInit() {
     int nScan;
     nScan = scanNetworks();
     
-    if (buttonPressed()) {
-        testMode = 1;
-        displayTitle("TEST MODE");
-    } else {
-        char ssid[10] = "";
-        findSsid(nScan, ssid);
+    char ssid[10] = "";
+    findSsid(nScan, ssid);
 
-        WiFi.scanDelete();
-        WiFi.disconnect(true, true);
-        delay(100);
+    WiFi.scanDelete();
+    WiFi.disconnect(true, true);
+    delay(100);
 
-        char pass[] = "000animalerie-eops";
-        memcpy(pass, ssid + 5, 3);
-        WiFi.begin(ssid, pass);
-        Serial.print(" Connecting ");
-        writeLine("Connecting");
-        blinkLed(0);
+    char pass[] = "000animalerie-eops";
+    memcpy(pass, ssid + 5, 3);
+    WiFi.begin(ssid, pass);
+    Serial.print(" Connecting ");
+    writeLine("Connecting");
+    blinkLed(0);
 
-        waitConnected();
+    waitConnected();
 
-        printAndSaveNetwork();
+    printAndSaveNetwork();
 
-        WiFi.setAutoReconnect(true);
-        blinkLed(1);
+    WiFi.setAutoReconnect(true);
+    blinkLed(1);
     
-        time_t bootEpoch = getActimIdAndTime();
-	initClock(bootEpoch);
-    }    
+    time_t bootEpoch = getActimIdAndTime();
+    initClock(bootEpoch);
+
     displayLoop(2);
 
     msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);

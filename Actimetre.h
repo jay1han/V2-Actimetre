@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "190"
+#define VERSION_STR "191"
 
 // CONSTANTS
 
@@ -86,8 +86,8 @@ void writeLine(char *message);
 
 // reseau.cpp
 void netInit();
-int isConnected(unsigned long startMicros);
-void sendMessageProcess(unsigned char *message);
+int isConnected();
+void queueMessage(unsigned char *message);
 void netCore0(void *dummy_to_match_argument_signatue);
 extern QueueHandle_t mqttQueue;
 extern int mqttQueueSize;
@@ -132,7 +132,7 @@ unsigned long millis_diff(unsigned long end, unsigned long start);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);
 unsigned long micros_diff_10(unsigned long end, unsigned long start);
-void waitNextCycle(unsigned long cycle_time);
+void waitNextCycle();
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
 void clearCycleTime();
 

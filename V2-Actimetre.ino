@@ -42,6 +42,7 @@ static int msgMicros;
 void formatHeader(unsigned char *message) {
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
     int millis = msgMicros / 1000L;
+    Serial.printf("Header: %d.%03d", msgBootEpoch, millis);
     message[0] = (msgBootEpoch >> 16) % 256;
     message[1] = (msgBootEpoch >> 8) % 256;
     message[2] = msgBootEpoch % 256;
@@ -51,6 +52,7 @@ void formatHeader(unsigned char *message) {
 
 void formatData(unsigned char *message) {
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
+    Serial.printf(" +%03d", offsetMillis);
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;
     memcpy(message + 2, data.readBuffer, 6);
@@ -58,30 +60,18 @@ void formatData(unsigned char *message) {
 }
 
 void loop() {
-    static int firstloop = 1;
-    static unsigned long cycle_time = 0L;
+    static int firstLoop = 1;
+    static unsigned long cycle_time;
     
-    unsigned long time_spent;
     esp_task_wdt_reset();
-    if (!isConnected(cycle_time)) ESP.restart();
-
     manageButton();
 
-    if (firstloop == 1) { // ignore first loop()
-        firstloop = 0;
-    }
-    else {
-        time_spent = micros_diff(micros(), cycle_time);
-        logCycleTime(Core1I2C, time_spent);
-        if (time_spent > cycleMicroseconds) {
-            Serial.println("Missed Cycle");
-            nMissed[Core1I2C]++;
-        } else {
-            displayLoop(0);
-            waitNextCycle(cycle_time);
-        }
-    }
+    if (!isConnected()) ESP.restart();
+
+    if (firstLoop == 1) firstLoop = 0;    // ignore first loop()
+    else logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
     
+    waitNextCycle();
     cycle_time = micros();
 
     int port, address = 0;
@@ -100,8 +90,9 @@ void loop() {
             }
         }
     }
-
-    sendMessageProcess(message);
+    Serial.println("");
+    
+    queueMessage(message);
 }
 
 // UTILITY FUNCTION
