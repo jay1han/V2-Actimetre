@@ -24,10 +24,11 @@ static void getActimId() {
     memcpy(initMessage + 3, my.mac, 6);
     initMessage[9] = my.sensorBits;
 
-    int err = wifiClient.write(initMessage, INIT_LENGTH);
-    if (err != INIT_LENGTH) {
-        Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
-        ESP.restart();
+    int err = 0;
+    err = wifiClient.write(initMessage, INIT_LENGTH);
+    if (err < INIT_LENGTH) {
+	Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
+	ESP.restart();
     }
     unsigned char response[RESPONSE_LENGTH];
 
@@ -63,7 +64,7 @@ static void getActimId() {
 static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
-    while (sent == 0 && micros_diff(micros(), timeout) < 1000) {
+    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1000) {
         sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
@@ -101,8 +102,8 @@ int isConnected(unsigned long startMicros) {
         xQueueReset(msgQueue);
         Serial.print("Queue more than 80%, cleared");
     } else {
-        while ((cycleMicroseconds - micros_diff(micros(), startMicros) > 1000L)
-               && xQueueReceive(msgQueue, msgBuffer, 1) == pdTRUE) {
+        while ((cycleMicroseconds - micros_diff(micros(), startMicros) > 1200L)
+               && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
             sendMessage(msgBuffer);
         }
     }    
@@ -182,7 +183,7 @@ static void findSsid(int nScan, char *ssid) {
     strcpy(my.ssid, ssid);
     sscanf(ssid + 5, "%d", &my.serverId);
     if (my.serverId == 997) {
-        my.serverId = 3;
+        my.serverId = 44;
         my.serverPort = 60000;
     }
     else {
@@ -211,7 +212,7 @@ static void printAndSaveNetwork() {
         strcpy(my.serverIP, "home.jayhan.name");
     else
         strcpy(my.serverIP, WiFi.gatewayIP().toString().c_str());
-    Serial.print(" AP IP=");
+    Serial.print(" Server=");
     Serial.println(my.serverIP);
 
     String ipString = WiFi.localIP().toString();
@@ -224,9 +225,11 @@ static void printAndSaveNetwork() {
     writeLine(myIPstring);
     my.rssi = WiFi.RSSI();
 
-    int err = wifiClient.connect(my.serverIP, ACTI_PORT);
+    Serial.printf("Socket to %s:%d\n", my.serverIP, ACTI_PORT + my.serverPort);
+    int err = wifiClient.connect(my.serverIP, ACTI_PORT + my.serverPort);
     Serial.printf("connect() returned %d\n", err);
     wifiClient.setNoDelay(false);
+    wifiClient.setTimeout(1);
 }
 
 // Huge and ugly but that's the way it is.

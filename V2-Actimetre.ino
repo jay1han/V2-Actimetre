@@ -42,8 +42,8 @@ static int msgMicros;
 void formatHeader(unsigned char *message) {
   getTimeSinceBoot(&msgBootEpoch, &msgMicros);
   int millis = msgMicros / 1000L;
-  message[0] = (msgBootEpoch << 16L) % 256L;
-  message[1] = (msgBootEpoch << 8L) % 256L;
+  message[0] = (msgBootEpoch >> 16L) % 256L;
+  message[1] = (msgBootEpoch >> 8L) % 256L;
   message[2] = msgBootEpoch % 256L;
   message[3] = millis / 256L;
   message[4] = millis % 256L;
