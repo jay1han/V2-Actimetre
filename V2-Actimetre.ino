@@ -40,13 +40,13 @@ static time_t msgBootEpoch;
 static int msgMicros;
 
 void formatHeader(unsigned char *message) {
-  getTimeSinceBoot(&msgBootEpoch, &msgMicros);
-  int millis = msgMicros / 1000L;
-  message[0] = (msgBootEpoch >> 16L) % 256L;
-  message[1] = (msgBootEpoch >> 8L) % 256L;
-  message[2] = msgBootEpoch % 256L;
-  message[3] = millis / 256L;
-  message[4] = millis % 256L;
+    getTimeSinceBoot(&msgBootEpoch, &msgMicros);
+    int millis = msgMicros / 1000L;
+    message[0] = (msgBootEpoch >> 16) % 256;
+    message[1] = (msgBootEpoch >> 8) % 256;
+    message[2] = msgBootEpoch % 256;
+    message[3] = millis / 256;
+    message[4] = millis % 256;
 }
 
 void formatData(unsigned char *message) {
@@ -83,7 +83,6 @@ void loop() {
     }
     
     cycle_time = micros();
-    Serial.printf("Time millis = %d\n", cycle_time / 1000);
 
     int port, address = 0;
     formatHeader(message);

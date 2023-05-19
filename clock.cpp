@@ -37,17 +37,16 @@ int isMinutePast() {
 void waitNextCycle(unsigned long cycle_time) {
     unsigned long remain, elapsed;
 
-    do {
-        elapsed = micros_diff(micros(), cycle_time);
-        if (elapsed < cycleMicroseconds) {
-            remain = cycleMicroseconds - elapsed;
-            if (remain > 1000L) {
-                delayMicroseconds(remain - 500L);
-            } else if (remain > 100L) {
-                delayMicroseconds(remain / 2);
-            }
-        } else remain = 0L;
-    } while (remain > 100L);
+    elapsed = micros_diff(micros(), cycle_time);
+    if (elapsed < cycleMicroseconds) {
+        remain = cycleMicroseconds - elapsed;
+        if (remain > 2000L)
+            delayMicroseconds(remain - 2000L);
+        do {
+            remain = cycleMicroseconds - micros_diff(micros(), cycle_time);
+        } while (remain > 120);
+    } else
+        remain = 0L;
 }
 
 void initClock(time_t bootEpoch) {
@@ -61,7 +60,7 @@ void initClock(time_t bootEpoch) {
     init_complete = true;
 
     struct tm timeinfo;
-    gmtime_r(&bootEpoch, &timeinfo);ㅂ
+    gmtime_r(&bootEpoch, &timeinfo);
     Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
                   timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
