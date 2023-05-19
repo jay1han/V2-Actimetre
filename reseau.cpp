@@ -14,7 +14,7 @@ QueueHandle_t msgQueue;
 unsigned char msgBuffer[BUFFER_LENGTH];
 int nUnqueue = 0;
 
-#define INIT_LENGTH      10   // boardName = 3, MAC = 6, Sensors = 1 : Total 10
+#define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
 static time_t getActimIdAndTime() {
     static unsigned char initMessage[INIT_LENGTH];
@@ -23,6 +23,7 @@ static time_t getActimIdAndTime() {
     memcpy(initMessage, my.boardName, 3);
     memcpy(initMessage + 3, my.mac, 6);
     initMessage[9] = my.sensorBits;
+    memcpy(initMessage + 10, VERSION_STR, 3);
 
     int err = 0;
     err = wifiClient.write(initMessage, INIT_LENGTH);
@@ -53,7 +54,7 @@ static time_t getActimIdAndTime() {
     Serial.println(my.clientName);
 
     char message[16];
-    sprintf(message, "%s%04d  %03d", VERSION_STR, my.clientId, my.serverId);
+    sprintf(message, "v%s>%04d  %03d", VERSION_STR, my.clientId, my.serverId);
     displayTitle(message);
 
     return bootTime;
