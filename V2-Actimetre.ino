@@ -83,6 +83,7 @@ void loop() {
     }
     
     cycle_time = micros();
+    Serial.printf("Time millis = %d\n", cycle_time / 1000);
 
     int port, address = 0;
     formatHeader(message);

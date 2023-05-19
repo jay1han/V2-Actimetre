@@ -122,7 +122,7 @@ void setupCore0(void (*core0Loop)(void*));
 
 // clock.cpp
 void feedWatchdog();
-void initClock();
+void initClock(time_t bootEpoch);
 void initClockNoNTP();
 int isMinutePast();
 int isCastTime();

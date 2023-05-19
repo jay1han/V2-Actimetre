@@ -16,7 +16,7 @@ int nUnqueue = 0;
 
 #define INIT_LENGTH      10   // boardName = 3, MAC = 6, Sensors = 1 : Total 10
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
-static void getActimId() {
+static time_t getActimIdAndTime() {
     static unsigned char initMessage[INIT_LENGTH];
     Serial.print("Getting name and time ");
 
@@ -47,16 +47,16 @@ static void getActimId() {
                   response[2], response[3], response[4], response[5]);
     
     my.clientId = response[0] * 256 + response[1];
-    int bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
-    struct timeval timeofday = {bootTime, 500000} ;
-    settimeofday(&timeofday, 0);
+    time_t bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
     
     sprintf(my.clientName, "Actim%04d", my.clientId);
-    Serial.printf("%s, boot time = %d\n", my.clientName, bootTime);
+    Serial.println(my.clientName);
 
     char message[16];
     sprintf(message, "%s%04d  %03d", VERSION_STR, my.clientId, my.serverId);
     displayTitle(message);
+
+    return bootTime;
 }
 
 // Messaging functions
@@ -269,8 +269,8 @@ void netInit() {
         WiFi.setAutoReconnect(true);
         blinkLed(1);
     
-        getActimId();
-        initClock();
+        time_t bootEpoch = getActimIdAndTime();
+	initClock(bootEpoch);
     }    
     displayLoop(2);
 

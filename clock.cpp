@@ -14,9 +14,9 @@
 #define ROLLOVER_MICROS      967296L
 #define ROLLOVER_TEN_MICROS  4967296L
 
-static int micros_last = 0;
-static int micros_offset = 0;
-static int micros_actual;
+static unsigned long micros_last = 0;
+static unsigned long micros_offset = 0;
+static unsigned long micros_actual;
 static bool init_complete = false;
 static time_t minuteTimer = 0;
 
@@ -50,50 +50,49 @@ void waitNextCycle(unsigned long cycle_time) {
     } while (remain > 100L);
 }
 
-void initClock() {
-    time_t now = time(NULL);
-    struct tm timeinfo;
-
-    while (time(NULL) == now);
-    now = time(NULL);
-    startMinuteCount();
-    
+void initClock(time_t bootEpoch) {
     micros_last = micros();
-    micros_offset = ONE_MEGA - (micros_last % ONE_MEGA);
-    Serial.printf("offset=%d ", micros_offset);
+    struct timeval timeofday = {bootEpoch, micros_last % ONE_MEGA} ;
+    settimeofday(&timeofday, 0);
+    micros_offset = 0;
+    
+    startMinuteCount();
+    my.bootTime = bootEpoch;
     init_complete = true;
 
-    my.bootTime = now;
-    gmtime_r(&now, &timeinfo);
+    struct tm timeinfo;
+    gmtime_r(&bootEpoch, &timeinfo);ㅂ
     Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
                   timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 }
 
-void getTimeSinceBoot(time_t *sec, int *usec) {
-    if (!init_complete) initClock();
-    if (sec != NULL) *sec = time(NULL) - my.bootTime;
+static int getMicrosActual(time_t *sec) {
     if (micros() < micros_last) {
-        micros_offset = (micros_offset + ROLLOVER_MICROS) % ONE_MEGA;
+        micros_offset = micros_offset + (ROLLOVER_MICROS % ONE_MEGA);
     }
     micros_last = micros();
-    micros_actual = ((micros_last % ONE_MEGA) + micros_offset) % ONE_MEGA;
-    *usec = micros_actual;
+    micros_actual = (micros_last % ONE_MEGA) + micros_offset;
+    while (micros_actual >= ONE_MEGA) {
+	*sec ++;
+	micros_actual -= ONE_MEGA;
+    }
+    return micros_actual;
+}
+
+void getTimeSinceBoot(time_t *sec, int *usec) {
+    if (sec != NULL) *sec = time(NULL) - my.bootTime;
+    *usec = getMicrosActual(sec);
 }
 
 int getRelMicroseconds(time_t secRef, int usecRef) {
-    if (micros() < micros_last) {
-        micros_offset = (micros_offset + ROLLOVER_MICROS) % ONE_MEGA;
-    }
-    micros_last = micros();
-    micros_actual = ((micros_last % ONE_MEGA) + micros_offset) % ONE_MEGA;
-    time_t diff_sec = time(NULL) - secRef - my.bootTime;
-    int diff_usec = micros_actual - usecRef;
+    time_t sec = time(NULL);
+    int diff_usec = getMicrosActual(&sec) - usecRef;
     if (diff_usec < 0) {
         diff_usec += 1000000;
-        diff_sec -= 1;
+        sec -= 1;
     }
-    return diff_sec * 1000000 + diff_usec;
+    return (sec - secRef - my.bootTime) * 1000000 + diff_usec;
 }
 
 unsigned long millis_diff(unsigned long end, unsigned long start) {
