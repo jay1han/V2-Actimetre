@@ -136,9 +136,22 @@ void initDisplay() {
     ssd1306_showall();
 }
 
+static void write_block(int x, int y) {
+    int pixel_x = x * FONT_PITCH_16;
+
+    write_cmd(0xB0 | y);
+    write_cmd(0x00 | (pixel_x & 0x0F));
+    write_cmd(0x10 | (pixel_x >> 4));
+    Wire.beginTransmission(SSD1306_ADDR);
+    Wire.write(0x40);
+    Wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
+    Wire.endTransmission();
+}
+
 #define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
 
-#define TEXT_STEPS 3
+#define TEXT_STEPS 5
+#define BLINK_POS  4
 static void textPanel(int step) {
     switch(step) {
     case 0:
@@ -154,28 +167,24 @@ static void textPanel(int step) {
             sprintf(textBuffer[1], "M%d,%d E%d Q%d", nMissed[1], nMissed[0], nError, nUnqueue);
         else
             sprintf(textBuffer[1], "M%d E%d", nMissed[1], nError);
-        strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]) - 1);
+        strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
 
     case 2:
-        static int blink = ' ';
-        if (blink == ' ') blink = '*';
+        static unsigned char blink = ' ';
+        if (blink == ' ') blink = '>';
         else blink = ' ';
-        textBuffer[1][CHAR_PER_LINE_16 - 1] = blink;
+        write_char16(BLINK_POS, 0, blink);
+        break;
+
+    case 3:
+        write_block(BLINK_POS, 0);
+        break;
+
+    case 4:
+        write_block(BLINK_POS, 1);
         break;
     }
-}
-
-static void write_block(int x, int y) {
-    int pixel_x = x * FONT_PITCH_16;
-
-    write_cmd(0xB0 | y);
-    write_cmd(0x00 | (pixel_x & 0x0F));
-    write_cmd(0x10 | (pixel_x >> 4));
-    Wire.beginTransmission(SSD1306_ADDR);
-    Wire.write(0x40);
-    Wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
-    Wire.endTransmission();
 }
 
 #define RSSI_POS 10
@@ -230,54 +239,48 @@ static void displayScanLine(int scanLine) {
 
 void displayScan(int scanLine) {
     if (scanLine == TOTAL_SCAN_LINE - 1) {
+        blinkLed(-1);
         return;
     }
-        
-    switch (scanLine) {
-    case 0: case 1: case 2:
-        displayRssi(scanLine);
-        break;
 
-    case 3: case 4: case 5:
-        textPanel(scanLine - RSSI_STEPS);
-        break;
-                
-    default:
-        displayScanLine(scanLine - RSSI_STEPS - TEXT_STEPS);
-        break;
-    }
+    if (scanLine < RSSI_STEPS) displayRssi(scanLine);
+    else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);
+    else displayScanLine(scanLine - RSSI_STEPS - TEXT_STEPS);
 }    
 
 void displayLoop(int force) {
     static int saver = 0;
     static int scanLine = 0;
 
-    if (!my.displayPresent) return;
-    if ((force == 1) || (cycleFrequency < 30)) {
-        ssd1306_on();
-        saver = 0;
-        for (scanLine = 0; scanLine < TOTAL_SCAN_LINE; scanLine++)
-            displayScan(scanLine);
-        scanLine = 0;
-    } else if (force == 2) {
-        saver = 0;
-        ssd1306_on();
-    } else {
-        if(isMinutePast()) {
-            uptime++;
-            saver++;
-            if (saver == SCREENSAVER_MINS) {
-                Serial.println("Screensaver");
-                ssd1306_off();
-            } else if (saver > SCREENSAVER_MINS) {
-                Serial.printf("%dh%02d %.1f,%.1f ", uptime / 60, uptime % 60,
-                              avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-                Serial.printf("M%d,%d Q%d E%d\n", nMissed[1], nMissed[0], nUnqueue, nError);
+    if (my.displayPresent) {
+        if ((force == 1) || (cycleFrequency < 30)) {
+            ssd1306_on();
+            saver = 0;
+            for (scanLine = 0; scanLine < TOTAL_SCAN_LINE; scanLine++)
+                displayScan(scanLine);
+            scanLine = 0;
+        } else if (force == 2) {
+            saver = 0;
+            ssd1306_on();
+        } else {
+            if(isMinutePast()) {
+                uptime++;
+                saver++;
+                if (saver == SCREENSAVER_MINS) {
+                    Serial.println("Screensaver");
+                    ssd1306_off();
+                } else if (saver > SCREENSAVER_MINS) {
+                    Serial.printf("%dh%02d %.1f,%.1f ", uptime / 60, uptime % 60,
+                                  avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+                    Serial.printf("M%d,%d Q%d E%d\n", nMissed[1], nMissed[0], nUnqueue, nError);
+                }
             }
-        }
-        if (saver < SCREENSAVER_MINS) {
-            displayScan(scanLine);
             scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
+            if (saver < SCREENSAVER_MINS) displayScan(scanLine);
+            else if (scanLine == 0) blinkLed(-1);
         }
+    } else {
+        scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
+        if (scanLine == 0) blinkLed(-1);
     }
 }

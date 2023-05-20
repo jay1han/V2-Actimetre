@@ -220,6 +220,10 @@ static void printAndSaveNetwork() {
     Serial.printf("Socket to %s:%d\n", my.serverIP, ACTI_PORT + my.serverPort);
     int err = wifiClient.connect(my.serverIP, ACTI_PORT + my.serverPort);
     Serial.printf("connect() returned %d\n", err);
+    if (err == 0) {
+        Serial.println("Rebooting");
+        ESP.restart();
+    }
     wifiClient.setNoDelay(false);
     wifiClient.setTimeout(1);
 }

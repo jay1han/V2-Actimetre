@@ -42,7 +42,6 @@ static int msgMicros;
 void formatHeader(unsigned char *message) {
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
     int millis = msgMicros / 1000L;
-    Serial.printf("Header: %d.%03d", msgBootEpoch, millis);
     message[0] = (msgBootEpoch >> 16) % 256;
     message[1] = (msgBootEpoch >> 8) % 256;
     message[2] = msgBootEpoch % 256;
@@ -52,7 +51,6 @@ void formatHeader(unsigned char *message) {
 
 void formatData(unsigned char *message) {
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
-    Serial.printf(" +%03d", offsetMillis);
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;
     memcpy(message + 2, data.readBuffer, 6);
@@ -90,7 +88,6 @@ void loop() {
             }
         }
     }
-    Serial.println("");
     
     queueMessage(message);
 }
