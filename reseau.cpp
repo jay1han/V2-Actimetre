@@ -64,7 +64,7 @@ static time_t getActimIdAndTime() {
 static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
-    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1000) {
+    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1500) {
         sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
