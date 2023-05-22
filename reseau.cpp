@@ -158,46 +158,42 @@ static int scanNetworks() {
     return nScan;
 }
 
-static void findSsid(int nScan, char *ssid) {
+static char ssidList[5][10];
+static int nActis = 0;
+static void findSsid(int nScan) {
     int i;
+    char ssid[10];
     for (i = 0; i < nScan; i++) {
         strncpy(ssid, WiFi.SSID(i).c_str(), 9);
         ssid[9] = 0;  // always careful
-        if (strncmp(ACTISERVER, ssid, 5) == 0) break;
+        if (strncmp(ACTISERVER, ssid, 5) == 0) {
+            strcpy(ssidList[nActis], ssid);
+            nActis ++;
+            if (nActis == 5) break;
+        }
     }
-    if (i >= nScan) {
+    if (nActis == 0) {
         Serial.println("\nCan't find server, rebooting");
         ESP.restart();
     }
-
-    Serial.print(ssid);
-    writeLine(ssid);
-    strcpy(my.ssid, ssid);
-    sscanf(ssid + 5, "%d", &my.serverId);
-    if (my.serverId == 997) {
-        my.serverId = 44;
-        my.serverPort = 60000;
-    }
-    else {
-        my.serverPort = 0;
-    }
 }
 
-static void waitConnected() {
+static int waitConnected() {
     int wait = 0;
     while (WiFi.status() != WL_CONNECTED) {
         Serial.printf("%d ", WiFi.status());
         blinkLed(-1);
         wait++;
         if (wait > 10) {
-            Serial.println("Failed!\nRebooting");
-            ESP.restart();
+            Serial.println("Failed!");
+            return 0;
         }
         delay(1000);
     }
+    return 1;
 }
 
-static void printAndSaveNetwork() {
+static int printAndSaveNetwork() {
     Serial.print(" Connected! IP=");
     Serial.print(WiFi.localIP());
     if (my.serverPort > 0)
@@ -221,11 +217,12 @@ static void printAndSaveNetwork() {
     int err = wifiClient.connect(my.serverIP, ACTI_PORT + my.serverPort);
     Serial.printf("connect() returned %d\n", err);
     if (err == 0) {
-        Serial.println("Rebooting");
-        ESP.restart();
+        Serial.println("Connection refused");
+        return 0;
     }
     wifiClient.setNoDelay(false);
     wifiClient.setTimeout(1);
+    return 1;
 }
 
 // Huge and ugly but that's the way it is.
@@ -240,23 +237,40 @@ void netInit() {
     int nScan;
     nScan = scanNetworks();
     
-    char ssid[10] = "";
-    findSsid(nScan, ssid);
+    findSsid(nScan);
 
-    WiFi.scanDelete();
-    WiFi.disconnect(true, true);
-    delay(100);
+    int i;
+    for (i = 0; i < nActis; i++) {
+        Serial.print(ssidList[i]);
+        writeLine(ssidList[i]);
+        strcpy(my.ssid, ssidList[i]);
+        sscanf(my.ssid + 5, "%d", &my.serverId);
+        if (my.serverId == 997) {
+            my.serverId = 200;
+            my.serverPort = 60000;
+        }
+        else {
+            my.serverPort = 0;
+        }
 
-    char pass[] = "000animalerie-eops";
-    memcpy(pass, ssid + 5, 3);
-    WiFi.begin(ssid, pass);
-    Serial.print(" Connecting ");
-    writeLine("Connecting");
-    blinkLed(0);
+        WiFi.scanDelete();
+        WiFi.disconnect(true, true);
+        delay(100);
 
-    waitConnected();
+        char pass[] = "000animalerie-eops";
+        memcpy(pass, my.ssid + 5, 3);
+        WiFi.begin(my.ssid, pass);
+        Serial.print(" Connecting ");
+        writeLine("Connecting");
+        blinkLed(0);
 
-    printAndSaveNetwork();
+        if (!waitConnected()) continue;
+        if (printAndSaveNetwork()) break;
+    }
+    if (i == nActis) {
+        Serial.println("\nCan't connect to any server, rebooting");
+        ESP.restart();
+    }
 
     WiFi.setAutoReconnect(true);
     blinkLed(1);
