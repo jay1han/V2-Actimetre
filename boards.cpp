@@ -73,7 +73,8 @@ int cycleFrequency;
 unsigned long cycleMicroseconds;
 typedef enum {FREQ_BASE = 0, FREQ_TURBO, FREQ_COUNT} FreqCode;
 FreqCode freqCode = FREQ_BASE;
-static int Frequencies[BOARD_TYPES][FREQ_COUNT] = {{50, 100}, {50, 100}, {50, 1}, {100, 1}};
+static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {{50, 100}, {50, 100}, {50, 1},  {100, 1}};
+static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {{0,  1},   {0,  1},   {1,  15}, {1,   15}}; 
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", ".S3"};
 
 void setupBoard() {
@@ -133,6 +134,7 @@ void setupBoard() {
 
     cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
     cycleMicroseconds = 1000000L / cycleFrequency;
+    my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];
 }
 
 TaskHandle_t core0Task;
@@ -147,6 +149,7 @@ static void switchFrequency() {
     freqCode = (FreqCode) (((int)freqCode + 1) % FREQ_COUNT);
     cycleFrequency = Frequencies[my.boardType][freqCode];
     cycleMicroseconds = 1000000L / cycleFrequency;
+    my.frequencyCode = FrequencyCode[my.boardType][freqCode];
     Serial.printf("Running at %dHz = %dus\n", cycleFrequency, cycleMicroseconds);
     displaySensors();
     clearCycleTime();

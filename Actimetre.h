@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "192"
+#define VERSION_STR "193"
 
 // CONSTANTS
 
@@ -57,7 +57,7 @@ typedef struct {
     unsigned int serverPort;
     int rssi;
     time_t bootTime;
-    float temperature;
+    int frequencyCode;
 
     int displayPresent;
     int sensorPresent[2][2];
