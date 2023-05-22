@@ -197,10 +197,7 @@ static int waitConnected() {
 static int printAndSaveNetwork() {
     Serial.print(" Connected! IP=");
     Serial.print(WiFi.localIP());
-    if (my.serverPort > 0)
-        strcpy(my.serverIP, "home.jayhan.name");
-    else
-        strcpy(my.serverIP, WiFi.gatewayIP().toString().c_str());
+    strcpy(my.serverIP, WiFi.gatewayIP().toString().c_str());
     Serial.print(" Server=");
     Serial.println(my.serverIP);
 
@@ -214,8 +211,8 @@ static int printAndSaveNetwork() {
     writeLine(myIPstring);
     my.rssi = WiFi.RSSI();
 
-    Serial.printf("Socket to %s:%d\n", my.serverIP, ACTI_PORT + my.serverPort);
-    int err = wifiClient.connect(my.serverIP, ACTI_PORT + my.serverPort);
+    Serial.printf("Socket to %s:%d\n", my.serverIP, ACTI_PORT);
+    int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
     if (err == 0) {
         Serial.println("Connection refused");
@@ -239,6 +236,9 @@ void netInit() {
     nScan = scanNetworks();
     
     findSsid(nScan);
+    WiFi.scanDelete();
+    WiFi.disconnect(true, true);
+    delay(100);
 
     int i;
     for (i = 0; i < nActis; i++) {
@@ -246,17 +246,6 @@ void netInit() {
         writeLine(ssidList[i]);
         strcpy(my.ssid, ssidList[i]);
         sscanf(my.ssid + 5, "%d", &my.serverId);
-        if (my.serverId == 997) {
-            my.serverId = 200;
-            my.serverPort = 60000;
-        }
-        else {
-            my.serverPort = 0;
-        }
-
-        WiFi.scanDelete();
-        WiFi.disconnect(true, true);
-        delay(100);
 
         char pass[] = "000animalerie-eops";
         memcpy(pass, my.ssid + 5, 3);

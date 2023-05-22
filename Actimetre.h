@@ -54,7 +54,6 @@ typedef struct {
     unsigned int serverId;
     char ssid[10];
     char serverIP[20];
-    unsigned int serverPort;
     int rssi;
     time_t bootTime;
     int frequencyCode;
