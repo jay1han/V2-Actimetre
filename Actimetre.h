@@ -91,7 +91,7 @@ void queueMessage(unsigned char *message);
 void netCore0(void *dummy_to_match_argument_signatue);
 extern QueueHandle_t mqttQueue;
 extern int mqttQueueSize;
-extern int nUnqueue;
+extern float queueFill;
 
 // devices.cpp
 int readSensor(int port, int address, DataPoint *data);

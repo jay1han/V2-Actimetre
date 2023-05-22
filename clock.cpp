@@ -135,7 +135,6 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     if (time(NULL) - mark > MEASURE_SECS) {
         nCycles[0] = nCycles[1] = 0;
         nMissed[0] = nMissed[1] = 0;
-        nUnqueue = 0;
         nError = 0;
         mark = time(NULL);
     }
@@ -144,9 +143,9 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
 
     if (nCycles[coreNum] < 10) return;
     
-    if (nMissed[0] >= 100 || nError >= 10 || nMissed[1] >= 100 || nUnqueue >= 100
+    if (nMissed[0] >= 100 || nError >= 10 || nMissed[1] >= 100
         || avgCycleTime[0] > cycleMicroseconds || avgCycleTime[1] > cycleMicroseconds) {
-        Serial.printf("M%d,%d E%d Q%d Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, nUnqueue,
+        Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         Serial.println("System slowdown, rebooting");
         ESP.restart();
@@ -156,7 +155,6 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
 void clearCycleTime() {
     nCycles[0] = nCycles[1] = 0;
     nMissed[0] = nMissed[1] = 0;
-    nUnqueue = 0;
     nError = 0;
     mark = time(NULL);
 }

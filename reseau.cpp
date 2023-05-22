@@ -11,7 +11,7 @@ static WiFiClient wifiClient;
 QueueHandle_t msgQueue;
 #define QUEUE_SIZE 100
 unsigned char msgBuffer[BUFFER_LENGTH];
-int nUnqueue = 0;
+float queueFill = 0.0;
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
@@ -64,7 +64,7 @@ static time_t getActimIdAndTime() {
 static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
-    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1500) {
+    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1500000L) {
         sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
@@ -75,9 +75,7 @@ static void sendMessage(unsigned char *message) {
 }
 
 void queueMessage(unsigned char *message) {
-    if (xQueueSend(msgQueue, message, 0) != pdPASS) {
-        nUnqueue++;
-    }
+    xQueueSend(msgQueue, message, 0);
 }
 
 // Check connection still working and process message queue
@@ -89,17 +87,20 @@ int isConnected() {
         ESP.restart();
     }
 
-    int availableSpaces;
-    if ((availableSpaces = uxQueueSpacesAvailable(msgQueue)) < QUEUE_SIZE / 5) {
+    int availableSpaces = uxQueueSpacesAvailable(msgQueue);
+    if (availableSpaces == 0) {
         nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
         xQueueReset(msgQueue);
-        Serial.print("Queue more than 80%, cleared");
+        Serial.print("Queue full, cleared");
+        queueFill = 0.0;
     } else {
         unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
         while (cycleMicroseconds - micros_diff(micros(), startMicros) > 2000L
                && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
             sendMessage(msgBuffer);
         }
+        availableSpaces = uxQueueSpacesAvailable(msgQueue);
+        queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
     }    
 
     my.rssi = WiFi.RSSI();

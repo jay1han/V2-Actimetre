@@ -164,9 +164,9 @@ static void textPanel(int step) {
         
     case 1:
         if (my.dualCore) 
-            sprintf(textBuffer[1], "M%d,%d E%d Q%d", nMissed[1], nMissed[0], nError, nUnqueue);
+            sprintf(textBuffer[1], "M%d,%d E%d Q%.0f%%", nMissed[1], nMissed[0], nError, queueFill);
         else
-            sprintf(textBuffer[1], "M%d E%d", nMissed[1], nError);
+            sprintf(textBuffer[1], "M%d E%d Q%.0f%%", nMissed[1], nError, queueFill);
         strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
 
@@ -272,7 +272,7 @@ void displayLoop(int force) {
                 } else if (saver > SCREENSAVER_MINS) {
                     Serial.printf("%dh%02d %.1f,%.1f ", uptime / 60, uptime % 60,
                                   avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-                    Serial.printf("M%d,%d Q%d E%d\n", nMissed[1], nMissed[0], nUnqueue, nError);
+                    Serial.printf("M%d,%d E%d Q%.1f\n", nMissed[1], nMissed[0], nError, queueFill);
                 }
             }
             scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
