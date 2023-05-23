@@ -247,7 +247,7 @@ void netInit() {
         strcpy(my.ssid, ssidList[i]);
         sscanf(my.ssid + 5, "%d", &my.serverId);
 
-        char pass[] = "000animalerie-eops";
+        char pass[] = "000animalerie";
         memcpy(pass, my.ssid + 5, 3);
         WiFi.begin(my.ssid, pass);
         Serial.print(" Connecting ");
