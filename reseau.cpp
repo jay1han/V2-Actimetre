@@ -69,7 +69,6 @@ static void sendMessage(unsigned char *message) {
     }
     if (sent != my.msgLength) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, my.msgLength);
-        wifiClient.stop();
         ESP.restart();
     }
 }
