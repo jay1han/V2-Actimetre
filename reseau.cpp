@@ -94,7 +94,7 @@ int isConnected() {
         queueFill = 0.0;
     } else {
         unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
-        while (cycleMicroseconds - micros_diff(micros(), startMicros) > 2000L
+        while ((micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L)
                && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
             sendMessage(msgBuffer);
         }
