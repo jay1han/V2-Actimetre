@@ -19,6 +19,7 @@ static unsigned long micros_offset = 0;
 static unsigned long micros_actual;
 static bool init_complete = false;
 static time_t minuteTimer = 0;
+static hw_timer_t *watchdogTimer;
 
 static void startMinuteCount() {
     minuteTimer = time(NULL);
@@ -37,9 +38,14 @@ int isMinutePast() {
 void waitNextCycle() {
     unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
 
+    timerWrite(watchdogTimer, 0);
     if (micros_diff(micros(), startMicros) < cycleMicroseconds - 1000L) displayLoop(0);
     while (micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L) delayMicroseconds(1000L);
     while (micros_diff(micros(), startMicros) < cycleMicroseconds - 10L);
+}
+
+void watchdogReset() {
+    ESP.restart();
 }
 
 void initClock(time_t bootEpoch) {
@@ -57,6 +63,13 @@ void initClock(time_t bootEpoch) {
     Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
                   timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+    watchdogTimer = timerBegin(0, 80, true);
+    if (watchdogTimer != NULL) {
+        timerAttachInterrupt(watchdogTimer, watchdogReset, true);
+        timerAlarmWrite(watchdogTimer, 2000000, false);
+        timerAlarmEnable(watchdogTimer);
+    }
 }
 
 static int getMicrosActual(time_t *sec) {
