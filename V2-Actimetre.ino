@@ -66,9 +66,7 @@ void loop() {
 
     if (!isConnected()) ESP.restart();
 
-    if (firstLoop == 1) firstLoop = 0;    // ignore first loop()
-    else logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
-    if (micros_diff(micros(), cycle_time) > cycleMicroseconds)
+    if (timeRemaining() == 0)
         nMissed[Core1I2C]++;
     
     waitNextCycle();
@@ -89,6 +87,8 @@ void loop() {
                 }
             }
         }
+
+        logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
     }
     
     queueMessage(message);
@@ -104,6 +104,6 @@ void ERROR_FATAL(char *where) {
 // SHORT PRESS TO TURN ON SCREEN
 
 void shortPress() {
-    Serial.println("\nScreen on");
+    Serial.println("Screen on");
     displayLoop(2);
 }

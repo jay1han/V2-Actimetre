@@ -64,13 +64,14 @@ static time_t getActimIdAndTime() {
 static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
-    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1500000L) {
+    while (sent < my.msgLength && micros_diff(micros(), timeout) < 2000000L) {
         sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, my.msgLength);
         ESP.restart();
     }
+    logCycleTime(Core0Net, micros_diff(micros(), timeout));
 }
 
 void queueMessage(unsigned char *message) {
@@ -89,13 +90,12 @@ int isConnected() {
     if (!my.dualCore) {
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
         if (availableSpaces == 0) {
-            nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
+            nMissed[Core0Net] ++;
             xQueueReset(msgQueue);
             Serial.print("Queue full, cleared");
             queueFill = 0.0;
         } else {
-            unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
-            while ((micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L)
+            while (timeRemaining() > 2000
                    && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
                 sendMessage(msgBuffer);
             }

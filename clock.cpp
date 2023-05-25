@@ -14,12 +14,10 @@
 #define ROLLOVER_MICROS      967296L
 #define ROLLOVER_TEN_MICROS  4967296L
 
-static unsigned long micros_last = 0;
-static unsigned long micros_offset = 0;
-static unsigned long micros_actual;
 static bool init_complete = false;
 static time_t minuteTimer = 0;
 static hw_timer_t *watchdogTimer;
+static int64_t nextMicros;
 
 static void startMinuteCount() {
     minuteTimer = time(NULL);
@@ -35,24 +33,34 @@ int isMinutePast() {
     }
 }
 
-void waitNextCycle() {
-    unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
-
-    timerWrite(watchdogTimer, 0);
-    if (micros_diff(micros(), startMicros) < cycleMicroseconds - 1000L) displayLoop(0);
-    while (micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L) delayMicroseconds(1000L);
-    while (micros_diff(micros(), startMicros) < cycleMicroseconds - 10L);
+static int64_t getAbsMicros() {
+    struct timeval timeofday;
+    gettimeofday(&timeofday, NULL);
+    return (int64_t)timeofday.tv_sec * 1000000L + (int64_t)timeofday.tv_usec;
 }
 
-void watchdogReset() {
+int timeRemaining() {
+    int64_t remain = nextMicros - getAbsMicros();
+    if (remain < 0L) return 0;
+    else return (int)remain;
+}
+
+void waitNextCycle() {
+    timerWrite(watchdogTimer, 0);
+    if (timeRemaining() > 1000) displayLoop(0);
+    while (timeRemaining() > 2000) delayMicroseconds(1000);
+    while (timeRemaining() >= 10);
+    while (timeRemaining() < 10) nextMicros += (int64_t)cycleMicroseconds;
+}
+
+static void watchdogReset() {
     ESP.restart();
 }
 
 void initClock(time_t bootEpoch) {
-    micros_last = micros();
-    struct timeval timeofday = {bootEpoch, micros_last % ONE_MEGA} ;
+    struct timeval timeofday = {bootEpoch, 0};
     settimeofday(&timeofday, 0);
-    micros_offset = 0;
+    nextMicros = (int64_t)bootEpoch * 1000000L + 500000L;
     
     startMinuteCount();
     my.bootTime = bootEpoch;
@@ -72,39 +80,17 @@ void initClock(time_t bootEpoch) {
     }
 }
 
-static int getMicrosActual(time_t *sec) {
-    if (micros() < micros_last) {
-        micros_offset = micros_offset + (ROLLOVER_MICROS % ONE_MEGA);
-    }
-    micros_last = micros();
-    micros_actual = (micros_last % ONE_MEGA) + micros_offset;
-    while (micros_actual >= ONE_MEGA) {
-	*sec ++;
-	micros_actual -= ONE_MEGA;
-    }
-    return micros_actual;
-}
-
-void getTimeSinceBoot(time_t *sec, int *usec) {
-    if (sec != NULL) *sec = time(NULL) - my.bootTime;
-    *usec = getMicrosActual(sec);
+void getTimeSinceBoot(time_t *r_sec, int *r_usec) {
+    int64_t clock = getAbsMicros() - (int64_t)my.bootTime * 1000000L;
+    int64_t sec = clock / 1000000L;
+    int64_t usec = clock % 1000000L;
+    *r_sec = (time_t)sec;
+    *r_usec = (int)usec;
 }
 
 int getRelMicroseconds(time_t secRef, int usecRef) {
-    time_t sec = time(NULL);
-    int diff_usec = getMicrosActual(&sec) - usecRef;
-    if (diff_usec < 0) {
-        diff_usec += 1000000;
-        sec -= 1;
-    }
-    return (sec - secRef - my.bootTime) * 1000000 + diff_usec;
-}
-
-unsigned long millis_diff(unsigned long end, unsigned long start) {
-    if (end >= start)
-        return (((end % ONE_KILO) + ONE_KILO) - (start % ONE_KILO)) % ONE_KILO;
-    else
-        return (((end % ONE_KILO) + ROLLOVER_MILLIS + ONE_KILO) - (start % ONE_KILO)) % ONE_KILO;
+    int64_t diff = getAbsMicros() - (int64_t)(my.bootTime + secRef) * 1000000L - (int64_t)usecRef;
+    return (int)diff;
 }
 
 unsigned long millis_diff_10(unsigned long end, unsigned long start) {
@@ -119,13 +105,6 @@ unsigned long micros_diff(unsigned long end, unsigned long start) {
         return (((end % ONE_MEGA) + ONE_MEGA) - (start % ONE_MEGA)) % ONE_MEGA;
     else
         return (((end % ONE_MEGA) + ROLLOVER_MICROS + ONE_MEGA) - (start % ONE_MEGA)) % ONE_MEGA;
-}
-
-unsigned long micros_diff_10(unsigned long end, unsigned long start) {
-    if (end >= start)
-        return (((end % TEN_MEGA) + TEN_MEGA) - (start % TEN_MEGA)) % TEN_MEGA;
-    else
-        return (((end % TEN_MEGA) + ROLLOVER_TEN_MICROS + TEN_MEGA) - (start % TEN_MEGA)) % TEN_MEGA;
 }
 
 #define BOGUS_CYCLE     50000L

@@ -155,10 +155,7 @@ static void write_block(int x, int y) {
 static void textPanel(int step) {
     switch(step) {
     case 0:
-        if (my.dualCore)
-            sprintf(textBuffer[0], "%dh%02d %.1f,%.1f", uptime / 60, uptime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-        else
-            sprintf(textBuffer[0], "%dh%02d %.1f", uptime / 60, uptime % 60, avgCycleTime[1] / 1000.0);
+        sprintf(textBuffer[0], "%dh%02d %.1f %.1f", uptime / 60, uptime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
         break;
         

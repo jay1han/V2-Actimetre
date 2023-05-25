@@ -187,7 +187,7 @@ int buttonPressed() {
 }
 
 void longPress() {
-    Serial.println("\nButton long-press");
+    Serial.println("Button long-press");
     switchFrequency();
 }
 

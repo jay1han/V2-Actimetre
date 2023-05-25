@@ -113,6 +113,14 @@ void deviceScanInit() {
                 my.sensorBits |= 1 << (port * 4 + address);
                 my.nSensors++;
             }
+
+    if (my.nSensors == 0) {
+        Serial.println("No sensors found, rebooting");
+        displayTitle("No sensors");
+        sleep(5);
+        ESP.restart();
+    }
+        
     my.msgLength = HEADER_LENGTH + DATA_LENGTH * my.nSensors;
     
     my.sensorList[0] = 0;
