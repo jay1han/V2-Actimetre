@@ -73,9 +73,9 @@ int cycleFrequency;
 unsigned long cycleMicroseconds;
 typedef enum {FREQ_BASE = 0, FREQ_TURBO, FREQ_COUNT} FreqCode;
 FreqCode freqCode = FREQ_BASE;
-static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {{50, 100}, {50, 100}, {50, 1},  {100, 1}};
-static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {{0,  1},   {0,  1},   {1,  15}, {1,   15}}; 
-static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", ".S3"};
+static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {{50, 100}, {50, 100}, {50, 1}, {100, 200}};
+static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {{0,  1},   {0,  1},   {1,  2}, {1,   3}}; 
+static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"};
 
 void setupBoard() {
     esp_chip_info_t chip_info;

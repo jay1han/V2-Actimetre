@@ -68,6 +68,8 @@ void loop() {
 
     if (firstLoop == 1) firstLoop = 0;    // ignore first loop()
     else logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
+    if (micros_diff(micros(), cycle_time) > cycleMicroseconds)
+        nMissed[Core1I2C]++;
     
     waitNextCycle();
     cycle_time = micros();

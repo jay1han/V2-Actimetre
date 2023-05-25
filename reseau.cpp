@@ -86,47 +86,51 @@ int isConnected() {
         ESP.restart();
     }
 
-    int availableSpaces = uxQueueSpacesAvailable(msgQueue);
-    if (availableSpaces == 0) {
-        nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
-        xQueueReset(msgQueue);
-        Serial.print("Queue full, cleared");
-        queueFill = 0.0;
-    } else {
-        unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
-        while ((micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L)
-               && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
-            sendMessage(msgBuffer);
-        }
-        availableSpaces = uxQueueSpacesAvailable(msgQueue);
-        queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
-    }    
+    if (!my.dualCore) {
+        int availableSpaces = uxQueueSpacesAvailable(msgQueue);
+        if (availableSpaces == 0) {
+            nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
+            xQueueReset(msgQueue);
+            Serial.print("Queue full, cleared");
+            queueFill = 0.0;
+        } else {
+            unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
+            while ((micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L)
+                   && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
+                sendMessage(msgBuffer);
+            }
+            availableSpaces = uxQueueSpacesAvailable(msgQueue);
+            queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
+        }    
 
-    my.rssi = WiFi.RSSI();
+        my.rssi = WiFi.RSSI();
+    }
     return 1;
 }
 
 static void Core0Loop(void *dummy_to_match_argument_signatue) {
     Serial.printf("Core %d started\n", xPortGetCoreID());
     
-    int availableSpaces;
     unsigned long startWork;
     for (;;) {
-        while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
-            esp_task_wdt_reset();
-        }
+        while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE);
         startWork = micros();
         esp_task_wdt_reset();
         
         blinkLed(-1);
-
         sendMessage(msgBuffer);
-        if ((availableSpaces = uxQueueSpacesAvailable(msgQueue)) < QUEUE_SIZE / 5) {
+
+        int availableSpaces = uxQueueSpacesAvailable(msgQueue);
+        if (availableSpaces < QUEUE_SIZE / 5) {
             nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
             xQueueReset(msgQueue);
             Serial.print("Queue more than 80%, cleared");
+            queueFill = 0.0;
+        } else {
+            queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }
         
+        my.rssi = WiFi.RSSI();
         logCycleTime(Core0Net, micros_diff(micros(), startWork));
     }
 }

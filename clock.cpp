@@ -36,18 +36,10 @@ int isMinutePast() {
 
 void waitNextCycle() {
     unsigned long startMicros = (micros() / cycleMicroseconds) * cycleMicroseconds;
-    long remain = cycleMicroseconds - micros_diff(micros(), startMicros);
 
-    if (remain < 0) {
-        Serial.println("Missed Cycle");
-    } else {
-        if (remain > 2000L) displayLoop(0);
-        remain = cycleMicroseconds - micros_diff(micros(), startMicros);
-        if (remain > 2000L) delayMicroseconds(remain - 2000L);
-        do {
-            remain = cycleMicroseconds - micros_diff(micros(), startMicros);
-        } while (remain > 2);
-    }
+    if (micros_diff(micros(), startMicros) < cycleMicroseconds - 1000L) displayLoop(0);
+    while (micros_diff(micros(), startMicros) < cycleMicroseconds - 2000L) delayMicroseconds(1000L);
+    while (micros_diff(micros(), startMicros) < cycleMicroseconds - 10L);
 }
 
 void initClock(time_t bootEpoch) {
