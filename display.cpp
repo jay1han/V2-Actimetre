@@ -250,7 +250,7 @@ void displayLoop(int force) {
     static int scanLine = 0;
 
     if (my.displayPresent) {
-        if ((force == 1) || (cycleFrequency < 30)) {
+        if (force == 1) {
             ssd1306_on();
             saver = 0;
             for (scanLine = 0; scanLine < TOTAL_SCAN_LINE; scanLine++)
