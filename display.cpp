@@ -78,8 +78,6 @@ static void ssd1306_showall() {
     ssd1306_showpages(0, LCD_PAGES - 1);
 }
 
-static unsigned uptime = 0;
-
 static void write_char16(int x, int y, unsigned char c) {
     int col, target, index = c - 32;
 
@@ -155,7 +153,7 @@ static void write_block(int x, int y) {
 static void textPanel(int step) {
     switch(step) {
     case 0:
-        sprintf(textBuffer[0], "%dh%02d %.1f %.1f", uptime / 60, uptime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+        sprintf(textBuffer[0], "%dh%02d %.1f %.1f", upTime / 60, upTime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
         break;
         
@@ -246,35 +244,17 @@ void displayScan(int scanLine) {
 }    
 
 void displayLoop(int force) {
-    static int saver = 0;
     static int scanLine = 0;
 
     if (my.displayPresent) {
         if (force == 1) {
             ssd1306_on();
-            saver = 0;
             for (scanLine = 0; scanLine < TOTAL_SCAN_LINE; scanLine++)
                 displayScan(scanLine);
             scanLine = 0;
-        } else if (force == 2) {
-            saver = 0;
-            ssd1306_on();
         } else {
-            if(isMinutePast()) {
-                uptime++;
-                saver++;
-                if (saver == SCREENSAVER_MINS) {
-                    Serial.println("Screensaver");
-                    ssd1306_off();
-                } else if (saver > SCREENSAVER_MINS) {
-                    Serial.printf("%dh%02d %.1f,%.1f ", uptime / 60, uptime % 60,
-                                  avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-                    Serial.printf("M%d,%d E%d Q%.1f\n", nMissed[1], nMissed[0], nError, queueFill);
-                }
-            }
             scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
-            if (saver < SCREENSAVER_MINS) displayScan(scanLine);
-            else if (scanLine == 0) blinkLed(-1);
+            displayScan(scanLine);
         }
     } else {
         scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;

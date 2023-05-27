@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "197"
+#define VERSION_STR "198"
 
 // CONSTANTS
 
@@ -17,7 +17,6 @@
 #define LCD_H_RES 128
 #define LCD_V_RES 64
 
-#define SCREENSAVER_MINS 2000000000 // never
 #define MEASURE_SECS     60
 #define HEADER_LENGTH    5     // epoch(3), msec(2) 
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
@@ -121,7 +120,6 @@ void setupCore0(void (*core0Loop)(void*));
 
 // clock.cpp
 void initClock(time_t bootEpoch);
-int isMinutePast();
 void getTimeSinceBoot(time_t *sec, int *usec);
 int getRelMicroseconds(time_t sec, int usec);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
@@ -130,6 +128,7 @@ void waitNextCycle();
 int timeRemaining();
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
 void clearCycleTime();
+extern unsigned int upTime;
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);

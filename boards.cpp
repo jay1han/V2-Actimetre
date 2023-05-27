@@ -197,6 +197,11 @@ int buttonPressed() {
 
 void longPress() {
     Serial.println("Button long-press");
+    // Do nothing
+}
+
+void shortPress() {
+    Serial.println("Button press");
     switchFrequency();
 }
 

@@ -19,20 +19,6 @@ static time_t minuteTimer = 0;
 static hw_timer_t *watchdogTimer;
 static int64_t nextMicros;
 
-static void startMinuteCount() {
-    minuteTimer = time(NULL);
-}
-
-int isMinutePast() {
-    unsigned long seconds = time(NULL) - minuteTimer;
-    if (seconds >= 60) {
-        minuteTimer = time(NULL);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 static int64_t getAbsMicros() {
     struct timeval timeofday;
     gettimeofday(&timeofday, NULL);
@@ -45,8 +31,15 @@ int timeRemaining() {
     else return (int)remain;
 }
 
+unsigned int upTime = 0;
+
 void waitNextCycle() {
     timerWrite(watchdogTimer, 0);
+    if (time(NULL) - minuteTimer >= 60) {
+        minuteTimer = time(NULL);
+        upTime++;
+    }
+
     if (timeRemaining() > 1000) displayLoop(0);
     while (timeRemaining() > 2000) delayMicroseconds(1000);
     while (timeRemaining() >= 10);
@@ -62,7 +55,7 @@ void initClock(time_t bootEpoch) {
     settimeofday(&timeofday, 0);
     nextMicros = (int64_t)bootEpoch * 1000000L + 500000L;
     
-    startMinuteCount();
+    minuteTimer = time(NULL);
     my.bootTime = bootEpoch;
     init_complete = true;
 

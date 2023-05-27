@@ -271,8 +271,6 @@ void netInit() {
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
 
-    displayLoop(2);
-
     msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");

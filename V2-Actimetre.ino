@@ -101,9 +101,3 @@ void ERROR_FATAL(char *where) {
     ESP.restart();
 }
 
-// SHORT PRESS TO TURN ON SCREEN
-
-void shortPress() {
-    Serial.println("Screen on");
-    displayLoop(2);
-}
