@@ -71,18 +71,18 @@ uint8_t PIN_BUTTON, PIN_LED,
 
 int cycleFrequency;
 unsigned long cycleMicroseconds;
-typedef enum {FREQ_BASE = 0, FREQ_SLOW, FREQ_DRIP, FREQ_DEBUG, FREQ_TURBO, FREQ_COUNT} FreqCode;
+typedef enum {FREQ_BASE = 0, FREQ_SLOW, FREQ_DRIP, FREQ_TURBO, FREQ_COUNT} FreqCode;
 FreqCode freqCode = FREQ_BASE;
 static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
-    {50, 30, 10, 1, 100},
-    {50, 30, 10, 1, 100},
-    {50, 30, 10, 1, 100},
-    {100, 50, 10, 1, 200}};
+    {50,  30, 10, 100},
+    {50,  30, 10, 100},
+    {50,  30, 10, 100},
+    {100, 50, 10, 200}};
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
-    {0, 4, 5, 2, 1},
-    {0, 4, 5, 2, 1},
-    {0, 4, 5, 2, 1},
-    {1, 0, 5, 2, 3}};
+    {0, 4, 5, 1},
+    {0, 4, 5, 1},
+    {0, 4, 5, 1},
+    {1, 0, 5, 3}};
 // 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"};
 
