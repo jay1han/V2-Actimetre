@@ -9,7 +9,7 @@
 static WiFiClient wifiClient;
 
 QueueHandle_t msgQueue;
-#define QUEUE_SIZE 100
+#define QUEUE_SIZE 20
 unsigned char msgBuffer[BUFFER_LENGTH];
 float queueFill = 0.0;
 
@@ -102,7 +102,7 @@ int isConnected() {
             Serial.print("Queue full, cleared");
             queueFill = 0.0;
         } else {
-            while (timeRemaining() > 2000
+            while (timeRemaining() > 0
                    && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
                 sendMessage(msgBuffer);
             }
