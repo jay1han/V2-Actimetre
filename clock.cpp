@@ -47,6 +47,9 @@ void waitNextCycle() {
 }
 
 static void watchdogReset() {
+    Serial.println("\nWatchdog reset");
+    writeLine("Watchdog");
+    delay(2000);
     ESP.restart();
 }
 

@@ -28,6 +28,8 @@ static time_t getActimIdAndTime() {
     err = wifiClient.write(initMessage, INIT_LENGTH);
     if (err < INIT_LENGTH) {
 	Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
+	writeLine("Init failed");
+	delay(2000);
 	ESP.restart();
     }
     unsigned char response[RESPONSE_LENGTH];
@@ -38,6 +40,8 @@ static time_t getActimIdAndTime() {
         err += wifiClient.read(response + err, RESPONSE_LENGTH - err);
         if ((time(NULL) - timeout) > 10) {
             Serial.println("No response from Actiserver");
+	    writeLine("No response");
+	    delay(2000);
             ESP.restart();
         }
     }
@@ -69,6 +73,8 @@ static void sendMessage(unsigned char *message) {
     }
     if (sent != my.msgLength) {
         Serial.printf("Sent only %d bytes out of %d\n", sent, my.msgLength);
+	writeLine("Network error");
+	delay(2000);
         ESP.restart();
     }
     logCycleTime(Core0Net, micros_diff(micros(), timeout));
@@ -84,6 +90,7 @@ int isConnected() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("\nNetwork disconnected. Rebooting");
         writeLine("WiFi lost");
+	delay(2000);
         ESP.restart();
     }
 
@@ -157,6 +164,8 @@ static int scanNetworks() {
 
     if (nScan <= 0) {
         Serial.println("\nCan't find AP. Rebooting");
+	writeLine("No AP");
+	delay(2000);
         ESP.restart();
     }
     return nScan;
@@ -178,6 +187,8 @@ static void findSsid(int nScan) {
     }
     if (nActis == 0) {
         Serial.println("\nCan't find server, rebooting");
+	writeLine("No Actis");
+	delay(2000);
         ESP.restart();
     }
 }
@@ -222,7 +233,6 @@ static int printAndSaveNetwork() {
         return 0;
     }
     wifiClient.setNoDelay(false);
-    wifiClient.setTimeout(1);
     return 1;
 }
 
@@ -262,6 +272,8 @@ void netInit() {
     }
     if (i == nActis) {
         Serial.println("\nCan't connect to any server, rebooting");
+	writeLine("No server");
+	delay(2000);
         ESP.restart();
     }
 
@@ -274,6 +286,8 @@ void netInit() {
     msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
+	writeLine("OS error");
+	delay(2000);
         ESP.restart();
     }
 
