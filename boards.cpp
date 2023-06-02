@@ -53,10 +53,10 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      3, 5, 7, 9},
     // Board Type 3 (S3 mini with I2C)
     {0, 47,
-     0xFF, 0xFF, 0xFF,       // UART is unused
+     0xFF, 0xFF, 0xFF,   // UART is unused
      21, 17, 0xFF, 15,   // Less MUX
      7, 8, 9, 14,
-     12, 13, 10, 0xFF},
+     12, 13, 11, 10},
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2

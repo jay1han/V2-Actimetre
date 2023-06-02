@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "199"
+#define VERSION_STR "200"
 
 // CONSTANTS
 
@@ -24,10 +24,6 @@
 
 // TYPES
 
-typedef struct {
-    long micros;
-    unsigned char readBuffer[12];
-} DataPoint;
 typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
 
 typedef enum {
@@ -92,7 +88,7 @@ extern int mqttQueueSize;
 extern float queueFill;
 
 // devices.cpp
-int readSensor(int port, int address, DataPoint *data);
+int readSensor(int port, int address, unsigned char *data);
 extern int nError;
 void deviceScanInit();
 

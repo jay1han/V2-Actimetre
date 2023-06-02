@@ -66,7 +66,7 @@ static int detectSensor(int port, int address) {
     }
 }
 
-int readSensor(int port, int address, DataPoint *data) {
+int readSensor(int port, int address, unsigned char *dataPoint) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     int n;
 
@@ -83,9 +83,9 @@ int readSensor(int port, int address, DataPoint *data) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
         return 0;
     }
-    if ((n = wire.readBytes(data->readBuffer, 12)) != 12) {
+    if ((n = wire.readBytes(dataPoint, 12)) != 12) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
-        memset(data, 0, sizeof(DataPoint));
+        memset(dataPoint, 0, 12);
         return 0;
     }
     wire.endTransmission();

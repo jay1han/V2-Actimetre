@@ -12,7 +12,7 @@ MyInfo my;
 
 // FILE-WIDE GLOBAL
 
-static DataPoint data;
+static unsigned char dataPoint[12];
 static unsigned char message[BUFFER_LENGTH];
 
 // STATISTICS
@@ -28,7 +28,9 @@ void setup() {
 
     deviceScanInit();
 
-    displayTitle(VERSION_STR);
+    char title[16];
+    sprintf(title, "v%s", VERSION_STR);
+    displayTitle(title);
     displaySensors();
 
     netInit();
@@ -53,8 +55,8 @@ void formatData(unsigned char *message) {
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;
-    memcpy(message + 2, data.readBuffer, 6);
-    memcpy(message + 8, data.readBuffer + 8, 4);
+    memcpy(message + 2, dataPoint, 6);
+    memcpy(message + 8, dataPoint + 8, 4);
 }
 
 void loop() {
@@ -79,12 +81,9 @@ void loop() {
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
-                if (readSensor(port, address, &data)) {
-                    formatData(message + offset);
-                    offset += DATA_LENGTH;
-                } else {
-                    nError ++;
-                }
+                if (!readSensor(port, address, dataPoint)) nError ++;
+                formatData(message + offset);
+                offset += DATA_LENGTH;
             }
         }
 
