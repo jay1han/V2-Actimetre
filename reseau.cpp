@@ -68,13 +68,13 @@ static time_t getActimIdAndTime() {
 static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
-    while (sent < my.msgLength && micros_diff(micros(), timeout) < 2000000L) {
+    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1000000L) {
         sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
-        Serial.printf("Sent only %d bytes out of %d\n", sent, my.msgLength);
-	writeLine("Network error");
-	delay(2000);
+        Serial.printf("Timeout sending data\n");
+        writeLine("Timeout");
+        delay(2000);
         ESP.restart();
     }
     logCycleTime(Core0Net, micros_diff(micros(), timeout));
