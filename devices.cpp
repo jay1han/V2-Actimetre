@@ -35,13 +35,16 @@ unsigned char readByte(int port, int address, int memory) {
 
 static void initSensor(int port, int address) {
     Serial.printf("Initializing %d%c", port + 1, 'A' + address);
-    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x80);
+    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x80); // Power on
     delay(100);
-    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x08);
+    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x08); // Disable Temp
     delay(100);
-    writeByte(port, MPU6050_ADDR + address, 0x1C, 0x08);
+    writeByte(port, MPU6050_ADDR + address, 0x1C, 0x08); // Range +/-4g
     delay(100);
-    writeByte(port, MPU6050_ADDR + address, 0x68, 0x07);
+    writeByte(port, MPU6050_ADDR + address, 0x68, 0x07); // Signal path reset
+    delay(100);
+//    writeByte(port, MPU6050_ADDR + address, 0x1A, 0x01); // enable DLPF
+//    delay(100);
 
     int res = readByte(port, MPU6050_ADDR + address, 0x75);
     if (res != 0x68) {
