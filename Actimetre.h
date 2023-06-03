@@ -9,7 +9,7 @@
 #define MQTT_TOPIC  "Acti"
 #define LONGPRESS_MILLIS  2000L
 
-#define I2C_BAUDRATE 400000  
+#define I2C_BAUDRATE 1000000
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
