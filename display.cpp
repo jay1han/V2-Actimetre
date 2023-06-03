@@ -234,6 +234,20 @@ static void displayScanLine(int scanLine) {
 
 void displayScan(int scanLine) {
     if (scanLine == TOTAL_SCAN_LINE - 1) {
+        static int step = 0;
+        switch (step) {
+        case 0:
+            Serial.printf("%dh%02d %.1f %.1f ", upTime / 60, upTime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+            break;
+        
+        case 1:
+            if (my.dualCore) 
+                Serial.printf("M%d,%d E%d Q%.0f%%\n", nMissed[1], nMissed[0], nError, queueFill);
+            else
+                Serial.printf("M%d E%d Q%.0f%%\n", nMissed[1], nError, queueFill);
+            break;
+        }
+        step = (step + 1) % 2;
         blinkLed(-1);
         return;
     }

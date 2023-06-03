@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "205"
+#define VERSION_STR "210"
 
 // CONSTANTS
 
