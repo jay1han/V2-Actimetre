@@ -2,6 +2,7 @@
 #include <Esp.h>
 #include <esp_task_wdt.h>
 #include <time.h>
+#include <esp_wifi.h>
 #include "Actimetre.h"
 
 #define ACTI_PORT 2883
@@ -241,6 +242,7 @@ static int printAndSaveNetwork() {
 void netInit() {
     WiFi.disconnect(true, true);
     delay(100);
+    esp_wifi_set_max_tx_power(84);  // Max power 20dB
     WiFi.mode(WIFI_STA);
 
     storeMacAddress();
@@ -273,7 +275,7 @@ void netInit() {
     if (i == nActis) {
         Serial.println("\nCan't connect to any server, rebooting");
 	writeLine("No server");
-	delay(2000);
+	delay(random(2000,5000));
         ESP.restart();
     }
 
