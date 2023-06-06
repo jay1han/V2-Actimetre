@@ -42,8 +42,8 @@ void waitNextCycle() {
 
     if (timeRemaining() > 1000) displayLoop(0);
     while (timeRemaining() > 2000) delayMicroseconds(1000);
-    while (timeRemaining() >= 10);
-    while (timeRemaining() < 10) nextMicros += (int64_t)cycleMicroseconds;
+    while (timeRemaining() >= 50);
+    while (timeRemaining() < 50) nextMicros += (int64_t)cycleMicroseconds;
 }
 
 static void watchdogReset() {
