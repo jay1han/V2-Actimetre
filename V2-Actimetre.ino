@@ -70,8 +70,8 @@ void loop() {
 
     if (timeRemaining() == 0)
         nMissed[Core1I2C]++;
-    
-    waitNextCycle();
+    else 
+        waitNextCycle();
     cycle_time = micros();
 
     int port, address = 0;

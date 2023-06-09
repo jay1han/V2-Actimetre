@@ -275,7 +275,8 @@ void netInit() {
     if (i == nActis) {
         Serial.println("\nCan't connect to any server, rebooting");
 	writeLine("No server");
-	delay(random(2000,5000));
+  esp_wifi_stop();
+  delay(random(3000,6000));
         ESP.restart();
     }
 
