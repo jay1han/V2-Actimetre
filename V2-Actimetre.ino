@@ -47,7 +47,9 @@ void formatHeader(unsigned char *message) {
     message[0] = (msgBootEpoch >> 16) % 256;
     message[1] = (msgBootEpoch >> 8) % 256;
     message[2] = msgBootEpoch % 256;
-    message[3] = (millis / 256) | (my.frequencyCode << 2);
+    // 76543210
+    // rrrfffmm
+    message[3] = (unsigned char)(millis / 256) | ((unsigned char)my.frequencyCode << 2) | ((unsigned char)my.rssi << 5) ;
     message[4] = millis % 256;
 }
 

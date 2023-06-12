@@ -16,6 +16,7 @@ float queueFill = 0.0;
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
+
 static time_t getActimIdAndTime() {
     static unsigned char initMessage[INIT_LENGTH];
     Serial.print("Getting name and time ");
@@ -85,6 +86,15 @@ void queueMessage(unsigned char *message) {
     xQueueSend(msgQueue, message, 0);
 }
 
+void readRssi() {
+    int rssi = WiFi.RSSI();
+    if (rssi != 0) {
+        if (rssi > -28) my.rssi = 7;
+        else if (rssi <= -91) my.rssi = 0;
+        else my.rssi = (rssi + 91) / 9;
+    } else my.rssi = 0;
+}
+
 // Check connection still working and process message queue
 
 int isConnected() {
@@ -111,7 +121,7 @@ int isConnected() {
             queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }    
 
-        my.rssi = WiFi.RSSI();
+        readRssi();
     }
     return 1;
 }
@@ -138,7 +148,7 @@ static void Core0Loop(void *dummy_to_match_argument_signatue) {
             queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }
         
-        my.rssi = WiFi.RSSI();
+        readRssi();
         logCycleTime(Core0Net, micros_diff(micros(), startWork));
     }
 }
@@ -224,7 +234,7 @@ static int printAndSaveNetwork() {
     
     strcpy(myIPstring, ipString.substring(trail + 1).c_str());
     writeLine(myIPstring);
-    my.rssi = WiFi.RSSI();
+    readRssi();
 
     Serial.printf("Socket to %s:%d\n", my.serverIP, ACTI_PORT);
     int err = wifiClient.connect(my.serverIP, ACTI_PORT);

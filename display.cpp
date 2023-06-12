@@ -187,18 +187,10 @@ static void textPanel(int step) {
 
 #define RSSI_STEPS 3
 static void displayRssi(int step) {
-    char textRssi = ' ';
     
     switch(step) {
     case 0:
-        if (my.rssi != 0) {
-            int bars;
-            if (my.rssi > -28) bars = 7;
-            else if (my.rssi <= -91) bars = 0;
-            else bars = (my.rssi + 91) / 9;
-            textRssi = 0x81 + bars;
-        }
-        write_char16(RSSI_POS, 0, textRssi);
+        write_char16(RSSI_POS, 0, 0x81 + my.rssi);
         break;
 
     case 1:
