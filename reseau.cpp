@@ -252,7 +252,7 @@ static int printAndSaveNetwork() {
 void netInit() {
     WiFi.disconnect(true, true);
     delay(100);
-    esp_wifi_set_max_tx_power(84);  // Max power 20dB
+    //esp_wifi_set_max_tx_power(84);  // Max power 20dB
     WiFi.mode(WIFI_STA);
 
     storeMacAddress();
