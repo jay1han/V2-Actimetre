@@ -16,10 +16,13 @@
 static const char EMPTY_LINE[] = "              ";
 
 static void write_cmd(unsigned char cmd) {
-    Wire.beginTransmission(SSD1306_ADDR);
-    Wire.write(0x80);
-    Wire.write(cmd);
-    Wire.endTransmission();
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    
+    wire.beginTransmission(SSD1306_ADDR);
+    wire.write(0x80);
+    wire.write(cmd);
+    wire.endTransmission();
 }
 
 static const unsigned char ssd1306_init_cmd[] = {
@@ -57,10 +60,13 @@ static unsigned char displayBuffer[LCD_BUFFER_SIZE];
 static char textBuffer[2][CHAR_PER_LINE_16 + 1];
 
 static void write_page(int page) {
-    Wire.beginTransmission(SSD1306_ADDR);
-    Wire.write(0x40);
-    Wire.write(displayBuffer + page * LCD_H_RES, LCD_H_RES);
-    Wire.endTransmission();
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+
+    wire.beginTransmission(SSD1306_ADDR);
+    wire.write(0x40);
+    wire.write(displayBuffer + page * LCD_H_RES, LCD_H_RES);
+    wire.endTransmission();
 }
 
 static void ssd1306_showpages(int page0, int page1) {
@@ -91,7 +97,7 @@ static void write_char16(int x, int y, unsigned char c) {
 }
 
 static void writeLine16(int line, const char *message) {
-    if (!my.displayPresent) return;
+    if (my.displayPort < 0) return;
 
     int i;
     for (i = 0; i < strlen(message) && i < CHAR_PER_LINE_16; i++) {
@@ -128,22 +134,25 @@ void writeLine(char *message) {
 }
 
 void initDisplay() {
-    if (!my.displayPresent) return;
+    if (my.displayPort < 0) return;
     ssd1306_init();
     memset(displayBuffer, 0x00, LCD_H_RES * LCD_V_RES / 8);
     ssd1306_showall();
 }
 
 static void write_block(int x, int y) {
-    int pixel_x = x * FONT_PITCH_16;
+    if (my.displayPort < 0) return;
 
+    int pixel_x = x * FONT_PITCH_16;
     write_cmd(0xB0 | y);
     write_cmd(0x00 | (pixel_x & 0x0F));
     write_cmd(0x10 | (pixel_x >> 4));
-    Wire.beginTransmission(SSD1306_ADDR);
-    Wire.write(0x40);
-    Wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
-    Wire.endTransmission();
+
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.beginTransmission(SSD1306_ADDR);
+    wire.write(0x40);
+    wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
+    wire.endTransmission();
 }
 
 #define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
@@ -252,7 +261,7 @@ void displayScan(int scanLine) {
 void displayLoop(int force) {
     static int scanLine = 0;
 
-    if (my.displayPresent) {
+    if (my.displayPort >= 0) {
         if (force == 1) {
             ssd1306_on();
             for (scanLine = 0; scanLine < TOTAL_SCAN_LINE; scanLine++)

@@ -103,8 +103,18 @@ void deviceScanInit() {
     Wire.beginTransmission(SSD1306_ADDR);
     if (Wire.endTransmission() == 0) {
         Serial.println("Display found on port 0");
-        my.displayPresent = 1;
+        my.displayPort = 0;
         initDisplay();
+    } else {
+        Wire1.beginTransmission(SSD1306_ADDR);
+        if (Wire1.endTransmission() == 0) {
+            Serial.println("Display found on port 1");
+            my.displayPort = 1;
+            initDisplay();
+        }
+    } else {
+        Serial.println("No display found");
+        my.displayPort = -1;
     }
 
     int port, address;

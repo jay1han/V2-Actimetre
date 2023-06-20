@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "241"
+#define VERSION_STR "250"
 
 // CONSTANTS
 
@@ -53,7 +53,7 @@ typedef struct {
     time_t bootTime;
     int frequencyCode;
 
-    int displayPresent;
+    int displayPort;
     int sensorPresent[2][2];
     unsigned char sensorBits;
     int nSensors;
