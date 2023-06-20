@@ -111,10 +111,10 @@ void deviceScanInit() {
             Serial.println("Display found on port 1");
             my.displayPort = 1;
             initDisplay();
+        } else {
+            Serial.println("No display found");
+            my.displayPort = -1;
         }
-    } else {
-        Serial.println("No display found");
-        my.displayPort = -1;
     }
 
     int port, address;
