@@ -10,7 +10,7 @@
 static WiFiClient wifiClient;
 
 QueueHandle_t msgQueue;
-#define QUEUE_SIZE 20
+#define QUEUE_SIZE 50
 unsigned char msgBuffer[BUFFER_LENGTH];
 float queueFill = 0.0;
 
@@ -71,6 +71,7 @@ static void sendMessage(unsigned char *message) {
     int timeout = micros();
     int sent = 0;
     while (sent < my.msgLength && micros_diff(micros(), timeout) < 1000000L) {
+        esp_task_wdt_reset();
         sent += wifiClient.write(message + sent, my.msgLength - sent);
     }
     if (sent != my.msgLength) {
@@ -131,7 +132,9 @@ static void Core0Loop(void *dummy_to_match_argument_signatue) {
     
     unsigned long startWork;
     for (;;) {
-        while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE);
+        while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
+            esp_task_wdt_reset();
+        }
         startWork = micros();
         esp_task_wdt_reset();
         
@@ -252,7 +255,7 @@ static int printAndSaveNetwork() {
 void netInit() {
     WiFi.disconnect(true, true);
     delay(100);
-    //esp_wifi_set_max_tx_power(84);  // Max power 20dB
+    esp_wifi_set_max_tx_power(84);  // Max power 20dB
     WiFi.mode(WIFI_STA);
 
     storeMacAddress();
