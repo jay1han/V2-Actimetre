@@ -41,10 +41,24 @@ static const unsigned char ssd1306_init_cmd[] = {
     0xAE | 0x01,          // SET_DISP            on
 };
 
+unsigned char init_buffer[2] = {0, 0}; // dummy two bytes for right-margin
 static void ssd1306_init() {
     int i;
     for (i = 0; i < sizeof(ssd1306_init_cmd); i++) {
         write_cmd(ssd1306_init_cmd[i]);
+    }
+
+    for (int page = 0; page < LCD_PAGES; page++) {
+        if (my.displayPort < 0) return;
+        TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+
+        write_cmd(0xB0 | page);
+        write_cmd(0x00 | 0x0F);
+        write_cmd(0x10 | 0x07);
+        wire.beginTransmission(SSD1306_ADDR);
+        wire.write(0x40);
+        wire.write(init_buffer, 2);
+        wire.endTransmission();
     }
 }
 
