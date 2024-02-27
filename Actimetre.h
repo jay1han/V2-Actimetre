@@ -32,6 +32,7 @@ typedef enum {
     BOARD_S2_NO_UART,
     BOARD_S3_I2C,
     BOARD_S3 = BOARD_S3_I2C,
+    BOARD_S3_NEWBOX,
     BOARD_TYPES
 } BoardType;
 

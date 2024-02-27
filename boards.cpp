@@ -57,9 +57,16 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      21, 17, 0xFF, 15,   // Less MUX
      7, 8, 9, 14,
      12, 13, 11, 10},
+    // Board Type 4 (S3 mini with new box)
+    {0, 47,
+     0xFF, 0xFF, 0xFF,   // UART is unused
+     2, 4, 12, 13,     // I2C0 on left side
+     44, 36, 35, 18,     // I2C1 on right side
+     0xFF, 0xFF, 0xFF, 0xFF},
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2
+#define PIN_DETECT_34 14 // if pulled HIGH then type 3 else type 4
 
 // GLOBALS
 
@@ -77,24 +84,30 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {50,  30, 10, 100},
     {50,  30, 10, 100},
     {50,  30, 10, 100},
-    {100, 50, 10, 200}};
+    {100, 50, 10, 200},
+    {100, 50, 10, 200},
+};
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
     {0, 4, 5, 1},
     {0, 4, 5, 1},
-    {1, 0, 5, 3}};
+    {1, 0, 5, 3},
+    {1, 0, 5, 3},
+};
 // 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
-static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"};
+static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i", "S3n"};
 
 void setupBoard() {
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
     if (chip_info.model == CHIP_ESP32S3) {
-        my.boardType = BOARD_S3_I2C;
         my.dualCore = 1;
+        pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
+        if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
+        else my.boardType = BOARD_S3_NEWBOX;
     } else {
-        pinMode(PIN_DETECT_01, INPUT);
         my.dualCore = 0;
+        pinMode(PIN_DETECT_01, INPUT);
         if (digitalRead(PIN_DETECT_01) == 0) my.boardType = BOARD_S2;
         else if (digitalRead(PIN_DETECT_12) == 0) my.boardType = BOARD_S2_CONNECTORS;
         else my.boardType = BOARD_S2_NO_UART;
@@ -123,15 +136,23 @@ void setupBoard() {
     Serial.printf("\nHELLO! Board Type %d. Main thread on Core %d. Cycle frequency %dHz.\n",
                   my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
 
-    PIN_I2C0_SDA          = PINS[my.boardType][_PIN_I2C0_SDA];
-    PIN_I2C0_SCL          = PINS[my.boardType][_PIN_I2C0_SCL];
-    pinMode(PIN_I2C0_GND  = PINS[my.boardType][_PIN_I2C0_GND], INPUT);
-    pinMode(PIN_I2C0_VCC  = PINS[my.boardType][_PIN_I2C0_VCC], INPUT);
+    PIN_I2C0_SDA                = PINS[my.boardType][_PIN_I2C0_SDA];
+    PIN_I2C0_SCL                = PINS[my.boardType][_PIN_I2C0_SCL];
+    PIN_I2C0_GND                = PINS[my.boardType][_PIN_I2C0_GND];
+    PIN_I2C0_VCC                = PINS[my.boardType][_PIN_I2C0_VCC];
+    if (PIN_I2C0_GND & 0x80 == 0) pinMode(PIN_I2C0_GND, INPUT);
+    else { PIN_I2C0_GND &= 0x7F;  pinMode(PIN_I2C0_GND, OUTPUT); digitalWrite(PIN_I2C0_GND, 0); }
+    if (PIN_I2C0_VCC & 0x80 == 0) pinMode(PIN_I2C0_VCC, INPUT);
+    else { PIN_I2C0_VCC &= 0x7F;  pinMode(PIN_I2C0_VCC, OUTPUT); digitalWrite(PIN_I2C0_VCC, 1); }
 
-    PIN_I2C1_SDA          = PINS[my.boardType][_PIN_I2C1_SDA];
-    PIN_I2C1_SCL          = PINS[my.boardType][_PIN_I2C1_SCL];
-    pinMode(PIN_I2C1_GND  = PINS[my.boardType][_PIN_I2C1_GND], INPUT);
-    pinMode(PIN_I2C1_VCC  = PINS[my.boardType][_PIN_I2C1_VCC], INPUT);
+    PIN_I2C1_SDA                = PINS[my.boardType][_PIN_I2C1_SDA];
+    PIN_I2C1_SCL                = PINS[my.boardType][_PIN_I2C1_SCL];
+    PIN_I2C1_GND                = PINS[my.boardType][_PIN_I2C1_GND];
+    PIN_I2C1_VCC                = PINS[my.boardType][_PIN_I2C1_VCC];
+    if (PIN_I2C1_GND & 0x80 == 0) pinMode(PIN_I2C1_GND, INPUT);
+    else { PIN_I2C1_GND &= 0x7F;  pinMode(PIN_I2C1_GND, OUTPUT); digitalWrite(PIN_I2C1_GND, 0); }
+    if (PIN_I2C1_VCC & 0x80 == 0) pinMode(PIN_I2C1_VCC, INPUT);
+    else { PIN_I2C1_VCC &= 0x7F;  pinMode(PIN_I2C1_VCC, OUTPUT); digitalWrite(PIN_I2C1_VCC, 1); }
 
     pinMode(PIN_I2C0_GND_MUX = PINS[my.boardType][_PIN_I2C0_GND_MUX], INPUT);
     pinMode(PIN_I2C0_VCC_MUX = PINS[my.boardType][_PIN_I2C0_VCC_MUX], INPUT);
