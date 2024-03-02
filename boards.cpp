@@ -58,7 +58,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      7, 8, 9, 14,
      12, 13, 11, 10},
     // Board Type 4 (S3 mini with new box)
-    {43, 0xFF,
+    {0, 0xFF,
      0xFF, 0xFF, 0xFF,   // UART is unused
      2, 4, 12, 13,     // I2C0 on left side
      44, 36, 35, 18,     // I2C1 on right side
