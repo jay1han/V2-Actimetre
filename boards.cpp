@@ -62,7 +62,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      0xFF, 0xFF, 0xFF,   // UART is unused
      2, 4, 12, 13,     // I2C0 on left side
      44, 36, 35, 18,     // I2C1 on right side
-     0xFF, 0xFF, 0xFF, 0xFF},
+     0xFF, 0xFF, 10, 16},
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2
