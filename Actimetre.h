@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "262"
+#define VERSION_STR "300"
 
 // CONSTANTS
 
@@ -9,7 +9,8 @@
 #define MQTT_TOPIC  "Acti"
 #define LONGPRESS_MILLIS  2000L
 
-#define I2C_BAUDRATE 400000
+//#define I2C_BAUDRATE 400000
+#define I2C_BAUDRATE 1000000
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -18,9 +19,20 @@
 #define LCD_V_RES 64
 
 #define MEASURE_SECS     60
-#define HEADER_LENGTH    5     // epoch(3), msec(2) 
+#define HEADER_LENGTH    5     // epoch(3), msec(2)
+#if 0
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
+#else
+#define DATA_LENGTH      10    // accel(6) gyro(4)
+#define PACKET_SIZE      20
+#endif
+
+#ifdef PACKET_SIZE
+#define BUFFER_LENGTH    (PACKET_SIZE * (4 * DATA_LENGTH + HEADER_LENGTH))
+#define PACKET_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
+#else
 #define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
+#endif
 
 // TYPES
 
@@ -121,6 +133,7 @@ void getTimeSinceBoot(time_t *sec, int *usec);
 int getRelMicroseconds(time_t sec, int usec);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);
+void catchUpCycle();
 void waitNextCycle();
 int timeRemaining();
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);

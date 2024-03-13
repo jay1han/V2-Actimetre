@@ -60,9 +60,9 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     // Board Type 4 (S3 mini with new box)
     {0, 0xFF,
      0xFF, 0xFF, 0xFF,   // UART is unused
-     2, 4, 12, 13,     // I2C0 on left side
+     13, 11, 0x80 | 10, 0xFF,   // I2C0 on left side
      44, 36, 35, 18,     // I2C1 on right side
-     0xFF, 0xFF, 10, 16},
+     0xFF, 0xFF, 0xFF, 0xFF},
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2
@@ -85,7 +85,7 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {50,  30, 10, 100},
     {50,  30, 10, 100},
     {100, 50, 10, 200},
-    {100, 50, 10, 200},
+    {100, 500, 800, 1000},
 };
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
@@ -123,7 +123,7 @@ void setupBoard() {
 #if ARDUINO_USB_CDC_ON_BOOT
 #define HWSerial  Serial0
 #define USBSerial Serial
-    Serial.begin(921600);
+    Serial.begin(2000000);
 #else
 #define HWSerial  Serial
     USBCDC USBSerial;
@@ -186,6 +186,9 @@ static void switchFrequency() {
 }
 
 // LED AND BUTTON
+
+void lightNeoPixel(byte r, byte g, byte b) {
+}
 
 void blinkLed(int color) {
     static int set = 0, save = 0;

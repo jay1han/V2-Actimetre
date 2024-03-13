@@ -73,8 +73,12 @@ int readSensor(int port, int address, unsigned char *dataPoint) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     int n;
 
+#define MPU6050_DATA_REG   0x3B
+#define MPU6050_DATA_SIZE  12
+//#define MPU6050_DATA_REG   0x43
+//#define MPU6050_DATA_SIZE  4
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write(0x3B) != 1) {
+    if (wire.write(MPU6050_DATA_REG) != 1) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
         return 0;
     }
@@ -82,11 +86,11 @@ int readSensor(int port, int address, unsigned char *dataPoint) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> endTransmission", port + 1, 'A' + address);
         return 0;
     }
-    if (wire.requestFrom(MPU6050_ADDR + address, 12) != 12) {
+    if (wire.requestFrom(MPU6050_ADDR + address, MPU6050_DATA_SIZE) != MPU6050_DATA_SIZE) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
         return 0;
     }
-    if ((n = wire.readBytes(dataPoint, 12)) != 12) {
+    if ((n = wire.readBytes(dataPoint, MPU6050_DATA_SIZE)) != MPU6050_DATA_SIZE) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
         memset(dataPoint, 0, 12);
         return 0;
@@ -133,7 +137,7 @@ void deviceScanInit() {
         sleep(5);
         ESP.restart();
     }
-        
+
     my.msgLength = HEADER_LENGTH + DATA_LENGTH * my.nSensors;
     
     my.sensorList[0] = 0;

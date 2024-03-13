@@ -68,24 +68,72 @@ static time_t getActimIdAndTime() {
 // Messaging functions
 
 static void sendMessage(unsigned char *message) {
+    static int inSec = 0, thisSec = -1;
     int timeout = micros();
+    int epochSec = message[0] << 16 | message[1] << 8 | message[2];
+    
+#if 1
     int sent = 0;
-    while (sent < my.msgLength && micros_diff(micros(), timeout) < 1000000L) {
+#ifdef PACKET_SIZE
+    int msgLength = my.msgLength * PACKET_SIZE;
+#else
+    int msgLength = my.msgLength;
+#endif    
+    while (sent < msgLength && micros_diff(micros(), timeout) < 1000000L) {
         esp_task_wdt_reset();
-        sent += wifiClient.write(message + sent, my.msgLength - sent);
+        sent += wifiClient.write(message + sent, msgLength - sent);
     }
-    if (sent != my.msgLength) {
+    if (sent != msgLength) {
         Serial.printf("Timeout sending data\n");
         writeLine("Timeout");
         delay(2000);
         ESP.restart();
     }
+#else
+    int mSec, ax, ay, az, gx, gy;
+    mSec = (message[3] & 0x03) << 8 | message[4];
+//    ax = message[7] << 8 | message[8];
+//    ay = message[9] << 8 | message[10];
+//    az = message[11] << 8 | message[12];
+    gx = message[5] << 8 | message[6];
+    if (gx > 32767) gx = 65536 - gx;
+    gy = message[7] << 8 | message[8];
+    if (gy > 32767) gy = 65536 - gy;
+//    Serial.printf("%5d.%03d %5d %5d %5d %5d %5d\n", epochSec, mSec, ax, ay, az, gx, gy);
+#endif
+
+#ifdef PACKET_SIZE
+    inSec += PACKET_SIZE;
+#else
+    inSec ++;
+#endif
+    
+    if (thisSec != epochSec) {
+        if (thisSec != -1) {
+            Serial.printf("%ds %d records\n", thisSec, inSec);
+            inSec = 0;
+        }
+        thisSec = epochSec;
+    }
     logCycleTime(Core0Net, micros_diff(micros(), timeout));
 }
 
+#ifdef PACKET_SIZE
+byte packet[BUFFER_LENGTH];
+void queueMessage(unsigned char *message) {
+    static int inPacket = 0;
+    memcpy(packet + inPacket * my.msgLength, message, my.msgLength);
+    inPacket ++;
+    if (inPacket >= PACKET_SIZE) {
+        xQueueSend(msgQueue, packet, 0);
+        inPacket = 0;
+    }
+}
+#else
 void queueMessage(unsigned char *message) {
     xQueueSend(msgQueue, message, 0);
 }
+#endif
 
 void readRssi() {
     int rssi = WiFi.RSSI();
