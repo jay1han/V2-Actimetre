@@ -85,16 +85,16 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {50,  30, 10, 100},
     {50,  30, 10, 100},
     {100, 50, 10, 200},
-    {100, 500, 800, 1000},
+    {100, 200, 500, 1000},
 };
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
     {0, 4, 5, 1},
     {0, 4, 5, 1},
     {1, 0, 5, 3},
-    {1, 0, 5, 3},
+    {1, 3, 6, 7},
 };
-// 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
+// 0=50, 1=100, 2=1, 3=200, 4=30, 5=10, 6 = 500, 7 = 1000
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i", "S3n"};
 
 void setupBoard() {
