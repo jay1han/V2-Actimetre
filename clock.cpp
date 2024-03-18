@@ -27,7 +27,7 @@ static int64_t getAbsMicros() {
 
 int timeRemaining() {
     int64_t remain = nextMicros - getAbsMicros();
-    if (remain < 50L) return 0;
+    if (remain < 10L) return 0;
     else return (int)remain;
 }
 
@@ -42,7 +42,7 @@ void waitNextCycle() {
 
     if (timeRemaining() > 1000) displayLoop(0);
     while (timeRemaining() > 2000) delayMicroseconds(1000);
-    while (timeRemaining() >= 50);
+    while (timeRemaining() >= 10);
     nextMicros += (int64_t)cycleMicroseconds;
 }
 
@@ -128,8 +128,8 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
 
     if (nCycles[coreNum] < 10) return;
     
-    if (/* nMissed[0] >= 1000 || */ nError >= 10 || nMissed[1] >= 1000
-        /* || avgCycleTime[0] > cycleMicroseconds */ || avgCycleTime[1] > cycleMicroseconds) {
+    if (nError >= 10 || nMissed[1] >= 1000
+        || avgCycleTime[1] > cycleMicroseconds) {
         Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         Serial.println("System slowdown, rebooting");

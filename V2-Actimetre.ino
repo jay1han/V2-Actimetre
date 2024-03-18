@@ -33,6 +33,7 @@ void setup() {
     sprintf(title, "v%s", VERSION_STR);
     displayTitle(title);
     displaySensors();
+    Serial.println(title);
 
     netInit();
 }
@@ -55,7 +56,7 @@ void formatHeader(unsigned char *message) {
 }
 
 void formatData(unsigned char *message) {
-#if 0
+#ifndef _OVERCLOCK
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;

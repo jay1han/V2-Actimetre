@@ -56,6 +56,7 @@ static void initSensor(int port, int address) {
 }
 
 static int detectSensor(int port, int address) {
+    if (!my.hasI2C[port]) return 0;
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     
     wire.beginTransmission(MPU6050_ADDR + address);
@@ -75,8 +76,7 @@ int readSensor(int port, int address, unsigned char *dataPoint) {
 
 #define MPU6050_DATA_REG   0x3B
 #define MPU6050_DATA_SIZE  12
-//#define MPU6050_DATA_REG   0x43
-//#define MPU6050_DATA_SIZE  4
+    
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_DATA_REG) != 1) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
@@ -148,5 +148,6 @@ void deviceScanInit() {
             if (my.sensorPresent[port][address])
                 sprintf(my.sensorList + strlen(my.sensorList), "%c", 'A' + address);
     }
-}
 
+    Serial.printf("Sensors %s\n", my.sensorList);
+}

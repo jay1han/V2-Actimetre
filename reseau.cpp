@@ -71,8 +71,6 @@ static void sendMessage(unsigned char *message) {
     static int inSec = 0, thisSec = -1;
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
-    
-#if 1
     int sent = 0;
 #ifdef PACKET_SIZE
     int msgLength = my.msgLength * PACKET_SIZE;
@@ -89,18 +87,6 @@ static void sendMessage(unsigned char *message) {
         delay(2000);
         ESP.restart();
     }
-#else
-    int mSec, ax, ay, az, gx, gy;
-    mSec = (message[3] & 0x03) << 8 | message[4];
-//    ax = message[7] << 8 | message[8];
-//    ay = message[9] << 8 | message[10];
-//    az = message[11] << 8 | message[12];
-    gx = message[5] << 8 | message[6];
-    if (gx > 32767) gx = 65536 - gx;
-    gy = message[7] << 8 | message[8];
-    if (gy > 32767) gy = 65536 - gy;
-//    Serial.printf("%5d.%03d %5d %5d %5d %5d %5d\n", epochSec, mSec, ax, ay, az, gx, gy);
-#endif
 
 #ifdef PACKET_SIZE
     inSec += PACKET_SIZE;

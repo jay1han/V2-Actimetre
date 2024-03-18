@@ -2,6 +2,7 @@
 #define ACTIMETRE_H
 
 #define VERSION_STR "300"
+#define _OVERCLOCK
 
 // CONSTANTS
 
@@ -9,8 +10,11 @@
 #define MQTT_TOPIC  "Acti"
 #define LONGPRESS_MILLIS  2000L
 
-//#define I2C_BAUDRATE 400000
+#ifdef _OVERCLOCK
 #define I2C_BAUDRATE 1000000
+#else
+#define I2C_BAUDRATE 400000
+#endif
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -20,11 +24,11 @@
 
 #define MEASURE_SECS     60
 #define HEADER_LENGTH    5     // epoch(3), msec(2)
-#if 0
+#ifndef _OVERCLOCK
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
 #else
 #define DATA_LENGTH      10    // accel(6) gyro(4)
-#define PACKET_SIZE      20
+#define PACKET_SIZE      50
 #endif
 
 #ifdef PACKET_SIZE
@@ -52,6 +56,7 @@ typedef enum {
 
 typedef struct {
     BoardType boardType;
+    bool hasI2C[2];
     int dualCore;
     char boardName[4];
     unsigned char mac[6];
