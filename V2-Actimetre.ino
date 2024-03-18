@@ -26,12 +26,14 @@ void setup() {
     
     setupBoard();
 
+    delay(100);
     deviceScanInit();
 
     char title[16];
     sprintf(title, "v%s", VERSION_STR);
     displayTitle(title);
     displaySensors();
+    Serial.println(title);
 
     netInit();
 }
@@ -54,11 +56,16 @@ void formatHeader(unsigned char *message) {
 }
 
 void formatData(unsigned char *message) {
+#ifndef _OVERCLOCK
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;
     memcpy(message + 2, dataPoint, 6);
     memcpy(message + 8, dataPoint + 8, 4);
+#else
+    memcpy(message, dataPoint, 6);
+    memcpy(message + 6, dataPoint + 8, 4);
+#endif
 }
 
 void loop() {
@@ -70,10 +77,12 @@ void loop() {
 
     if (!isConnected()) ESP.restart();
 
-    if (timeRemaining() == 0)
+    if (timeRemaining() == 0) {
         nMissed[Core1I2C]++;
-    else 
+        catchUpCycle();
+    } else {
         waitNextCycle();
+    }
     cycle_time = micros();
 
     int port, address = 0;

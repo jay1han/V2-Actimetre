@@ -32,6 +32,8 @@ typedef enum {
 
 // BOARD DEFINITIONS (See readme.txt)
 
+#define POWERED_PIN  0x80
+#define DISABLE_I2C  0x80
 const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     // Board Type 0 (pin 35 is GND)
     {0, 15,
@@ -60,9 +62,9 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     // Board Type 4 (S3 mini with new box)
     {0, 0xFF,
      0xFF, 0xFF, 0xFF,   // UART is unused
-     2, 4, 12, 13,     // I2C0 on left side
-     44, 36, 35, 18,     // I2C1 on right side
-     0xFF, 0xFF, 10, 16},
+     13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
+     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     0xFF, 0xFF, 0xFF, 0xFF},
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2
@@ -78,23 +80,37 @@ uint8_t PIN_BUTTON, PIN_LED,
 
 int cycleFrequency;
 unsigned long cycleMicroseconds;
+#ifdef _OVERCLOCK
+typedef enum {FREQ_BASE = 0, FREQ_FAST, FREQ_MAX, FREQ_OVERMAX, FREQ_COUNT} FreqCode;
+#else
 typedef enum {FREQ_BASE = 0, FREQ_SLOW, FREQ_DRIP, FREQ_TURBO, FREQ_COUNT} FreqCode;
+#endif
+
 FreqCode freqCode = FREQ_BASE;
 static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {50,  30, 10, 100},
     {50,  30, 10, 100},
     {50,  30, 10, 100},
     {100, 50, 10, 200},
+#ifdef _OVERCLOCK
+    {100, 500, 1000, 2000},
+#else
     {100, 50, 10, 200},
+#endif
 };
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
     {0, 4, 5, 1},
     {0, 4, 5, 1},
     {1, 0, 5, 3},
+#ifdef _OVERCLOCK
+    {0, 1, 2, 3},
+#else
     {1, 0, 5, 3},
+#endif
 };
 // 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
+// V3: 0=100, 1=500, 2=1000, 3=2000, 4=4000, 5=8000
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i", "S3n"};
 
 void setupBoard() {
@@ -123,7 +139,7 @@ void setupBoard() {
 #if ARDUINO_USB_CDC_ON_BOOT
 #define HWSerial  Serial0
 #define USBSerial Serial
-    Serial.begin(921600);
+    Serial.begin(2000000);
 #else
 #define HWSerial  Serial
     USBCDC USBSerial;
@@ -133,27 +149,38 @@ void setupBoard() {
     Serial.begin(115200, SERIAL_8N1, PIN_UART_RX, PIN_UART_TX);
 #endif
 
+    delay(1000);
     Serial.printf("\nHELLO! Board Type %d. Main thread on Core %d. Cycle frequency %dHz.\n",
                   my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
 
-    PIN_I2C0_SDA                = PINS[my.boardType][_PIN_I2C0_SDA];
-    PIN_I2C0_SCL                = PINS[my.boardType][_PIN_I2C0_SCL];
-    PIN_I2C0_GND                = PINS[my.boardType][_PIN_I2C0_GND];
-    PIN_I2C0_VCC                = PINS[my.boardType][_PIN_I2C0_VCC];
-    if (PIN_I2C0_GND & 0x80 == 0) pinMode(PIN_I2C0_GND, INPUT);
-    else { PIN_I2C0_GND &= 0x7F;  pinMode(PIN_I2C0_GND, OUTPUT); digitalWrite(PIN_I2C0_GND, 0); }
-    if (PIN_I2C0_VCC & 0x80 == 0) pinMode(PIN_I2C0_VCC, INPUT);
-    else { PIN_I2C0_VCC &= 0x7F;  pinMode(PIN_I2C0_VCC, OUTPUT); digitalWrite(PIN_I2C0_VCC, 1); }
-
-    PIN_I2C1_SDA                = PINS[my.boardType][_PIN_I2C1_SDA];
-    PIN_I2C1_SCL                = PINS[my.boardType][_PIN_I2C1_SCL];
-    PIN_I2C1_GND                = PINS[my.boardType][_PIN_I2C1_GND];
-    PIN_I2C1_VCC                = PINS[my.boardType][_PIN_I2C1_VCC];
-    if (PIN_I2C1_GND & 0x80 == 0) pinMode(PIN_I2C1_GND, INPUT);
-    else { PIN_I2C1_GND &= 0x7F;  pinMode(PIN_I2C1_GND, OUTPUT); digitalWrite(PIN_I2C1_GND, 0); }
-    if (PIN_I2C1_VCC & 0x80 == 0) pinMode(PIN_I2C1_VCC, INPUT);
-    else { PIN_I2C1_VCC &= 0x7F;  pinMode(PIN_I2C1_VCC, OUTPUT); digitalWrite(PIN_I2C1_VCC, 1); }
-
+    if (PINS[my.boardType][_PIN_I2C0_SDA] & DISABLE_I2C) {
+        my.hasI2C[0] = false;
+    } else {
+        my.hasI2C[0] = true;
+        PIN_I2C0_SDA                = PINS[my.boardType][_PIN_I2C0_SDA];
+        PIN_I2C0_SCL                = PINS[my.boardType][_PIN_I2C0_SCL];
+        PIN_I2C0_GND                = PINS[my.boardType][_PIN_I2C0_GND];
+        PIN_I2C0_VCC                = PINS[my.boardType][_PIN_I2C0_VCC];
+        if (PIN_I2C0_GND & POWERED_PIN == 0) pinMode(PIN_I2C0_GND, INPUT);
+        else { PIN_I2C0_GND &= 0x7F;  pinMode(PIN_I2C0_GND, OUTPUT); digitalWrite(PIN_I2C0_GND, 0); }
+        if (PIN_I2C0_VCC & POWERED_PIN == 0) pinMode(PIN_I2C0_VCC, INPUT);
+        else { PIN_I2C0_VCC &= 0x7F;  pinMode(PIN_I2C0_VCC, OUTPUT); digitalWrite(PIN_I2C0_VCC, 1); }
+    }
+    
+    if (PINS[my.boardType][_PIN_I2C1_SDA] & DISABLE_I2C) {
+        my.hasI2C[1] = false;
+    } else {
+        my.hasI2C[1] = true;
+        PIN_I2C1_SDA                = PINS[my.boardType][_PIN_I2C1_SDA];
+        PIN_I2C1_SCL                = PINS[my.boardType][_PIN_I2C1_SCL];
+        PIN_I2C1_GND                = PINS[my.boardType][_PIN_I2C1_GND];
+        PIN_I2C1_VCC                = PINS[my.boardType][_PIN_I2C1_VCC];
+        if (PIN_I2C1_GND & POWERED_PIN == 0) pinMode(PIN_I2C1_GND, INPUT);
+        else { PIN_I2C1_GND &= 0x7F;  pinMode(PIN_I2C1_GND, OUTPUT); digitalWrite(PIN_I2C1_GND, 0); }
+        if (PIN_I2C1_VCC & POWERED_PIN == 0) pinMode(PIN_I2C1_VCC, INPUT);
+        else { PIN_I2C1_VCC &= 0x7F;  pinMode(PIN_I2C1_VCC, OUTPUT); digitalWrite(PIN_I2C1_VCC, 1); }
+    }
+    
     pinMode(PIN_I2C0_GND_MUX = PINS[my.boardType][_PIN_I2C0_GND_MUX], INPUT);
     pinMode(PIN_I2C0_VCC_MUX = PINS[my.boardType][_PIN_I2C0_VCC_MUX], INPUT);
     pinMode(PIN_I2C0_SCL_MUX = PINS[my.boardType][_PIN_I2C0_SCL_MUX], INPUT);
@@ -186,6 +213,9 @@ static void switchFrequency() {
 }
 
 // LED AND BUTTON
+
+void lightNeoPixel(byte r, byte g, byte b) {
+}
 
 void blinkLed(int color) {
     static int set = 0, save = 0;
