@@ -121,26 +121,39 @@ static int detectSensor(int port, int address) {
 int readFifo(int port, int address) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     byte lsb, msb, overflow;
-    int fifoCount;
+    int fifoCount, count;
 
     overflow = readByte(port, MPU6050_ADDR + address, MPU6050_INT_STAT);
     if (overflow & 0x10) {
         Serial.printf("Sensor %d%c FIFO overflow, clearing\n", port + 1, address + 'A');
         clear1Sensor(port, address);
-        return 0;
-    } else {
-        msb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_H);
-        lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
-        fifoCount = msb << 8 | lsb;
-        Serial.printf("FIFO %d bytes to read\n", fifoCount);
-        if (fifoCount <= 0 || fifoCount > 1024) return 0;
-
-        for (int count = 0; count < fifoCount; count++) {
-            fifoBuffer[count] = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_DATA);
-        }
-
-        return fifoCount;
     }
+    
+    msb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_H);
+    lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
+    fifoCount = msb << 8 | lsb;
+    Serial.printf("FIFO %d bytes to read\n", fifoCount);
+
+    wire.beginTransmission(MPU6050_ADDR + address);
+    if (wire.write(MPU6050_FIFO_DATA) != 1) {
+        Serial.printf("ERROR on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
+        return 0;
+    }
+    if (wire.endTransmission() != 0) {
+        Serial.printf("ERROR on sensor %d%c: readByte() -> endTransmission", port + 1, 'A' + address);
+        return 0;
+    }
+    if (wire.requestFrom(MPU6050_ADDR + address, fifoCount) != fifoCount) {
+        Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
+        return 0;
+    }
+    if (wire.readBytes(fifoBuffer + count, fifoCount) != fifoCount) {
+        Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
+        return 0;
+    }
+    wire.endTransmission();
+        
+    return fifoCount;
 }
 
 #else // _FIFO
