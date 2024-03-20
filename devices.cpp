@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <HardwareSerial.h>
 #include <Esp.h>
+#include <esp_task_wdt.h>
 #include "Actimetre.h"
 
 #define MPU6050_FIFO_CNT_H  0x72
@@ -55,7 +56,7 @@ static void initSensor(int port, int address) {
 }
 
 #ifdef _V3
-#define DUMP_SIZE   (10 * DATA_LENGTH)
+#define DUMP_SIZE   255
 static byte dump[DUMP_SIZE];
 static void clear1Sensor(int port, int address) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
@@ -66,9 +67,10 @@ static void clear1Sensor(int port, int address) {
     lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
     fifoCount = msb << 8 | lsb;
     if (fifoCount <= 0 || fifoCount > 1024) return;
-    Serial.printf("Clearing %d bytes from FIFO", fifoCount);
+    Serial.printf("Clearing %d bytes from FIFO %d%c", fifoCount, port + 1, address + 'A');
 
     while (fifoCount > 0) {
+        esp_task_wdt_reset();
         count = fifoCount;
         if (count > DUMP_SIZE) count = DUMP_SIZE;
         Serial.print(".");
@@ -103,6 +105,7 @@ static void clear1SensorSome(int port, int address, int fifoCount) {
     Serial.printf("Clearing %d bytes from FIFO", fifoCount);
 
     while (fifoCount > 0) {
+        esp_task_wdt_reset();
         count = fifoCount;
         if (count > DUMP_SIZE) count = DUMP_SIZE;
         Serial.print(".");
@@ -138,11 +141,12 @@ void setSensorsFrequency(int frequency) {
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
-                clear1Sensor(port, address);
-                writeByte(port, MPU6050_ADDR + address, 0x19, (byte)divider); // Sampling rate divider
+                Serial.printf("Sensor %d%c sampling rate divider %d\n", port + 1, address + 'A', divider);
                 writeByte(port, MPU6050_ADDR + address, 0x6A, 0x04); // reset FIFO
+                writeByte(port, MPU6050_ADDR + address, 0x19, (byte)divider); // Sampling rate divider
                 writeByte(port, MPU6050_ADDR + address, 0x6A, 0x40); // enable FIFO
                 writeByte(port, MPU6050_ADDR + address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
+                clear1Sensor(port, address);
             }
         }
     }
@@ -194,13 +198,16 @@ int readFifo(int port, int address, byte *buffer) {
     fifoCount = msb << 8 | lsb;
     if (fifoCount > MAX_MEASURES * DATA_LENGTH) {
         Serial.printf("FIFO %d bytes too much, culling\n", fifoCount);
-        clear1SensorSome(port, address, (fifoCount / DATA_LENGTH - MAX_MEASURES) * DATA_LENGTH);
+        clear1SensorSome(port, address, (fifoCount / DATA_LENGTH - 10) * DATA_LENGTH);
+        msb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_H);
+        lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
+        fifoCount = msb << 8 | lsb;
     } else if (fifoCount < DATA_LENGTH) {
         Serial.printf("FIFO %d bytes too few, returning\n", fifoCount);
         return 0;
     }
     fifoCount = (fifoCount / DATA_LENGTH) * DATA_LENGTH;
-    Serial.printf("FIFO %d bytes to read\n", fifoCount);
+//    Serial.printf("FIFO %d bytes to read\n", fifoCount);
 
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_FIFO_DATA) != 1) {

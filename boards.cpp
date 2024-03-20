@@ -208,7 +208,8 @@ static void switchFrequency() {
     cycleFrequency = Frequencies[my.boardType][freqCode];
     cycleMicroseconds = 10000000L / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
-    Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
+    Serial.printf("Sampling at %dHz (code %d) = %dus per reading\n",
+                  cycleFrequency, my.frequencyCode, cycleMicroseconds);
     setSensorsFrequency(cycleFrequency);
     displaySensors();
     clearCycleTime();

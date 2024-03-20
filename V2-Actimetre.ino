@@ -106,9 +106,11 @@ void loop() {
 #ifdef _V3
     message = msgQueueStore[msgIndex];
     int fifoCount = readFifo(0, 0, message + HEADER_LENGTH);
-    formatHeader(message, fifoCount);
-    queueMessage(&msgIndex);
-    if (++msgIndex > QUEUE_SIZE) msgIndex = 0;
+    if (fifoCount > 0) {
+        formatHeader(message, fifoCount);
+        queueMessage(&msgIndex);
+        if (++msgIndex > QUEUE_SIZE) msgIndex = 0;
+    }
 #else                
     formatHeader(message);
     int offset = HEADER_LENGTH;
@@ -124,7 +126,6 @@ void loop() {
     queueMessage(message);
 #endif                
     logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
-    
 }
 
 // UTILITY FUNCTION
