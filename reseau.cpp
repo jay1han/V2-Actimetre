@@ -10,11 +10,12 @@
 static WiFiClient wifiClient;
 
 QueueHandle_t msgQueue;
-byte msgBuffer[BUFFER_LENGTH];
 float queueFill = 0.0;
 #ifdef _V3
 StaticQueue_t msgQueueStatic;
 byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
+#else
+byte msgBuffer[BUFFER_LENGTH];
 #endif
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
@@ -70,13 +71,14 @@ static time_t getActimIdAndTime() {
 
 // Messaging functions
 
-static void sendMessage(unsigned char *message) {
+static void sendMessage(byte *message) {
     static int inSec = 0, thisSec = -1;
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
     int sent = 0;
-#ifdef PACKET_SIZE
-    int msgLength = my.msgLength * PACKET_SIZE;
+#ifdef _V3    
+    int count = message[3];
+    int msgLength = HEADER_LENGTH + DATA_LENGTH * count;
 #else
     int msgLength = my.msgLength;
 #endif    
@@ -91,15 +93,20 @@ static void sendMessage(unsigned char *message) {
         ESP.restart();
     }
 
-#ifdef PACKET_SIZE
-    inSec += PACKET_SIZE;
+#ifdef _V3
+    inSec += count;
 #else
     inSec ++;
 #endif
     
     if (thisSec != epochSec) {
         if (thisSec != -1) {
+#ifdef _V3
+            int microSec = message[5] << 16 | message[6] << 8 | message[7];
+            Serial.printf("%d.%06d %d records\n", thisSec, microSec, inSec);
+#else            
             Serial.printf("%ds %d records\n", thisSec, inSec);
+#endif            
             inSec = 0;
         }
         thisSec = epochSec;
@@ -131,6 +138,7 @@ int isConnected() {
     }
 
     if (!my.dualCore) {
+#ifndef _V3    
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
         if (availableSpaces == 0) {
             nMissed[Core0Net] ++;
@@ -145,25 +153,37 @@ int isConnected() {
             availableSpaces = uxQueueSpacesAvailable(msgQueue);
             queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }    
-
         readRssi();
+#endif
     }
+    
     return 1;
 }
 
 static void Core0Loop(void *dummy_to_match_argument_signature) {
     Serial.printf("Core %d started\n", xPortGetCoreID());
-    
+
+    int index;
     unsigned long startWork;
     for (;;) {
+#ifdef _V3
+        while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
+            esp_task_wdt_reset();
+        }
+#else        
         while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
             esp_task_wdt_reset();
         }
+#endif        
         startWork = micros();
         esp_task_wdt_reset();
         
         blinkLed(-1);
+#ifdef _V3
+        sendMessage(msgQueueStore[index]);
+#else        
         sendMessage(msgBuffer);
+#endif        
 
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
         if (availableSpaces < QUEUE_SIZE / 5) {

@@ -190,8 +190,9 @@ void setupBoard() {
     Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
 
     cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
-    cycleMicroseconds = 1000000L / cycleFrequency;
+    cycleMicroseconds = 10000000L / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];
+    Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
 }
 
 TaskHandle_t core0Task;

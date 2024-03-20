@@ -61,8 +61,8 @@ void formatHeader(unsigned char *message)
     message[1] = (msgBootEpoch >> 8) & 0xFF;
     message[2] = msgBootEpoch & 0xFF;
 #ifdef _V3
-    message[3] = ((byte)my.rssi << 4)  | (byte)my.frequencyCode;
-    message[4] = count;
+    message[3] = count;
+    message[4] = ((byte)my.rssi << 4)  | (byte)my.frequencyCode;
     message[5] = (msgMicros >> 16) & 0xFF;
     message[6] = (msgMicros >> 8) & 0xFF;
     message[7] = msgMicros & 0xFF;

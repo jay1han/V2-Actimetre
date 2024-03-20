@@ -68,7 +68,9 @@ typedef struct {
     int sensorPresent[2][2];
     unsigned char sensorBits;
     int nSensors;
+#ifndef _V3    
     int msgLength;
+#endif    
     char sensorList[10];
 } MyInfo;
 
