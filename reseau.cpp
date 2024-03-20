@@ -161,7 +161,7 @@ int isConnected() {
     return 1;
 }
 
-static void Core0Loop(void *dummy_to_match_argument_signatue) {
+static void Core0Loop(void *dummy_to_match_argument_signature) {
     Serial.printf("Core %d started\n", xPortGetCoreID());
     
     unsigned long startWork;

@@ -3,10 +3,14 @@
 #include <Esp.h>
 #include "Actimetre.h"
 
+#define MPU6050_FIFO_CNT_H  0x72
+#define MPU6050_FIFO_CNT_L  0x73
+#define MPU6050_FIFO_DATA   0x74
+#define MPU6050_INT_STAT    0x3A
+
 // GENERAL
 
 void writeByte(int port, int address, int memory, unsigned char cmd) {
-    //Logger.printf("writeByte(port=%d, address=0x%02X, register=0x%02X, data=0x%02X)\n", port, address, memory, cmd);
     TwoWire &wire = (port == 0) ? Wire : Wire1;
 
     wire.beginTransmission(address);
@@ -16,18 +20,16 @@ void writeByte(int port, int address, int memory, unsigned char cmd) {
 }
 
 unsigned char readByte(int port, int address, int memory) {
-    //Logger.printf("readByte(port=%d, address=0x%02X, register=0x%02X) ", port, address, memory);
     TwoWire &wire = (port == 0) ? Wire : Wire1;
 
     unsigned char data;
     wire.beginTransmission(address);
     if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("readByte() -> write");
-    if (wire.endTransmission() != 0) ERROR_FATAL("readByte() -> endTransmission");
+    if (wire.endTransmission() != 0) ERROR_FATAL("readByte() -> endTransmission0");
     if (wire.requestFrom(address, 1) != 1) ERROR_FATAL("readByte() -> requestFrom");
     data = wire.read();
-    wire.endTransmission(true);
+    if (wire.endTransmission() != 0) ERROR_FATAL("readByte() -> endTransmission1");
 
-    //Logger.printf("=0x%02X\n", data);
     return data;
 }
 
@@ -35,16 +37,14 @@ unsigned char readByte(int port, int address, int memory) {
 
 static void initSensor(int port, int address) {
     Serial.printf("Initializing %d%c", port + 1, 'A' + address);
-    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x80); // Power on
-    delay(100);
-    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x08); // Disable Temp
+    writeByte(port, MPU6050_ADDR + address, 0x6B, 0x00); // Power on
     delay(100);
     writeByte(port, MPU6050_ADDR + address, 0x1C, 0x08); // Range +/-4g
-    delay(100);
-    writeByte(port, MPU6050_ADDR + address, 0x68, 0x07); // Signal path reset
-    delay(100);
-//    writeByte(port, MPU6050_ADDR + address, 0x1A, 0x01); // enable DLPF
-//    delay(100);
+    writeByte(port, MPU6050_ADDR + address, 0x19, 79); // Sampling rate divider = 79 (100Hz)
+    writeByte(port, MPU6050_ADDR + address, 0x6A, 0x04); // reset FIFO
+    writeByte(port, MPU6050_ADDR + address, 0x38, 0x10); // enable FIFO overflow interrupt
+    writeByte(port, MPU6050_ADDR + address, 0x6A, 0x40); // enable FIFO
+    writeByte(port, MPU6050_ADDR + address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
 
     int res = readByte(port, MPU6050_ADDR + address, 0x75);
     if (res != 0x68) {
@@ -53,6 +53,52 @@ static void initSensor(int port, int address) {
     }
 
     Serial.println(" OK!");
+}
+
+#ifdef _FIFO
+byte fifoBuffer[1024];
+
+static void clear1Sensor(int port, int address) {
+    byte lsb, msb, overflow;
+    int fifoCount;
+    
+    msb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_H);
+    lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
+    fifoCount = msb << 8 | lsb;
+    if (fifoCount <= 0 || fifoCount > 1024) return;
+    for (int count = 0; count < fifoCount; count++) {
+        fifoBuffer[count] = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_DATA);
+    }
+}
+#endif
+
+void setSensorsFrequency(int frequency) {
+#ifdef _FIFO
+    int divider = 8000 / frequency - 1;
+    for (int port = 0; port <= 1; port++) {
+        for (int address = 0; address <= 1; address++) {
+            if (my.sensorPresent[port][address]) {
+                clear1Sensor(port, address);
+                writeByte(port, MPU6050_ADDR + address, 0x19, (byte)divider); // Sampling rate divider
+                writeByte(port, MPU6050_ADDR + address, 0x6A, 0x04); // reset FIFO
+                writeByte(port, MPU6050_ADDR + address, 0x6A, 0x40); // enable FIFO
+                writeByte(port, MPU6050_ADDR + address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
+            }
+        }
+    }
+#endif
+}
+
+void clearSensors() {
+#ifdef _FIFO
+    for (int port = 0; port <= 1; port++) {
+        for (int address = 0; address <= 1; address++) {
+            if (my.sensorPresent[port][address]) {
+                clear1Sensor(port, address);
+            }
+        }
+    }
+#endif
 }
 
 static int detectSensor(int port, int address) {
@@ -70,12 +116,39 @@ static int detectSensor(int port, int address) {
     }
 }
 
-int readSensor(int port, int address, unsigned char *dataPoint) {
+#ifdef _FIFO
+
+int readFifo(int port, int address) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
-    int n;
+    byte lsb, msb, overflow;
+    int fifoCount;
+
+    overflow = readByte(port, MPU6050_ADDR + address, MPU6050_INT_STAT);
+    if (overflow & 0x10) {
+        Serial.printf("Sensor %d%c FIFO overflow, clearing\n", port + 1, address + 'A');
+        clear1Sensor(port, address);
+        return 0;
+    } else {
+        msb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_H);
+        lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
+        fifoCount = msb << 8 | lsb;
+        Serial.printf("FIFO %d bytes to read\n", fifoCount);
+        if (fifoCount <= 0 || fifoCount > 1024) return 0;
+
+        for (int count = 0; count < fifoCount; count++) {
+            fifoBuffer[count] = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_DATA);
+        }
+
+        return fifoCount;
+    }
+}
+
+#else // _FIFO
 
 #define MPU6050_DATA_REG   0x3B
 #define MPU6050_DATA_SIZE  12
+int readSensor(int port, int address, unsigned char *dataPoint) {
+    TwoWire &wire = (port == 0) ? Wire : Wire1;
     
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_DATA_REG) != 1) {
@@ -98,6 +171,7 @@ int readSensor(int port, int address, unsigned char *dataPoint) {
     wire.endTransmission();
     return 1;
 }
+#endif
 
 // GLOBAL
 

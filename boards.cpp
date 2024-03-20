@@ -80,7 +80,7 @@ uint8_t PIN_BUTTON, PIN_LED,
 
 int cycleFrequency;
 unsigned long cycleMicroseconds;
-#ifdef _OVERCLOCK
+#ifdef _V3
 typedef enum {FREQ_BASE = 0, FREQ_FAST, FREQ_MAX, FREQ_OVERMAX, FREQ_COUNT} FreqCode;
 #else
 typedef enum {FREQ_BASE = 0, FREQ_SLOW, FREQ_DRIP, FREQ_TURBO, FREQ_COUNT} FreqCode;
@@ -92,7 +92,7 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {50,  30, 10, 100},
     {50,  30, 10, 100},
     {100, 50, 10, 200},
-#ifdef _OVERCLOCK
+#ifdef _V3
     {100, 500, 1000, 2000},
 #else
     {100, 50, 10, 200},
@@ -103,7 +103,7 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
     {0, 4, 5, 1},
     {1, 0, 5, 3},
-#ifdef _OVERCLOCK
+#ifdef _V3
     {0, 1, 2, 3},
 #else
     {1, 0, 5, 3},
@@ -208,6 +208,7 @@ static void switchFrequency() {
     cycleMicroseconds = 1000000L / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
     Serial.printf("Running at %dHz = %dus\n", cycleFrequency, cycleMicroseconds);
+    setSensorsFrequency(cycleFrequency);
     displaySensors();
     clearCycleTime();
 }

@@ -12,7 +12,9 @@ MyInfo my;
 
 // FILE-WIDE GLOBAL
 
+#ifndef _FIFO
 static unsigned char dataPoint[12];
+#endif
 static unsigned char message[BUFFER_LENGTH];
 
 // STATISTICS
@@ -36,6 +38,7 @@ void setup() {
     Serial.println(title);
 
     netInit();
+    clearSensors();
 }
 
 // MAIN LOOP
@@ -56,22 +59,24 @@ void formatHeader(unsigned char *message) {
 }
 
 void formatData(unsigned char *message) {
-#ifndef _OVERCLOCK
+#ifdef _OVERCLOCK
+#else
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;
     memcpy(message + 2, dataPoint, 6);
     memcpy(message + 8, dataPoint + 8, 4);
-#else
+#ifdef _FIFO
+#else    
     memcpy(message, dataPoint, 6);
     memcpy(message + 6, dataPoint + 8, 4);
+#endif    
 #endif
 }
 
 void loop() {
-    static int firstLoop = 1;
     static unsigned long cycle_time;
-    
+
     esp_task_wdt_reset();
     manageButton();
 
@@ -92,9 +97,13 @@ void loop() {
     for (port = 0; port <= 1; port++) {
         for (address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
+#ifdef _FIFO
+                readFifo(port, address);
+#else                
                 if (!readSensor(port, address, dataPoint)) nError ++;
                 formatData(message + offset);
                 offset += DATA_LENGTH;
+#endif                
             }
         }
 

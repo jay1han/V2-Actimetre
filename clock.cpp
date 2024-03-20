@@ -128,7 +128,7 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
 
     if (nCycles[coreNum] < 10) return;
     
-    if (nError >= 10 || nMissed[1] >= 1000
+    if (nError >= 100 || nMissed[1] >= 1000
         || avgCycleTime[1] > cycleMicroseconds) {
         Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);

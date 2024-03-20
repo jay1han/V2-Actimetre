@@ -3,18 +3,14 @@
 
 #define VERSION_STR "300"
 #define _OVERCLOCK
+#define _FIFO
 
 // CONSTANTS
 
 #define ACTISERVER  "Actis"
-#define MQTT_TOPIC  "Acti"
 #define LONGPRESS_MILLIS  2000L
 
-#ifdef _OVERCLOCK
 #define I2C_BAUDRATE 1000000
-#else
-#define I2C_BAUDRATE 400000
-#endif
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -24,17 +20,13 @@
 
 #define MEASURE_SECS     60
 #define HEADER_LENGTH    5     // epoch(3), msec(2)
-#ifndef _OVERCLOCK
-#define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
-#else
+#ifdef _OVERCLOCK
 #define DATA_LENGTH      10    // accel(6) gyro(4)
 #define PACKET_SIZE      50
-#endif
-
-#ifdef PACKET_SIZE
 #define BUFFER_LENGTH    (PACKET_SIZE * (4 * DATA_LENGTH + HEADER_LENGTH))
 #define PACKET_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
 #else
+#define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
 #define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
 #endif
 
@@ -100,13 +92,18 @@ void writeLine(char *message);
 void netInit();
 int isConnected();
 void queueMessage(unsigned char *message);
-void netCore0(void *dummy_to_match_argument_signatue);
-extern QueueHandle_t mqttQueue;
-extern int mqttQueueSize;
+void netCore0(void *dummy_to_match_argument_signature);
 extern float queueFill;
 
 // devices.cpp
+#ifdef _FIFO
+extern byte fifoBuffer[1024];
+int readFifo(int port, int address);
+#else
 int readSensor(int port, int address, unsigned char *data);
+#endif
+void clearSensors();
+void setSensorsFrequency(int frequency);
 extern int nError;
 void deviceScanInit();
 
