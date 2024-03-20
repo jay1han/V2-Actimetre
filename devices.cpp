@@ -55,9 +55,9 @@ static void initSensor(int port, int address) {
     Serial.println(" OK!");
 }
 
-#ifdef _FIFO
-byte fifoBuffer[1024];
-
+#ifdef _V3
+#define DUMP_SIZE   (10 * DATA_LENGTH)
+static byte dump[DUMP_SIZE];
 static void clear1Sensor(int port, int address) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     byte lsb, msb;
@@ -71,7 +71,7 @@ static void clear1Sensor(int port, int address) {
 
     while (fifoCount > 0) {
         count = fifoCount;
-        if (count > 100) count = 100;
+        if (count > DUMP_SIZE) count = DUMP_SIZE;
         Serial.print(".");
         
         wire.beginTransmission(MPU6050_ADDR + address);
@@ -84,23 +84,23 @@ static void clear1Sensor(int port, int address) {
             return;
         }
         if (wire.requestFrom(MPU6050_ADDR + address, count) != count) {
-            Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
+            Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom(%d)", port + 1, 'A' + address, count);
             return;
         }
-        if (wire.readBytes(fifoBuffer, count) != count) {
-            Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
+        if (wire.readBytes(dump, count) != count) {
+            Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes(%d)", port + 1, 'A' + address, count);
             return;
         }
         wire.endTransmission();
 
-        fifoCount -= 100;
+        fifoCount -= DUMP_SIZE;
     }
     Serial.println("Cleared");
 }
 #endif
 
 void setSensorsFrequency(int frequency) {
-#ifdef _FIFO
+#ifdef _V3
     int divider = 8000 / frequency - 1;
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
@@ -117,7 +117,7 @@ void setSensorsFrequency(int frequency) {
 }
 
 void clearSensors() {
-#ifdef _FIFO
+#ifdef _V3
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
             if (my.sensorPresent[port][address]) {
@@ -143,9 +143,9 @@ static int detectSensor(int port, int address) {
     }
 }
 
-#ifdef _FIFO
+#ifdef _V3
 
-int readFifo(int port, int address) {
+int readFifo(int port, int address, byte *buffer) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     byte lsb, msb, overflow;
     int fifoCount;
@@ -159,7 +159,13 @@ int readFifo(int port, int address) {
     msb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_H);
     lsb = readByte(port, MPU6050_ADDR + address, MPU6050_FIFO_CNT_L);
     fifoCount = msb << 8 | lsb;
-    Serial.printf("FIFO %d bytes to read\n", fifoCount);
+    if (fifoCount > MAX_MEASURES * DATA_LENGTH) {
+        Serial.printf("FIFO %d bytes too much, clearing\n", fifoCount);
+        clear1Sensor(port, address);
+        return 0;
+    } else {
+        Serial.printf("FIFO %d bytes to read\n", fifoCount);
+    }
 
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_FIFO_DATA) != 1) {
@@ -174,16 +180,16 @@ int readFifo(int port, int address) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
         return 0;
     }
-    if (wire.readBytes(fifoBuffer, fifoCount) != fifoCount) {
+    if (wire.readBytes(buffer, fifoCount) != fifoCount) {
         Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
         return 0;
     }
     wire.endTransmission();
         
-    return fifoCount;
+    return fifoCount / DATA_LENGTH;
 }
 
-#else // _FIFO
+#else // _V3
 
 #define MPU6050_DATA_REG   0x3B
 #define MPU6050_DATA_SIZE  12

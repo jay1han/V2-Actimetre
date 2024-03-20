@@ -2,8 +2,7 @@
 #define ACTIMETRE_H
 
 #define VERSION_STR "300"
-#define _OVERCLOCK
-#define _FIFO
+#define _V3
 
 // CONSTANTS
 
@@ -19,13 +18,15 @@
 #define LCD_V_RES 64
 
 #define MEASURE_SECS     60
-#define HEADER_LENGTH    5     // epoch(3), msec(2)
-#ifdef _OVERCLOCK
+#ifdef _V3
+#define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define DATA_LENGTH      10    // accel(6) gyro(4)
-#define PACKET_SIZE      50
-#define BUFFER_LENGTH    (PACKET_SIZE * (4 * DATA_LENGTH + HEADER_LENGTH))
-#define PACKET_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
+#define MAX_MEASURES     20
+#define BUFFER_LENGTH    (MAX_MEASURES * DATA_LENGTH + HEADER_LENGTH)
+#define QUEUE_SIZE       800
 #else
+#define QUEUE_SIZE       50
+#define HEADER_LENGTH    5     // epoch(3), msec(2)
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
 #define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
 #endif
@@ -91,14 +92,18 @@ void writeLine(char *message);
 // reseau.cpp
 void netInit();
 int isConnected();
-void queueMessage(unsigned char *message);
+void queueMessage(void *message);
 void netCore0(void *dummy_to_match_argument_signature);
 extern float queueFill;
 
+#ifdef _V3
+extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
+extern int msgIndex;
+#endif
+
 // devices.cpp
-#ifdef _FIFO
-extern byte fifoBuffer[1024];
-int readFifo(int port, int address);
+#ifdef _V3
+int readFifo(int port, int address, byte *buffer);
 #else
 int readSensor(int port, int address, unsigned char *data);
 #endif

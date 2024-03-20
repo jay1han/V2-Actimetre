@@ -205,9 +205,9 @@ void setupCore0(void (*core0Loop)(void*)) {
 static void switchFrequency() {
     freqCode = (FreqCode) (((int)freqCode + 1) % FREQ_COUNT);
     cycleFrequency = Frequencies[my.boardType][freqCode];
-    cycleMicroseconds = 1000000L / cycleFrequency;
+    cycleMicroseconds = 10000000L / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
-    Serial.printf("Running at %dHz = %dus\n", cycleFrequency, cycleMicroseconds);
+    Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
     setSensorsFrequency(cycleFrequency);
     displaySensors();
     clearCycleTime();

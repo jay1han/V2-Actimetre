@@ -10,9 +10,12 @@
 static WiFiClient wifiClient;
 
 QueueHandle_t msgQueue;
-#define QUEUE_SIZE 50
-unsigned char msgBuffer[BUFFER_LENGTH];
+byte msgBuffer[BUFFER_LENGTH];
 float queueFill = 0.0;
+#ifdef _V3
+StaticQueue_t msgQueueStatic;
+byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
+#endif
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
@@ -104,22 +107,9 @@ static void sendMessage(unsigned char *message) {
     logCycleTime(Core0Net, micros_diff(micros(), timeout));
 }
 
-#ifdef PACKET_SIZE
-byte packet[BUFFER_LENGTH];
-void queueMessage(unsigned char *message) {
-    static int inPacket = 0;
-    memcpy(packet + inPacket * my.msgLength, message, my.msgLength);
-    inPacket ++;
-    if (inPacket >= PACKET_SIZE) {
-        xQueueSend(msgQueue, packet, 0);
-        inPacket = 0;
-    }
-}
-#else
-void queueMessage(unsigned char *message) {
+void queueMessage(void *message) {
     xQueueSend(msgQueue, message, 0);
 }
-#endif
 
 void readRssi() {
     int rssi = WiFi.RSSI();
@@ -322,8 +312,8 @@ void netInit() {
     if (i == nActis) {
         Serial.println("\nCan't connect to any server, rebooting");
 	writeLine("No server");
-  esp_wifi_stop();
-  delay(random(3000,6000));
+        esp_wifi_stop();
+        delay(random(3000,6000));
         ESP.restart();
     }
 
@@ -333,7 +323,11 @@ void netInit() {
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
 
+#ifdef _V3    
+    msgQueue = xQueueCreateStatic(QUEUE_SIZE, sizeof(int), msgQueueItems, &msgQueueStatic);
+#else
     msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
+#endif    
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
 	writeLine("OS error");
