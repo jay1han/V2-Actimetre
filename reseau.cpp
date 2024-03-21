@@ -83,7 +83,7 @@ static void sendMessage(byte *message) {
     int msgLength = my.msgLength;
 #endif    
     while (sent < msgLength && micros_diff(micros(), timeout) < 1000000L) {
-        esp_task_wdt_reset();
+//        esp_task_wdt_reset();
         sent += wifiClient.write(message + sent, msgLength - sent);
     }
     if (sent != msgLength) {
@@ -168,15 +168,15 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
     for (;;) {
 #ifdef _V3
         while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
-            esp_task_wdt_reset();
+//            esp_task_wdt_reset();
         }
 #else        
         while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
-            esp_task_wdt_reset();
+//            esp_task_wdt_reset();
         }
 #endif        
         startWork = micros();
-        esp_task_wdt_reset();
+//        esp_task_wdt_reset();
         
         blinkLed(-1);
 #ifdef _V3

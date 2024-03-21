@@ -50,6 +50,7 @@ typedef enum {
 typedef struct {
     BoardType boardType;
     bool hasI2C[2];
+    bool ledRGB;
     int dualCore;
     char boardName[4];
     unsigned char mac[6];

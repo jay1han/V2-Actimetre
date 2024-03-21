@@ -90,7 +90,7 @@ void formatData(unsigned char *message) {
 void loop() {
     static unsigned long cycle_time;
 
-    esp_task_wdt_reset();
+//    esp_task_wdt_reset();
     manageButton();
 
     if (!isConnected()) ESP.restart();
@@ -109,7 +109,7 @@ void loop() {
     if (fifoCount > 0) {
         formatHeader(message, fifoCount);
         queueMessage(&msgIndex);
-        if (++msgIndex > QUEUE_SIZE) msgIndex = 0;
+        if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
     }
 #else                
     formatHeader(message);
