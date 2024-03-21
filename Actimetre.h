@@ -23,7 +23,7 @@
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define DATA_LENGTH      10    // accel(6) gyro(4)
 #define MAX_MEASURES     25
-#define PER_CYCLE        10
+#define PER_CYCLE        20
 #define READING_BASE     (1000000L * PER_CYCLE)
 #define BUFFER_LENGTH    (MAX_MEASURES * DATA_LENGTH + HEADER_LENGTH)
 #define QUEUE_SIZE       800
