@@ -18,6 +18,7 @@ static bool init_complete = false;
 static time_t minuteTimer = 0;
 static hw_timer_t *watchdogTimer;
 static int64_t nextMicros;
+unsigned int upTime = 0;
 
 static int64_t getAbsMicros() {
     struct timeval timeofday;
@@ -25,13 +26,18 @@ static int64_t getAbsMicros() {
     return (int64_t)timeofday.tv_sec * 1000000L + (int64_t)timeofday.tv_usec;
 }
 
+#ifdef _V3
+void waitNextCycle() {
+    timerWrite(watchdogTimer, 0);
+    while (nextMicros - getAbsMicros() >= 10L);
+    nextMicros = getAbsMicros() + (int64_t)cycleMicroseconds;
+}
+#else
 int timeRemaining() {
     int64_t remain = nextMicros - getAbsMicros();
     if (remain < 10L) return 0;
     else return (int)remain;
 }
-
-unsigned int upTime = 0;
 
 void waitNextCycle() {
     timerWrite(watchdogTimer, 0);
@@ -50,6 +56,7 @@ void catchUpCycle() {
     while (timeRemaining() < 50) nextMicros += (int64_t)cycleMicroseconds;
     waitNextCycle();
 }
+#endif
 
 static void watchdogReset() {
     Serial.println("\nWatchdog reset");

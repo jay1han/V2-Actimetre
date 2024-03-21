@@ -9,7 +9,7 @@
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#define I2C_BAUDRATE 2000000
+#define I2C_BAUDRATE 3400000
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -18,10 +18,13 @@
 #define LCD_V_RES 64
 
 #define MEASURE_SECS     60
+
 #ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define DATA_LENGTH      10    // accel(6) gyro(4)
-#define MAX_MEASURES     20
+#define MAX_MEASURES     25
+#define PER_CYCLE        10
+#define READING_BASE     (1000000L * PER_CYCLE)
 #define BUFFER_LENGTH    (MAX_MEASURES * DATA_LENGTH + HEADER_LENGTH)
 #define QUEUE_SIZE       800
 #else
@@ -143,9 +146,11 @@ void getTimeSinceBoot(time_t *sec, int *usec);
 int getRelMicroseconds(time_t sec, int usec);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);
-void catchUpCycle();
 void waitNextCycle();
+#ifndef _V3
 int timeRemaining();
+void catchUpCycle();
+#endif
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
 void clearCycleTime();
 extern unsigned int upTime;

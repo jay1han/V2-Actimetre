@@ -76,14 +76,14 @@ static void sendMessage(byte *message) {
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
     int sent = 0;
-#ifdef _V3    
+#ifdef _V3
+    static int nMessages = 0;
     int count = message[3];
     int msgLength = HEADER_LENGTH + DATA_LENGTH * count;
 #else
     int msgLength = my.msgLength;
 #endif    
     while (sent < msgLength && micros_diff(micros(), timeout) < 1000000L) {
-//        esp_task_wdt_reset();
         sent += wifiClient.write(message + sent, msgLength - sent);
     }
     if (sent != msgLength) {
@@ -95,6 +95,7 @@ static void sendMessage(byte *message) {
 
 #ifdef _V3
     inSec += count;
+    nMessages ++;
 #else
     inSec ++;
 #endif
@@ -103,7 +104,8 @@ static void sendMessage(byte *message) {
         if (thisSec != -1) {
 #ifdef _V3
             int microSec = message[5] << 16 | message[6] << 8 | message[7];
-            Serial.printf("%d.%06d %d records\n", thisSec, microSec, inSec);
+            Serial.printf("%d.%06d %d records avg. %.1f/message\n", thisSec, microSec, inSec, (float)inSec / nMessages);
+            nMessages = 0;
 #else            
             Serial.printf("%ds %d records\n", thisSec, inSec);
 #endif            
@@ -168,15 +170,12 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
     for (;;) {
 #ifdef _V3
         while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
-//            esp_task_wdt_reset();
         }
 #else        
         while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
-//            esp_task_wdt_reset();
         }
 #endif        
         startWork = micros();
-//        esp_task_wdt_reset();
         
         blinkLed(-1);
 #ifdef _V3

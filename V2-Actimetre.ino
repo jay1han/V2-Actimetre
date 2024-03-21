@@ -75,35 +75,25 @@ void formatHeader(unsigned char *message)
 #endif    
 }
 
+#ifndef _V3
 void formatData(unsigned char *message) {
-#ifdef _V3
-    // TODO
-#else
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
     message[0] = offsetMillis / 256;
     message[1] = offsetMillis % 256;
     memcpy(message + 2, dataPoint, 6);
     memcpy(message + 8, dataPoint + 8, 4);
-#endif
 }
+#endif
 
 void loop() {
     static unsigned long cycle_time;
 
-//    esp_task_wdt_reset();
     manageButton();
 
     if (!isConnected()) ESP.restart();
 
-    if (timeRemaining() == 0) {
-        nMissed[Core1I2C]++;
-        catchUpCycle();
-    } else {
-        waitNextCycle();
-    }
-    cycle_time = micros();
-
 #ifdef _V3
+    waitNextCycle();
     message = msgQueueStore[msgIndex];
     int fifoCount = readFifo(0, 0, message + HEADER_LENGTH);
     if (fifoCount > 0) {
@@ -112,6 +102,14 @@ void loop() {
         if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
     }
 #else                
+    if (timeRemaining() == 0) {
+        nMissed[Core1I2C]++;
+        catchUpCycle();
+    } else {
+        waitNextCycle();
+    }
+
+    cycle_time = micros();
     formatHeader(message);
     int offset = HEADER_LENGTH;
     for (int port = 0; port <= 1; port++) {
@@ -124,8 +122,8 @@ void loop() {
         }
     }
     queueMessage(message);
-#endif                
     logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
+#endif                
 }
 
 // UTILITY FUNCTION

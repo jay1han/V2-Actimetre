@@ -93,7 +93,7 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {50,  30, 10, 100},
     {100, 50, 10, 200},
 #ifdef _V3
-    {100, 500, 1000, 2000},
+    {100, 1000, 2000, 4000},
 #else
     {100, 50, 10, 200},
 #endif
@@ -104,7 +104,7 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
     {1, 0, 5, 3},
 #ifdef _V3
-    {0, 1, 2, 3},
+    {0, 2, 3, 4},
 #else
     {1, 0, 5, 3},
 #endif
@@ -200,7 +200,7 @@ void setupBoard() {
         Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
 
     cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
-    cycleMicroseconds = 10000000L / cycleFrequency;
+    cycleMicroseconds = READING_BASE / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];
     Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
 }
@@ -216,7 +216,7 @@ void setupCore0(void (*core0Loop)(void*)) {
 static void switchFrequency() {
     freqCode = (FreqCode) (((int)freqCode + 1) % FREQ_COUNT);
     cycleFrequency = Frequencies[my.boardType][freqCode];
-    cycleMicroseconds = 10000000L / cycleFrequency;
+    cycleMicroseconds = READING_BASE / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
     Serial.printf("Sampling at %dHz (code %d) = %dus per reading\n",
                   cycleFrequency, my.frequencyCode, cycleMicroseconds);
