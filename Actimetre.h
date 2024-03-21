@@ -44,7 +44,10 @@ typedef enum {
     BOARD_S2_NO_UART,
     BOARD_S3_I2C,
     BOARD_S3 = BOARD_S3_I2C,
+#ifdef _V3    
     BOARD_S3_NEWBOX,
+    BOARD_S3_6500,
+#endif    
     BOARD_TYPES
 } BoardType;
 
@@ -52,6 +55,9 @@ typedef enum {
 
 typedef struct {
     BoardType boardType;
+#ifdef _V3    
+    byte sensorType;
+#endif    
     bool hasI2C[2];
     bool ledRGB;
     int dualCore;
@@ -159,5 +165,8 @@ extern unsigned int upTime;
 void ERROR_FATAL(char *where);
 void longPress();
 void shortPress();
+#ifdef _V3
+void formatHeader(unsigned char *message, int count);
+#endif
 
 #endif //ACTIMETRE_H

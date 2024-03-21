@@ -95,9 +95,8 @@ void loop() {
 #ifdef _V3
     waitNextCycle();
     message = msgQueueStore[msgIndex];
-    int fifoCount = readFifo(0, 0, message + HEADER_LENGTH);
+    int fifoCount = readFifo(0, 0, message);
     if (fifoCount > 0) {
-        formatHeader(message, fifoCount);
         queueMessage(&msgIndex);
         if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
     }
