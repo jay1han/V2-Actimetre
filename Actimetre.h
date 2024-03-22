@@ -9,7 +9,7 @@
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#define _V3
+#ifdef _V3
 #define I2C_BAUDRATE 3400000
 #else
 #define I2C_BAUDRATE 1000000
