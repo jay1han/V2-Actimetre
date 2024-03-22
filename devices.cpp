@@ -8,9 +8,6 @@
 #define MPU6050_FIFO_CNT_L  0x73
 #define MPU6050_FIFO_DATA   0x74
 
-#define WAI_6050            0x68
-#define WAI_6500            0x70
-
 // GENERAL
 
 void writeByte(int port, int address, int memory, unsigned char cmd) {
@@ -80,15 +77,18 @@ static void initSensor(int port, int address) {
     }
 
     if (my.sensorType == WAI_6050) {
-        writeByte(port, address, 0x6B, 0x09); // Gx clock source
-        writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
+        writeByte(port, address, 0x6C, 0x01); // Disable gz
+        writeByte(port, address, 0x6B, 0x09); // Disable temp, Gx clock source
         writeByte(port, address, 0x19, 79);   // Sampling rate divider = 79 (100Hz)
+        writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
         writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
         writeByte(port, address, 0x6A, 0x04); // reset FIFO
         writeByte(port, address, 0x6A, 0x40); // enable FIFO
     } else {
+        writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
         writeByte(port, address, 0x19, 9);    // Sampling rate divider
+        writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
         writeByte(port, address, 0x1A, 0x01); // DLPF = 1
         writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
         writeByte(port, address, 0x1D, 0x00); // A_FCHOICE_B = b0, A_DLPF = 0
@@ -171,7 +171,9 @@ static void setSensor1Frequency(int port, int address, int frequency) {
             int divider = 1000 / frequency - 1;
             Serial.printf("Sampling rate divider %d\n", divider);
             writeByte(port, address, 0x6A, 0x04); // reset FIFO
+            writeByte(port, address, 0x6C, 0x01); // Disable gz
             writeByte(port, address, 0x19, (byte)divider); // Sampling rate divider
+            writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
             writeByte(port, address, 0x1A, 0x01); // DLPF = 1
             writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
             writeByte(port, address, 0x1D, 0x00); // A_FCHOICE_B = b0, A_DLPF = 0
@@ -181,14 +183,18 @@ static void setSensor1Frequency(int port, int address, int frequency) {
             writeByte(port, address, 0x6A, 0x04); // reset FIFO
 
             if (frequency == 4000) {  // only accel
+                writeByte(port, address, 0x6C, 0x07); // Disable gyro
                 writeByte(port, address, 0x1A, 0x00); // DLPF = 0
                 writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
+                writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
                 writeByte(port, address, 0x1D, 0x08); // A_FCHOICE_B = b1, Disable A_DLPF
                 writeByte(port, address, 0x23, 0x08); // enable FIFO for accel (6 bytes per sample)
                 my.dataLength = 6;
             } else if (frequency == 8000) { // only gyro
+                writeByte(port, address, 0x6C, 0x39); // Disable accel and Gz
                 writeByte(port, address, 0x1A, 0x07); // DLPF = 7
                 writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
+                writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
                 writeByte(port, address, 0x1D, 0x08); // A_FCHOICE_B = b1, Disable A_DLPF
                 writeByte(port, address, 0x23, 0x60); // enable FIFO for gx, gy (4 bytes per sample)
                 my.dataLength = 4;
@@ -257,8 +263,8 @@ int readFifo(int port, int address, byte *message) {
     fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H);
     fifoCount = (fifoCount / DATA_LENGTH) * DATA_LENGTH;
     if (fifoCount < DATA_LENGTH) return 0;
-    if (fifoCount > MAX_MEASURES * DATA_LENGTH) {
-        fifoCount = MAX_MEASURES * DATA_LENGTH;
+    if (fifoCount > my.maxMeasures * DATA_LENGTH) {
+        fifoCount = my.maxMeasures * DATA_LENGTH;
     }
 
     formatHeader(message, fifoCount / DATA_LENGTH);

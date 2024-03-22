@@ -82,6 +82,12 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
 
 // GLOBALS
 
+static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"
+#ifdef _V3    
+    , "S3n", "S3+"
+#endif    
+};
+
 uint8_t PIN_BUTTON, PIN_LED,
     PIN_UART_GND, PIN_UART_TX, PIN_UART_RX,
     PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
@@ -104,7 +110,7 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {100, 50, 10, 200},
 #ifdef _V3
     {100, 1000, 2000, 4000},
-    {100, 1000, 8000, 8000},
+    {100, 1000, 4000, 8000},
 #endif
 };
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
@@ -119,21 +125,35 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
 };
 // 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
 // V3: 0=100, 1=500, 2=1000, 3=2000, 4=4000, 5=8000
-static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"
-#ifdef _V3    
-    , "S3n", "S3+"
-#endif    
-};
 
 static void switchFrequency() {
     freqCode = (FreqCode) (((int)freqCode + 1) % FREQ_COUNT);
-    cycleFrequency = Frequencies[my.boardType][freqCode];
-    cycleMicroseconds = READING_BASE / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
+    cycleFrequency = Frequencies[my.boardType][freqCode];
 #ifdef _V3    
     my.samplingMode = my.frequencyCode >> 3;
+    if (my.sensorType == WAI_6500) {
+        switch (my.frequencyCode >> 3) {
+        case SAMPLE_ACCEL:
+            my.maxMeasures = 40;
+            my.perCycle    = 30;
+            break;
+
+        case SAMPLE_GYRO:
+            my.maxMeasures = 50;
+            my.perCycle    = 30;
+            break;
+
+        default:
+            my.maxMeasures = 25;
+            my.perCycle    = 20;
+            break;
+        }
+    }
 #endif        
-    Serial.printf("Sampling at %dHz (code %d) = %dus per reading\n",
+    cycleMicroseconds = READING_BASE / cycleFrequency;
+    
+    Serial.printf("Sampling at %dHz (code %X) = %dus per reading\n",
                   cycleFrequency, my.frequencyCode, cycleMicroseconds);
     setSensorsFrequency(cycleFrequency);
     displaySensors();
@@ -229,7 +249,7 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
     return data;
 }
 
-static int COLORS[FREQ_COUNT] = {0x0F0F0F, 0x000F0F, 0x001F00, 0x1F0000};
+static int COLORS[FREQ_COUNT] = {0x070707, 0x00070F, 0x000F00, 0x0F0000};
 
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
@@ -249,7 +269,6 @@ void blinkLed(int command) {
     }
     
     if (my.ledRGB) {
-        Serial.printf("RGB color 0x%06X\n", color);
         rmt_data_t *data = RmtBuffer;
         data = stuffBits(data, color & 0xFF);
         data = stuffBits(data, (color >> 8) & 0xFF);
@@ -355,7 +374,9 @@ void setupBoard() {
 
 #ifdef _V3    
     my.samplingMode = SAMPLE_ALL;
-    my.dataLength = 10;
+    my.dataLength  = 10;
+    my.maxMeasures = 25;
+    my.perCycle    = 20;
 #endif    
     cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
     cycleMicroseconds = READING_BASE / cycleFrequency;

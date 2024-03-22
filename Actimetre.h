@@ -17,6 +17,8 @@
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
+#define WAI_6050     0x68
+#define WAI_6500     0x70
 
 #define LCD_H_RES 128
 #define LCD_V_RES 64
@@ -26,10 +28,8 @@
 #ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define DATA_LENGTH      my.dataLength
-#define MAX_MEASURES     25
-#define PER_CYCLE        20
-#define READING_BASE     (1000000L * PER_CYCLE)
-#define BUFFER_LENGTH    (MAX_MEASURES * 10 + HEADER_LENGTH)
+#define READING_BASE     (1000000L * my.perCycle)
+#define BUFFER_LENGTH    (250 + HEADER_LENGTH)
 #define QUEUE_SIZE       800
 #else
 #define QUEUE_SIZE       50
@@ -86,6 +86,8 @@ typedef struct {
 #ifdef _V3
     int samplingMode;
     int dataLength;
+    int maxMeasures;
+    int perCycle;
 #endif    
 
     int displayPort;

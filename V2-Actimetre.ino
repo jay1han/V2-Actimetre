@@ -74,16 +74,7 @@ void formatHeader(unsigned char *message)
 #endif    
 }
 
-#ifdef _V3
-static int reduceData(byte *buffer, int count) {
-    int reducedCount = 1;
-    for (int i = 2; i < count; i += 2) {
-        memcpy(buffer + (i / 2) * DATA_LENGTH, buffer + i * DATA_LENGTH, DATA_LENGTH);
-        reducedCount ++;
-    }
-    return reducedCount;
-}
-#else
+#ifndef _V3
 void formatData(unsigned char *message) {
     int offsetMillis = getRelMicroseconds(msgBootEpoch, msgMicros) / 1000;
     message[0] = offsetMillis / 256;
@@ -105,10 +96,6 @@ void loop() {
     message = msgQueueStore[msgIndex];
     int fifoCount = readFifo(0, 0, message);
     if (fifoCount > 0) {
-        if (my.samplingMode == SAMPLE_ACCEL) {
-            fifoCount = reduceData(message + HEADER_LENGTH, fifoCount);
-            message[3] = fifoCount;
-        }
         queueMessage(&msgIndex);
         if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
     }
