@@ -38,11 +38,10 @@ void setup() {
     sprintf(title, "v%s", VERSION_STR);
     displayTitle(title);
     displaySensors();
-    Serial.println(title);
 
     netInit();
     clearSensors();
-    blinkLed(COLOR_GREEN);
+    blinkLed(COLOR_FREQ | 0);
 }
 
 // MAIN LOOP

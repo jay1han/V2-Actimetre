@@ -142,12 +142,13 @@ void manageButton();
 void setupCore0(void (*core0Loop)(void*));
 
 //                      BBGGRR
-#define COLOR_WHITE   0xFFFFFF
-#define COLOR_RED     0x0000FF
-#define COLOR_GREEN   0x00FF00
-#define COLOR_BLUE    0xFF0000
+#define COLOR_WHITE   0x3F3F3F
+#define COLOR_RED     0x00003F
+#define COLOR_GREEN   0x003F00
+#define COLOR_BLUE    0x3F0000
 #define COLOR_BLACK   0x000000
 #define COLOR_SWAP    (-1)
+#define COLOR_FREQ    0x1000000
 
 // clock.cpp
 void initClock(time_t bootEpoch);

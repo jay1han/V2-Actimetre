@@ -135,6 +135,7 @@ static void switchFrequency() {
     setSensorsFrequency(cycleFrequency);
     displaySensors();
     clearCycleTime();
+    blinkLed(COLOR_FREQ | freqCode);
 }
 
 // LED AND BUTTON
@@ -225,6 +226,8 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
     return data;
 }
 
+static int COLORS[FREQ_COUNT] = {0x0F0F0F, 0x000F0F, 0x001F00, 0x1F0000};
+
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
     static bool state = false;
@@ -234,10 +237,14 @@ void blinkLed(int command) {
         if (state) color = COLOR_BLACK;
         else color = saved;
         state = !state;
+    } else if (command & COLOR_FREQ) {
+        color = saved = COLORS[command % FREQ_COUNT];
+        state = true;
     } else {
         color = saved = command;
         state = true;
     }
+    
     if (my.ledRGB) {
         Serial.printf("RGB color 0x%06X\n", color);
         rmt_data_t *data = RmtBuffer;
@@ -293,8 +300,8 @@ void setupBoard() {
 #endif
 
     delay(1000);
-    Serial.printf("\nHELLO! Board Type %d. Main thread on Core %d. Cycle frequency %dHz.\n",
-                  my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
+    Serial.printf("\nSoftware v%s! Board Type %s(%d). Main thread on Core %d. Cycle frequency %dHz.\n",
+                  VERSION_STR, my.boardName, my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
     if (my.ledRGB) setupRGB();
 
     if (PINS[my.boardType][_PIN_I2C0_SDA] & DISABLE_I2C) {
@@ -356,4 +363,3 @@ void setupCore0(void (*core0Loop)(void*)) {
         ESP.restart();
     }
 }
-

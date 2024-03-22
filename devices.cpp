@@ -69,8 +69,10 @@ static void initSensor(int port, int address) {
     my.sensorType = readByte(port, address, 0x75);
     Serial.printf(" WAI=0x%02X, ", my.sensorType);
     if (my.sensorType == WAI_6050) {
+        if (my.boardType == BOARD_S3_6500) ERROR_FATAL("Wrong board type");
         Serial.print("MPU-6050");
     } else if (my.sensorType == WAI_6500) {
+        if (my.boardType != BOARD_S3_6500) ERROR_FATAL("Wrong board type");
         Serial.print("MPU-6500");
     } else {
         Serial.println("BAD. Rebooting");
