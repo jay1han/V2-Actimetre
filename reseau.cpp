@@ -330,7 +330,6 @@ void netInit() {
     }
 
     WiFi.setAutoReconnect(true);
-    blinkLed(COLOR_BLUE);
     
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
