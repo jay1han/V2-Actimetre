@@ -69,6 +69,8 @@ static time_t getActimIdAndTime() {
 
 // Messaging functions
 
+static int DATA_LENGTH[] = {10, 6, 4, 10};
+
 static void sendMessage(byte *message) {
     static int inSec = 0, thisSec = -1;
     int timeout = micros();
@@ -77,7 +79,8 @@ static void sendMessage(byte *message) {
 #ifdef _V3
     static int nMessages = 0;
     int count = message[3];
-    int msgLength = HEADER_LENGTH + DATA_LENGTH * count;
+    int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
+    int msgLength = HEADER_LENGTH + dataLength * count;
 #else
     int msgLength = my.msgLength;
 #endif    

@@ -27,7 +27,6 @@
 
 #ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
-#define DATA_LENGTH      my.dataLength
 #define READING_BASE     (1000000L * my.perCycle)
 #define BUFFER_LENGTH    (250 + HEADER_LENGTH)
 #define QUEUE_SIZE       800

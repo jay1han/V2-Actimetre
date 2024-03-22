@@ -189,7 +189,6 @@ static void setSensor1Frequency(int port, int address, int frequency) {
                 writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
                 writeByte(port, address, 0x1D, 0x08); // A_FCHOICE_B = b1, Disable A_DLPF
                 writeByte(port, address, 0x23, 0x08); // enable FIFO for accel (6 bytes per sample)
-                my.dataLength = 6;
             } else if (frequency == 8000) { // only gyro
                 writeByte(port, address, 0x6C, 0x39); // Disable accel and Gz
                 writeByte(port, address, 0x1A, 0x07); // DLPF = 7
@@ -197,7 +196,6 @@ static void setSensor1Frequency(int port, int address, int frequency) {
                 writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
                 writeByte(port, address, 0x1D, 0x08); // A_FCHOICE_B = b1, Disable A_DLPF
                 writeByte(port, address, 0x23, 0x60); // enable FIFO for gx, gy (4 bytes per sample)
-                my.dataLength = 4;
             } else {
                 Serial.printf("Unhandled frequency %d\n", frequency);
                 RESTART();
@@ -261,13 +259,13 @@ int readFifo(int port, int address, byte *message) {
     int fifoCount;
 
     fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H);
-    fifoCount = (fifoCount / DATA_LENGTH) * DATA_LENGTH;
-    if (fifoCount < DATA_LENGTH) return 0;
-    if (fifoCount > my.maxMeasures * DATA_LENGTH) {
-        fifoCount = my.maxMeasures * DATA_LENGTH;
+    fifoCount = (fifoCount / my.dataLength) * my.dataLength;
+    if (fifoCount < my.dataLength) return 0;
+    if (fifoCount > my.maxMeasures * my.dataLength) {
+        fifoCount = my.maxMeasures * my.dataLength;
     }
 
-    formatHeader(message, fifoCount / DATA_LENGTH);
+    formatHeader(message, fifoCount / my.dataLength);
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_FIFO_DATA) != 1) {
         Serial.printf("ERROR readFifo on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
@@ -290,7 +288,7 @@ int readFifo(int port, int address, byte *message) {
         return 0;
     }
         
-    return fifoCount / DATA_LENGTH;
+    return fifoCount / my.dataLength;
 }
 
 #else // _V3

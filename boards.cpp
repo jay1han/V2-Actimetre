@@ -42,7 +42,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      39, 37, 35, 33,
      8, 10, 13, 14,
      3, 5, 7, 9},
-    // Board Type 1 (pin 35 is HIGH`)
+    // Board Type 1 (pin 35 is HIGH)
     {0, 15,
      1, 2, 4,
      21, 34, 36, 38,
@@ -137,16 +137,19 @@ static void switchFrequency() {
         case SAMPLE_ACCEL:
             my.maxMeasures = 40;
             my.perCycle    = 30;
+            my.dataLength  = 6;
             break;
 
         case SAMPLE_GYRO:
-            my.maxMeasures = 50;
-            my.perCycle    = 30;
+            my.maxMeasures = 60;
+            my.perCycle    = 40;
+            my.dataLength  = 4;
             break;
 
         default:
             my.maxMeasures = 25;
             my.perCycle    = 20;
+            my.dataLength  = 10;
             break;
         }
     }
