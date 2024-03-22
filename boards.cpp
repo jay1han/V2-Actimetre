@@ -104,7 +104,7 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
     {100, 50, 10, 200},
 #ifdef _V3
     {100, 1000, 2000, 4000},
-    {100, 500, 1000, 4000},
+    {100, 1000, 8000, 8000},
 #endif
 };
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
@@ -114,7 +114,7 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {1, 0, 5, 3},
 #ifdef _V3
     {0, 2, 3, 4},
-    {0, 1, 2, 4},
+    {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
 #endif
 };
 // 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
@@ -130,6 +130,9 @@ static void switchFrequency() {
     cycleFrequency = Frequencies[my.boardType][freqCode];
     cycleMicroseconds = READING_BASE / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
+#ifdef _V3    
+    my.samplingMode = my.frequencyCode >> 3;
+#endif        
     Serial.printf("Sampling at %dHz (code %d) = %dus per reading\n",
                   cycleFrequency, my.frequencyCode, cycleMicroseconds);
     setSensorsFrequency(cycleFrequency);
@@ -350,6 +353,10 @@ void setupBoard() {
 
     blinkLed(COLOR_WHITE);
 
+#ifdef _V3    
+    my.samplingMode = SAMPLE_ALL;
+    my.dataLength = 10;
+#endif    
     cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
     cycleMicroseconds = READING_BASE / cycleFrequency;
     my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];

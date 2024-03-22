@@ -25,17 +25,23 @@
 
 #ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
-#define DATA_LENGTH      10    // accel(6) gyro(4)
+#define DATA_LENGTH      my.dataLength
 #define MAX_MEASURES     25
 #define PER_CYCLE        20
 #define READING_BASE     (1000000L * PER_CYCLE)
-#define BUFFER_LENGTH    (MAX_MEASURES * DATA_LENGTH + HEADER_LENGTH)
+#define BUFFER_LENGTH    (MAX_MEASURES * 10 + HEADER_LENGTH)
 #define QUEUE_SIZE       800
 #else
 #define QUEUE_SIZE       50
 #define HEADER_LENGTH    5     // epoch(3), msec(2)
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
 #define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
+#endif
+
+#ifdef _V3
+#define SAMPLE_ACCEL     1
+#define SAMPLE_GYRO      2
+#define SAMPLE_ALL       3
 #endif
 
 // TYPES
@@ -77,6 +83,10 @@ typedef struct {
     int rssi;
     time_t bootTime;
     int frequencyCode;
+#ifdef _V3
+    int samplingMode;
+    int dataLength;
+#endif    
 
     int displayPort;
     int sensorPresent[2][2];
