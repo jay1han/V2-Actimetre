@@ -31,7 +31,6 @@ void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
     
     setupBoard();
-
     delay(100);
     deviceScanInit();
 
@@ -43,6 +42,7 @@ void setup() {
 
     netInit();
     clearSensors();
+    blinkLed(COLOR_GREEN);
 }
 
 // MAIN LOOP
@@ -90,8 +90,8 @@ void loop() {
 
     manageButton();
 
-    if (!isConnected()) ESP.restart();
-
+    if (!isConnected()) RESTART();
+    
 #ifdef _V3
     waitNextCycle();
     message = msgQueueStore[msgIndex];
@@ -127,8 +127,14 @@ void loop() {
 
 // UTILITY FUNCTION
 
-void ERROR_FATAL(char *where) {
-    Serial.printf("\nFATAL ERROR %s\n", where);
+void RESTART() {
+    blinkLed(COLOR_RED);
+    delay(2000);
+    blinkLed(COLOR_BLACK);
     ESP.restart();
 }
 
+void ERROR_FATAL(char *where) {
+    Serial.printf("\nFATAL ERROR %s\n", where);
+    RESTART();
+}

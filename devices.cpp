@@ -74,7 +74,7 @@ static void initSensor(int port, int address) {
         Serial.print("MPU-6500");
     } else {
         Serial.println("BAD. Rebooting");
-        ESP.restart();
+        RESTART();
     }
 
     if (my.sensorType == WAI_6050) {
@@ -349,7 +349,7 @@ void deviceScanInit() {
         Serial.println("No sensors found, rebooting");
         displayTitle("No sensors");
         sleep(5);
-        ESP.restart();
+        RESTART();
     }
 
 #ifndef _V3    

@@ -61,8 +61,7 @@ void catchUpCycle() {
 static void watchdogReset() {
     Serial.println("\nWatchdog reset");
     writeLine("Watchdog");
-    delay(2000);
-    ESP.restart();
+    RESTART();
 }
 
 void initClock(time_t bootEpoch) {
@@ -140,7 +139,7 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
         Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         Serial.println("System slowdown, rebooting");
-        ESP.restart();
+        RESTART();
     }
 }
 

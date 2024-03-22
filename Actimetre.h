@@ -141,14 +141,13 @@ int buttonPressed();
 void manageButton();
 void setupCore0(void (*core0Loop)(void*));
 
-#define COLOR_WHITE   0x0FFF
-#define COLOR_BLUE    0x000F
-#define COLOR_RED     0x00F0
-#define COLOR_GREEN   0x0F00
-#define COLOR_YELLOW  0x0FF0
-#define COLOR_MAGENTA 0x00FF
-#define COLOR_CYAN    0x0F0F
-#define COLOR_BLACK   0x0000
+//                      BBGGRR
+#define COLOR_WHITE   0xFFFFFF
+#define COLOR_RED     0x0000FF
+#define COLOR_GREEN   0x00FF00
+#define COLOR_BLUE    0xFF0000
+#define COLOR_BLACK   0x000000
+#define COLOR_SWAP    (-1)
 
 // clock.cpp
 void initClock(time_t bootEpoch);
@@ -167,6 +166,7 @@ extern unsigned int upTime;
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);
+void RESTART();
 void longPress();
 void shortPress();
 #ifdef _V3

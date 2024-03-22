@@ -2,6 +2,7 @@
 #include <HardwareSerial.h>
 #include <esp_cpu.h>
 #include <Esp.h>
+#include <esp32-hal.h>
 #include "Actimetre.h"
 
 typedef enum {
@@ -124,112 +125,6 @@ static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"
 #endif    
 };
 
-void setupBoard() {
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    if (chip_info.model == CHIP_ESP32S3) {
-        my.dualCore = 1;
-        my.ledRGB = false;
-        pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
-        pinMode(PIN_DETECT_45, INPUT_PULLUP);
-#ifdef _V3        
-        if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
-        else if (digitalRead(PIN_DETECT_45) == 0) my.boardType = BOARD_S3_6500;
-        else my.boardType = BOARD_S3_NEWBOX;
-#else
-        my.boardType = BOARD_S3_I2C;
-#endif        
-    } else {
-        my.dualCore = 0;
-        my.ledRGB = true;
-        pinMode(PIN_DETECT_01, INPUT);
-        if (digitalRead(PIN_DETECT_01) == 0) my.boardType = BOARD_S2;
-        else if (digitalRead(PIN_DETECT_12) == 0) my.boardType = BOARD_S2_CONNECTORS;
-        else my.boardType = BOARD_S2_NO_UART;
-    }
-    strcpy(my.boardName, BoardName[my.boardType]);
-
-    pinMode(PIN_BUTTON    = PINS[my.boardType][_PIN_BUTTON],   INPUT_PULLUP);
-    pinMode(PIN_LED       = PINS[my.boardType][_PIN_LED],      OUTPUT);
-    if (my.boardType >= BOARD_S3_I2C)
-        blinkLed(-2);
-    else blinkLed(1);
-
-#if ARDUINO_USB_CDC_ON_BOOT
-#define HWSerial  Serial0
-#define USBSerial Serial
-    Serial.begin(2000000);
-#else
-#define HWSerial  Serial
-    USBCDC USBSerial;
-    pinMode(PIN_UART_GND  = PINS[my.boardType][_PIN_UART_GND], INPUT);
-    PIN_UART_RX           = PINS[my.boardType][_PIN_UART_RX];
-    PIN_UART_TX           = PINS[my.boardType][_PIN_UART_TX];
-    Serial.begin(115200, SERIAL_8N1, PIN_UART_RX, PIN_UART_TX);
-#endif
-
-    delay(1000);
-    Serial.printf("\nHELLO! Board Type %d. Main thread on Core %d. Cycle frequency %dHz.\n",
-                  my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
-
-    if (PINS[my.boardType][_PIN_I2C0_SDA] & DISABLE_I2C) {
-        my.hasI2C[0] = false;
-    } else {
-        my.hasI2C[0] = true;
-        PIN_I2C0_SDA                = PINS[my.boardType][_PIN_I2C0_SDA];
-        PIN_I2C0_SCL                = PINS[my.boardType][_PIN_I2C0_SCL];
-        PIN_I2C0_GND                = PINS[my.boardType][_PIN_I2C0_GND];
-        PIN_I2C0_VCC                = PINS[my.boardType][_PIN_I2C0_VCC];
-        if (PIN_I2C0_GND == 0xFF) {}
-        else if ((PIN_I2C0_GND & POWERED_PIN) == 0) pinMode(PIN_I2C0_GND, INPUT);
-        else { PIN_I2C0_GND &= 0x7F;  pinMode(PIN_I2C0_GND, OUTPUT); digitalWrite(PIN_I2C0_GND, 0); }
-        if (PIN_I2C0_VCC == 0xFF) {}
-        else if ((PIN_I2C0_VCC & POWERED_PIN) == 0) pinMode(PIN_I2C0_VCC, INPUT);
-        else { PIN_I2C0_VCC &= 0x7F;  pinMode(PIN_I2C0_VCC, OUTPUT); digitalWrite(PIN_I2C0_VCC, 1); }
-    }
-    
-    if (PINS[my.boardType][_PIN_I2C1_SDA] & DISABLE_I2C) {
-        my.hasI2C[1] = false;
-    } else {
-        my.hasI2C[1] = true;
-        PIN_I2C1_SDA                = PINS[my.boardType][_PIN_I2C1_SDA];
-        PIN_I2C1_SCL                = PINS[my.boardType][_PIN_I2C1_SCL];
-        PIN_I2C1_GND                = PINS[my.boardType][_PIN_I2C1_GND];
-        PIN_I2C1_VCC                = PINS[my.boardType][_PIN_I2C1_VCC];
-        if ((PIN_I2C1_GND & POWERED_PIN) == 0) pinMode(PIN_I2C1_GND, INPUT);
-        else { PIN_I2C1_GND &= 0x7F;  pinMode(PIN_I2C1_GND, OUTPUT); digitalWrite(PIN_I2C1_GND, 0); }
-        if ((PIN_I2C1_VCC & POWERED_PIN) == 0) pinMode(PIN_I2C1_VCC, INPUT);
-        else { PIN_I2C1_VCC &= 0x7F;  pinMode(PIN_I2C1_VCC, OUTPUT); digitalWrite(PIN_I2C1_VCC, 1); }
-    }
-    
-    if ((PINS[my.boardType][_PIN_I2C0_GND_MUX] & 0x80) == 0)
-        pinMode(PIN_I2C0_GND_MUX = PINS[my.boardType][_PIN_I2C0_GND_MUX], INPUT);
-    if ((PINS[my.boardType][_PIN_I2C0_VCC_MUX] & 0x80) == 0)
-        pinMode(PIN_I2C0_VCC_MUX = PINS[my.boardType][_PIN_I2C0_VCC_MUX], INPUT);
-    if ((PINS[my.boardType][_PIN_I2C0_SCL_MUX] & 0x80) == 0)
-        pinMode(PIN_I2C0_SCL_MUX = PINS[my.boardType][_PIN_I2C0_SCL_MUX], INPUT);
-    if ((PINS[my.boardType][_PIN_I2C0_SDA_MUX] & 0x80) == 0)
-        pinMode(PIN_I2C0_SDA_MUX = PINS[my.boardType][_PIN_I2C0_SDA_MUX], INPUT);
-
-    if (my.hasI2C[0])
-        Wire.begin(PIN_I2C0_SDA, PIN_I2C0_SCL, I2C_BAUDRATE);
-    if (my.hasI2C[1])
-        Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
-
-    cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
-    cycleMicroseconds = READING_BASE / cycleFrequency;
-    my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];
-    Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
-}
-
-TaskHandle_t core0Task;
-void setupCore0(void (*core0Loop)(void*)) {
-    if (xTaskCreatePinnedToCore(core0Loop, "Core0", 16384, NULL, 2, &core0Task, 0) != pdPASS) {
-        Serial.println("Error starting Core 0");
-        ESP.restart();
-    }
-}
-
 static void switchFrequency() {
     freqCode = (FreqCode) (((int)freqCode + 1) % FREQ_COUNT);
     cycleFrequency = Frequencies[my.boardType][freqCode];
@@ -243,34 +138,6 @@ static void switchFrequency() {
 }
 
 // LED AND BUTTON
-
-void lightNeoPixel(byte r, byte g, byte b) {
-}
-
-void blinkLed(int color) {
-    static int set = 0, save = 0;
-    static int colored = 0;
-    if (color == -2) {               // setting up
-        colored = 1; 
-        set = COLOR_WHITE;
-    } else if (color == -1) {        // blink
-        if (colored) {               // in color
-            if (set == 0) set = save;
-            else {                   // save the color for blinking
-                save = color;
-                set = 0;
-            }
-        }
-        else set = 1 - set;          // B/W blinking
-    } else {
-        set = color;                 // straight set color
-    }
-
-    if (colored) {                   // output the color...
-        
-    } else
-        digitalWrite(PIN_LED, set);
-}
 
 int buttonPressed() {
     return 1 - digitalRead(PIN_BUTTON);
@@ -320,3 +187,173 @@ void manageButton() {
 
     prevButton = nowButton;
 }
+
+#define RMT_SIZE (8 * 3)
+static rmt_obj_t *RmtObject;
+static rmt_data_t RmtBuffer[RMT_SIZE];
+static void setupRGB() {
+    Serial.printf("RGB pin %d init ", PIN_LED);
+    RmtObject = rmtInit(PIN_LED, RMT_TX_MODE, RMT_MEM_64);
+    if (RmtObject == NULL) {
+        Serial.println("FAILED");
+        return;
+    } else {
+        float tick = rmtSetTick(RmtObject, 50.0);
+        if (abs(tick - 50.0) > 1.0) {
+            Serial.printf("tick set %.0fns!\n", tick);
+            return;
+        }
+    }
+    Serial.println("OK");
+}
+    
+static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
+    for (int bit = 7; bit >= 0; bit--) {
+        if (level & (1 << bit)) {
+            data->level0    = 1;
+            data->duration0 = 12;
+            data->level1    = 0;
+            data->duration1 = 5;
+        } else {
+            data->level0    = 1;
+            data->duration0 = 5;
+            data->level1    = 0;
+            data->duration1 = 12;
+        }
+        data++;
+    }
+    return data;
+}
+
+void blinkLed(int command) {
+    static int saved = COLOR_WHITE;
+    static bool state = false;
+    int color;
+    
+    if (command == COLOR_SWAP) {
+        if (state) color = COLOR_BLACK;
+        else color = saved;
+        state = !state;
+    } else {
+        color = saved = command;
+        state = true;
+    }
+    if (my.ledRGB) {
+        Serial.printf("RGB color 0x%06X\n", color);
+        rmt_data_t *data = RmtBuffer;
+        data = stuffBits(data, color & 0xFF);
+        data = stuffBits(data, (color >> 8) & 0xFF);
+        data = stuffBits(data, color >> 16);
+        rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
+    } else {
+        if (color == 0) digitalWrite(PIN_LED, 0);
+        else digitalWrite(PIN_LED, 1);
+    }
+}
+
+void setupBoard() {
+    esp_chip_info_t chip_info;
+    esp_chip_info(&chip_info);
+    if (chip_info.model == CHIP_ESP32S3) {
+        my.dualCore = 1;
+        my.ledRGB = true;
+        pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
+        pinMode(PIN_DETECT_45, INPUT_PULLUP);
+#ifdef _V3        
+        if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
+        else if (digitalRead(PIN_DETECT_45) == 0) my.boardType = BOARD_S3_6500;
+        else my.boardType = BOARD_S3_NEWBOX;
+#else
+        my.boardType = BOARD_S3_I2C;
+#endif        
+    } else {
+        my.dualCore = 0;
+        my.ledRGB = false;
+        pinMode(PIN_DETECT_01, INPUT);
+        if (digitalRead(PIN_DETECT_01) == 0) my.boardType = BOARD_S2;
+        else if (digitalRead(PIN_DETECT_12) == 0) my.boardType = BOARD_S2_CONNECTORS;
+        else my.boardType = BOARD_S2_NO_UART;
+    }
+    strcpy(my.boardName, BoardName[my.boardType]);
+
+    pinMode(PIN_BUTTON    = PINS[my.boardType][_PIN_BUTTON],   INPUT_PULLUP);
+    pinMode(PIN_LED       = PINS[my.boardType][_PIN_LED],      OUTPUT);
+
+#if ARDUINO_USB_CDC_ON_BOOT
+#define HWSerial  Serial0
+#define USBSerial Serial
+    Serial.begin(2000000);
+#else
+#define HWSerial  Serial
+    USBCDC USBSerial;
+    pinMode(PIN_UART_GND  = PINS[my.boardType][_PIN_UART_GND], INPUT);
+    PIN_UART_RX           = PINS[my.boardType][_PIN_UART_RX];
+    PIN_UART_TX           = PINS[my.boardType][_PIN_UART_TX];
+    Serial.begin(115200, SERIAL_8N1, PIN_UART_RX, PIN_UART_TX);
+#endif
+
+    delay(1000);
+    Serial.printf("\nHELLO! Board Type %d. Main thread on Core %d. Cycle frequency %dHz.\n",
+                  my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
+    if (my.ledRGB) setupRGB();
+
+    if (PINS[my.boardType][_PIN_I2C0_SDA] & DISABLE_I2C) {
+        my.hasI2C[0] = false;
+    } else {
+        my.hasI2C[0] = true;
+        PIN_I2C0_SDA                = PINS[my.boardType][_PIN_I2C0_SDA];
+        PIN_I2C0_SCL                = PINS[my.boardType][_PIN_I2C0_SCL];
+        PIN_I2C0_GND                = PINS[my.boardType][_PIN_I2C0_GND];
+        PIN_I2C0_VCC                = PINS[my.boardType][_PIN_I2C0_VCC];
+        if (PIN_I2C0_GND == 0xFF) {}
+        else if ((PIN_I2C0_GND & POWERED_PIN) == 0) pinMode(PIN_I2C0_GND, INPUT);
+        else { PIN_I2C0_GND &= 0x7F;  pinMode(PIN_I2C0_GND, OUTPUT); digitalWrite(PIN_I2C0_GND, 0); }
+        if (PIN_I2C0_VCC == 0xFF) {}
+        else if ((PIN_I2C0_VCC & POWERED_PIN) == 0) pinMode(PIN_I2C0_VCC, INPUT);
+        else { PIN_I2C0_VCC &= 0x7F;  pinMode(PIN_I2C0_VCC, OUTPUT); digitalWrite(PIN_I2C0_VCC, 1); }
+    }
+    
+    if (PINS[my.boardType][_PIN_I2C1_SDA] & DISABLE_I2C) {
+        my.hasI2C[1] = false;
+    } else {
+        my.hasI2C[1] = true;
+        PIN_I2C1_SDA                = PINS[my.boardType][_PIN_I2C1_SDA];
+        PIN_I2C1_SCL                = PINS[my.boardType][_PIN_I2C1_SCL];
+        PIN_I2C1_GND                = PINS[my.boardType][_PIN_I2C1_GND];
+        PIN_I2C1_VCC                = PINS[my.boardType][_PIN_I2C1_VCC];
+        if ((PIN_I2C1_GND & POWERED_PIN) == 0) pinMode(PIN_I2C1_GND, INPUT);
+        else { PIN_I2C1_GND &= 0x7F;  pinMode(PIN_I2C1_GND, OUTPUT); digitalWrite(PIN_I2C1_GND, 0); }
+        if ((PIN_I2C1_VCC & POWERED_PIN) == 0) pinMode(PIN_I2C1_VCC, INPUT);
+        else { PIN_I2C1_VCC &= 0x7F;  pinMode(PIN_I2C1_VCC, OUTPUT); digitalWrite(PIN_I2C1_VCC, 1); }
+    }
+    
+    if ((PINS[my.boardType][_PIN_I2C0_GND_MUX] & 0x80) == 0)
+        pinMode(PIN_I2C0_GND_MUX = PINS[my.boardType][_PIN_I2C0_GND_MUX], INPUT);
+    if ((PINS[my.boardType][_PIN_I2C0_VCC_MUX] & 0x80) == 0)
+        pinMode(PIN_I2C0_VCC_MUX = PINS[my.boardType][_PIN_I2C0_VCC_MUX], INPUT);
+    if ((PINS[my.boardType][_PIN_I2C0_SCL_MUX] & 0x80) == 0)
+        pinMode(PIN_I2C0_SCL_MUX = PINS[my.boardType][_PIN_I2C0_SCL_MUX], INPUT);
+    if ((PINS[my.boardType][_PIN_I2C0_SDA_MUX] & 0x80) == 0)
+        pinMode(PIN_I2C0_SDA_MUX = PINS[my.boardType][_PIN_I2C0_SDA_MUX], INPUT);
+
+    if (my.hasI2C[0])
+        Wire.begin(PIN_I2C0_SDA, PIN_I2C0_SCL, I2C_BAUDRATE);
+    if (my.hasI2C[1])
+        Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
+
+    blinkLed(COLOR_WHITE);
+
+    cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
+    cycleMicroseconds = READING_BASE / cycleFrequency;
+    my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];
+    Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
+}
+
+TaskHandle_t core0Task;
+void setupCore0(void (*core0Loop)(void*)) {
+    if (xTaskCreatePinnedToCore(core0Loop, "Core0", 16384, NULL, 2, &core0Task, 0) != pdPASS) {
+        Serial.println("Error starting Core 0");
+        ESP.restart();
+    }
+}
+

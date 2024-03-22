@@ -35,8 +35,7 @@ static time_t getActimIdAndTime() {
     if (err < INIT_LENGTH) {
 	Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
 	writeLine("Init failed");
-	delay(2000);
-	ESP.restart();
+        RESTART();
     }
     unsigned char response[RESPONSE_LENGTH];
 
@@ -47,8 +46,7 @@ static time_t getActimIdAndTime() {
         if ((time(NULL) - timeout) > 10) {
             Serial.println("No response from Actiserver");
 	    writeLine("No response");
-	    delay(2000);
-            ESP.restart();
+            RESTART();
         }
     }
 
@@ -89,8 +87,7 @@ static void sendMessage(byte *message) {
     if (sent != msgLength) {
         Serial.printf("Timeout sending data\n");
         writeLine("Timeout");
-        delay(2000);
-        ESP.restart();
+        RESTART();
     }
 
 #ifdef _V3
@@ -135,8 +132,7 @@ int isConnected() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("\nNetwork disconnected. Rebooting");
         writeLine("WiFi lost");
-	delay(2000);
-        ESP.restart();
+        RESTART();
     }
 
     if (!my.dualCore) {
@@ -177,7 +173,6 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 #endif        
         startWork = micros();
         
-        blinkLed(-1);
 #ifdef _V3
         sendMessage(msgQueueStore[index]);
 #else        
@@ -215,15 +210,13 @@ static int scanNetworks() {
     int nScan;
     Serial.print("Scan... ");
     writeLine("Scanning");
-    blinkLed(0);
     nScan = WiFi.scanNetworks();
     Serial.printf("Done. Found %d APs\n", nScan);
 
     if (nScan <= 0) {
         Serial.println("\nCan't find AP. Rebooting");
 	writeLine("No AP");
-	delay(2000);
-        ESP.restart();
+        RESTART();
     }
     return nScan;
 }
@@ -245,8 +238,7 @@ static void findSsid(int nScan) {
     if (nActis == 0) {
         Serial.println("\nCan't find server, rebooting");
 	writeLine("No Actis");
-	delay(2000);
-        ESP.restart();
+        RESTART();
     }
 }
 
@@ -254,7 +246,7 @@ static int waitConnected() {
     int wait = 0;
     while (WiFi.status() != WL_CONNECTED) {
         Serial.printf("%d ", WiFi.status());
-        blinkLed(-1);
+        blinkLed(COLOR_SWAP);
         wait++;
         if (wait > 10) {
             Serial.println("Failed!");
@@ -296,6 +288,7 @@ static int printAndSaveNetwork() {
 // Huge and ugly but that's the way it is.
 
 void netInit() {
+    blinkLed(COLOR_SWAP);
     WiFi.disconnect(true, true);
     delay(100);
     esp_wifi_set_max_tx_power(84);  // Max power 20dB
@@ -303,6 +296,7 @@ void netInit() {
 
     storeMacAddress();
 
+    blinkLed(COLOR_SWAP);
     int nScan;
     nScan = scanNetworks();
     
@@ -313,6 +307,7 @@ void netInit() {
 
     int i;
     for (i = 0; i < nActis; i++) {
+        blinkLed(COLOR_SWAP);
         Serial.print(ssidList[i]);
         writeLine(ssidList[i]);
         strcpy(my.ssid, ssidList[i]);
@@ -323,7 +318,6 @@ void netInit() {
         WiFi.begin(my.ssid, pass);
         Serial.print(" Connecting ");
         writeLine("Connecting");
-        blinkLed(0);
 
         if (!waitConnected()) continue;
         if (printAndSaveNetwork()) break;
@@ -332,12 +326,11 @@ void netInit() {
         Serial.println("\nCan't connect to any server, rebooting");
 	writeLine("No server");
         esp_wifi_stop();
-        delay(random(3000,6000));
-        ESP.restart();
+        RESTART();
     }
 
     WiFi.setAutoReconnect(true);
-    blinkLed(1);
+    blinkLed(COLOR_BLUE);
     
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
@@ -350,8 +343,7 @@ void netInit() {
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
 	writeLine("OS error");
-	delay(2000);
-        ESP.restart();
+        RESTART();
     }
 
     if (my.dualCore)
