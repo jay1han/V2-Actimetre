@@ -161,7 +161,13 @@ static void switchFrequency() {
     setSensorsFrequency(cycleFrequency);
     displaySensors();
     clearCycleTime();
-    blinkLed(COLOR_FREQ | freqCode);
+    int kHz = cycleFrequency / 1000;
+    int rank = 0;
+    while (kHz > 0) {
+        rank ++;
+        kHz >>= 1;
+    }
+    blinkLed(COLOR_FREQ | rank);
 }
 
 // LED AND BUTTON
@@ -252,7 +258,7 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
     return data;
 }
 
-static int COLORS[FREQ_COUNT] = {0x070707, 0x00070F, 0x000F00, 0x0F0000};
+static int COLORS[] = {0x070007, 0x00070F, 0x000F00, 0x070700, 0x0F0000};
 
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
@@ -264,7 +270,7 @@ void blinkLed(int command) {
         else color = saved;
         state = !state;
     } else if (command & COLOR_FREQ) {
-        color = saved = COLORS[command % FREQ_COUNT];
+        color = saved = COLORS[command & 0x07];
         state = true;
     } else {
         color = saved = command;
