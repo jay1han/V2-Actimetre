@@ -263,7 +263,7 @@ void displayScan(int scanLine) {
             break;
         }
         step = (step + 1) % 2;
-        blinkLed(-1);
+        blinkLed(COLOR_SWAP);
         return;
     }
 
@@ -287,6 +287,6 @@ void displayLoop(int force) {
         }
     } else {
         scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
-        if (scanLine == 0) blinkLed(-1);
+        if (scanLine == 0) blinkLed(COLOR_SWAP);
     }
 }

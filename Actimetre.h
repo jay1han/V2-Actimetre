@@ -9,10 +9,16 @@
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
+#ifdef _V3
 #define I2C_BAUDRATE 3400000
+#else
+#define I2C_BAUDRATE 1000000
+#endif
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
+#define WAI_6050     0x68
+#define WAI_6500     0x70
 
 #define LCD_H_RES 128
 #define LCD_V_RES 64
@@ -21,17 +27,20 @@
 
 #ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
-#define DATA_LENGTH      10    // accel(6) gyro(4)
-#define MAX_MEASURES     25
-#define PER_CYCLE        20
-#define READING_BASE     (1000000L * PER_CYCLE)
-#define BUFFER_LENGTH    (MAX_MEASURES * DATA_LENGTH + HEADER_LENGTH)
+#define READING_BASE     (1000000L * my.perCycle)
+#define BUFFER_LENGTH    (250 + HEADER_LENGTH)
 #define QUEUE_SIZE       800
 #else
 #define QUEUE_SIZE       50
 #define HEADER_LENGTH    5     // epoch(3), msec(2)
 #define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
 #define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
+#endif
+
+#ifdef _V3
+#define SAMPLE_ACCEL     1
+#define SAMPLE_GYRO      2
+#define SAMPLE_ALL       3
 #endif
 
 // TYPES
@@ -44,7 +53,10 @@ typedef enum {
     BOARD_S2_NO_UART,
     BOARD_S3_I2C,
     BOARD_S3 = BOARD_S3_I2C,
+#ifdef _V3    
     BOARD_S3_NEWBOX,
+    BOARD_S3_6500,
+#endif    
     BOARD_TYPES
 } BoardType;
 
@@ -52,6 +64,9 @@ typedef enum {
 
 typedef struct {
     BoardType boardType;
+#ifdef _V3    
+    byte sensorType;
+#endif    
     bool hasI2C[2];
     bool ledRGB;
     int dualCore;
@@ -67,6 +82,12 @@ typedef struct {
     int rssi;
     time_t bootTime;
     int frequencyCode;
+#ifdef _V3
+    int samplingMode;
+    int dataLength;
+    int maxMeasures;
+    int perCycle;
+#endif    
 
     int displayPort;
     int sensorPresent[2][2];
@@ -131,14 +152,14 @@ int buttonPressed();
 void manageButton();
 void setupCore0(void (*core0Loop)(void*));
 
-#define COLOR_WHITE   0x0FFF
-#define COLOR_BLUE    0x000F
-#define COLOR_RED     0x00F0
-#define COLOR_GREEN   0x0F00
-#define COLOR_YELLOW  0x0FF0
-#define COLOR_MAGENTA 0x00FF
-#define COLOR_CYAN    0x0F0F
-#define COLOR_BLACK   0x0000
+//                      BBGGRR
+#define COLOR_WHITE   0x3F3F3F
+#define COLOR_RED     0x00003F
+#define COLOR_GREEN   0x003F00
+#define COLOR_BLUE    0x3F0000
+#define COLOR_BLACK   0x000000
+#define COLOR_SWAP    (-1)
+#define COLOR_FREQ    0x1000000
 
 // clock.cpp
 void initClock(time_t bootEpoch);
@@ -157,7 +178,11 @@ extern unsigned int upTime;
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);
+void RESTART();
 void longPress();
 void shortPress();
+#ifdef _V3
+void formatHeader(unsigned char *message, int count);
+#endif
 
 #endif //ACTIMETRE_H

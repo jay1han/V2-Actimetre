@@ -31,7 +31,6 @@ void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
     
     setupBoard();
-
     delay(100);
     deviceScanInit();
 
@@ -39,10 +38,10 @@ void setup() {
     sprintf(title, "v%s", VERSION_STR);
     displayTitle(title);
     displaySensors();
-    Serial.println(title);
 
     netInit();
     clearSensors();
+    blinkLed(COLOR_FREQ | 0);
 }
 
 // MAIN LOOP
@@ -62,7 +61,7 @@ void formatHeader(unsigned char *message)
     message[2] = msgBootEpoch & 0xFF;
 #ifdef _V3
     message[3] = count;
-    message[4] = ((byte)my.rssi << 4)  | (byte)my.frequencyCode;
+    message[4] = ((byte)my.rssi << 5) | (byte)my.frequencyCode;
     message[5] = (msgMicros >> 16) & 0xFF;
     message[6] = (msgMicros >> 8) & 0xFF;
     message[7] = msgMicros & 0xFF;
@@ -90,14 +89,13 @@ void loop() {
 
     manageButton();
 
-    if (!isConnected()) ESP.restart();
-
+    if (!isConnected()) RESTART();
+    
 #ifdef _V3
     waitNextCycle();
     message = msgQueueStore[msgIndex];
-    int fifoCount = readFifo(0, 0, message + HEADER_LENGTH);
+    int fifoCount = readFifo(0, 0, message);
     if (fifoCount > 0) {
-        formatHeader(message, fifoCount);
         queueMessage(&msgIndex);
         if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
     }
@@ -128,8 +126,14 @@ void loop() {
 
 // UTILITY FUNCTION
 
-void ERROR_FATAL(char *where) {
-    Serial.printf("\nFATAL ERROR %s\n", where);
+void RESTART() {
+    blinkLed(COLOR_RED);
+    delay(2000);
+    blinkLed(COLOR_BLACK);
     ESP.restart();
 }
 
+void ERROR_FATAL(char *where) {
+    Serial.printf("\nFATAL ERROR %s\n", where);
+    RESTART();
+}
