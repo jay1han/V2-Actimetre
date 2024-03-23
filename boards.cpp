@@ -186,12 +186,18 @@ void shortPress() {
     switchFrequency();
 }
 
-void manageButton() {
+void manageButton(int set) {
     static unsigned long buttonDown;
     static int prevButton = 0;
-    static int nowButton  = 0;
+    int nowButton  = 0;
     static int actioned   = 0;
 
+    if (set == 1) { // Force a short press
+        prevButton = 1;
+        buttonDown = millis() - LONGPRESS_MILLIS;
+        return;
+    }
+    
     nowButton = 1 - digitalRead(PIN_BUTTON);
     if (nowButton) { // pressed
         if (prevButton) { // still pressed

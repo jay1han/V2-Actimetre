@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "300"
+#define VERSION_STR "301"
 #define _V3
 
 // CONSTANTS
@@ -139,6 +139,10 @@ void setSensorsFrequency(int frequency);
 extern int nError;
 void deviceScanInit();
 
+#define REMOTE_COMMAND   0xF0
+#define REMOTE_BUTTON    0x10
+#define REMOTE_RESTART   0xF0
+
 // boards.cpp
 extern BoardType boardType;
 extern uint8_t PIN_BUTTON, PIN_LED, 
@@ -149,7 +153,7 @@ extern uint8_t PIN_BUTTON, PIN_LED,
 void setupBoard();
 void blinkLed(int color);
 int buttonPressed();
-void manageButton();
+void manageButton(int set);
 void setupCore0(void (*core0Loop)(void*));
 
 //                      BBGGRR

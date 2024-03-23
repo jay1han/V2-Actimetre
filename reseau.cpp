@@ -164,10 +164,10 @@ int isConnected() {
 static void Core0Loop(void *dummy_to_match_argument_signature) {
     Serial.printf("Core %d started\n", xPortGetCoreID());
 
-    int index;
     unsigned long startWork;
     for (;;) {
 #ifdef _V3
+        int index;
         while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
         }
 #else        
@@ -190,6 +190,22 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
             queueFill = 0.0;
         } else {
             queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
+        }
+
+        int command = wifiClient.read();
+        if (command >= 0) {
+            Serial.printf("Remote command 0x%02X\n", command);
+            switch(command & REMOTE_COMMAND) {
+            case REMOTE_BUTTON:
+                Serial.println("Simulated button press");
+                manageButton(1);
+                break;
+                
+            case REMOTE_RESTART:
+                Serial.println("Force reboot");
+                RESTART();
+                break;
+            }
         }
         
         readRssi();

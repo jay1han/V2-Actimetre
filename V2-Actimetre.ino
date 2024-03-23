@@ -87,7 +87,7 @@ void formatData(unsigned char *message) {
 void loop() {
     static unsigned long cycle_time;
 
-    manageButton();
+    manageButton(0);
 
     if (!isConnected()) RESTART();
     
