@@ -73,18 +73,25 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
      0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
      0xFF, 0xFF, 0xFF, 0xFF},
+    // Board Type 6 (S3 super mini with MPU-6500)
+    {0, 21,
+     0xFF, 0xFF, 0xFF,   // UART is unused
+     3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
+     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     0xFF, 0xFF, 0xFF, 0xFF},
 #endif    
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2
 #define PIN_DETECT_34 14 // if pulled HIGH then type 3 else type 4
 #define PIN_DETECT_45 16 // if pulled LOW then type 5 else type 4
+#define PIN_DETECT_46 1  // if pulled HIGH then type 6 else type 4
 
 // GLOBALS
 
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"
 #ifdef _V3    
-    , "S3n", "S3+"
+    , "S3n", "S3+", "S3*"
 #endif    
 };
 
@@ -111,6 +118,7 @@ static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
 #ifdef _V3
     {100, 1000, 2000, 4000},
     {100, 1000, 4000, 8000},
+    {100, 1000, 4000, 8000},
 #endif
 };
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
@@ -120,6 +128,7 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {1, 0, 5, 3},
 #ifdef _V3
     {0, 2, 3, 4},
+    {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
     {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
 #endif
 };
@@ -303,9 +312,11 @@ void setupBoard() {
         my.ledRGB = true;
         pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
         pinMode(PIN_DETECT_45, INPUT_PULLUP);
+        pinMode(PIN_DETECT_46, INPUT_PULLDOWN);
 #ifdef _V3        
         if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
         else if (digitalRead(PIN_DETECT_45) == 0) my.boardType = BOARD_S3_6500;
+        else if (digitalRead(PIN_DETECT_46) == 1) my.boardType = BOARD_S3_SUPER;
         else my.boardType = BOARD_S3_NEWBOX;
 #else
         my.boardType = BOARD_S3_I2C;

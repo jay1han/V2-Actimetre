@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "301"
+#define VERSION_STR "302"
 #define _V3
 
 // CONSTANTS
@@ -56,6 +56,7 @@ typedef enum {
 #ifdef _V3    
     BOARD_S3_NEWBOX,
     BOARD_S3_6500,
+    BOARD_S3_SUPER,
 #endif    
     BOARD_TYPES
 } BoardType;
