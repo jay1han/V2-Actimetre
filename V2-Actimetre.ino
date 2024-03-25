@@ -89,7 +89,7 @@ void loop() {
 
     manageButton(0);
 
-    if (!isConnected()) RESTART();
+    if (!isConnected()) RESTART(2);
     
 #ifdef _V3
     waitNextCycle();
@@ -126,14 +126,23 @@ void loop() {
 
 // UTILITY FUNCTION
 
-void RESTART() {
+void RESTART(int seconds) {
+    Serial.printf("RESTART in %d\n", seconds);
     blinkLed(COLOR_RED);
-    delay(2000);
+    delay(1000 * seconds);
     blinkLed(COLOR_BLACK);
     ESP.restart();
 }
 
 void ERROR_FATAL(char *where) {
-    Serial.printf("\nFATAL ERROR %s\n", where);
-    RESTART();
+    Serial.printf("\nFATAL ERROR:%s\n", where);
+#ifdef _V3
+    byte *message = msgQueueStore[msgIndex];
+    message[0] = 0xFF;
+    message[3] = strlen(where);
+    strcpy((char*)message + 8, where);
+    queueMessage(&msgIndex);
+    if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
+#endif
+    RESTART(5);
 }

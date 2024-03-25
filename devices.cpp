@@ -73,7 +73,7 @@ static void initSensor(int port, int address) {
         Serial.print("MPU-6500");
     } else {
         Serial.println("BAD. Rebooting");
-        RESTART();
+        RESTART(2);
     }
 
     if (my.sensorType == WAI_6050) {
@@ -132,23 +132,23 @@ static void clear1SensorSome(int port, int address, int fifoCount) {
         
         wire.beginTransmission(MPU6050_ADDR + address);
         if (wire.write(MPU6050_FIFO_DATA) != 1) {
-            Serial.printf("ERROR clear1Some on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
+            ERROR_FATAL("clear1Some() -> write");
             return;
         }
         if (wire.endTransmission(false) != 0) {
-            Serial.printf("ERROR clear1Some on sensor %d%c: readByte() -> endTransmission", port + 1, 'A' + address);
+            ERROR_FATAL("clear1Some() -> endTransmission0");
             return;
         }
         if (wire.requestFrom(MPU6050_ADDR + address, count) != count) {
-            Serial.printf("ERROR clear1Some on sensor %d%c: readByte() -> requestFrom(%d)", port + 1, 'A' + address, count);
+            ERROR_FATAL("clear1Some() -> requestFrom");
             return;
         }
         if (wire.readBytes(dump, count) != count) {
-            Serial.printf("ERROR clear1Some on sensor %d%c: readByte() -> readBytes(%d)", port + 1, 'A' + address, count);
+            ERROR_FATAL("clear1Some() -> readBytes");
             return;
         }
         if (wire.endTransmission(true) != 0) {
-            Serial.printf("ERROR clear1Some on sensor %d%c: endTransmission()", port + 1, 'A' + address);
+            ERROR_FATAL("clear1Some() -> endTransmission1");
             return;
         }
 
@@ -198,7 +198,7 @@ static void setSensor1Frequency(int port, int address, int frequency) {
                 writeByte(port, address, 0x23, 0x60); // enable FIFO for gx, gy (4 bytes per sample)
             } else {
                 Serial.printf("Unhandled frequency %d\n", frequency);
-                RESTART();
+                RESTART(2);
             }
             
             writeByte(port, address, 0x6A, 0x40); // enable FIFO
@@ -268,23 +268,23 @@ int readFifo(int port, int address, byte *message) {
     formatHeader(message, fifoCount / my.dataLength);
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_FIFO_DATA) != 1) {
-        Serial.printf("ERROR readFifo on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
+        ERROR_FATAL("readFifo() -> write");
         return 0;
     }
     if (wire.endTransmission(false) != 0) {
-        Serial.printf("ERROR readFifo on sensor %d%c: readByte() -> endTransmission", port + 1, 'A' + address);
+        ERROR_FATAL("readFifo() -> endTransmission0");
         return 0;
     }
     if (wire.requestFrom(MPU6050_ADDR + address, fifoCount) != fifoCount) {
-        Serial.printf("ERROR readFifo on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
+        ERROR_FATAL("readFifo() -> requestFrom");
         return 0;
     }
     if (wire.readBytes(buffer, fifoCount) != fifoCount) {
-        Serial.printf("ERROR readFifo on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
+        ERROR_FATAL("readFifo() -> readBytes");
         return 0;
     }
     if (wire.endTransmission(true) != 0) {
-        Serial.printf("ERROR readFifo on sensor %d%c: endTransmission()", port + 1, 'A' + address);
+        ERROR_FATAL("readFifo() -> endTransmission1");
         return 0;
     }
         
@@ -366,8 +366,7 @@ void deviceScanInit() {
     if (my.nSensors == 0) {
         Serial.println("No sensors found, rebooting");
         displayTitle("No sensors");
-        sleep(5);
-        RESTART();
+        RESTART(5);
     }
 
 #ifndef _V3    

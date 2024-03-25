@@ -61,7 +61,7 @@ void catchUpCycle() {
 static void watchdogReset() {
     Serial.println("\nWatchdog reset");
     writeLine("Watchdog");
-    RESTART();
+    RESTART(1);
 }
 
 void initClock(time_t bootEpoch) {
@@ -91,8 +91,8 @@ void getTimeSinceBoot(time_t *r_sec, int *r_usec) {
     int64_t clock = getAbsMicros() - (int64_t)my.bootTime * 1000000L;
     int64_t sec = clock / 1000000L;
     int64_t usec = clock % 1000000L;
-    *r_sec = (time_t)sec;
-    *r_usec = (int)usec;
+    if (r_sec != NULL) *r_sec = (time_t)sec;
+    if (r_usec != NULL) *r_usec = (int)usec;
 }
 
 int getRelMicroseconds(time_t secRef, int usecRef) {
@@ -121,6 +121,11 @@ static unsigned long mark = time(NULL);
 static unsigned long nCycles[CoreNumMax] = {0, 0};
 
 void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
+    time_t life;
+    getTimeSinceBoot(&life, NULL);
+    if (life > 0xFEFFFF) {
+        ERROR_FATAL("Alive over 6 months, rebooting");
+    }
     if (time_spent > BOGUS_CYCLE) return;  // don't count outliers
 
     if (time(NULL) - mark > MEASURE_SECS) {
@@ -139,7 +144,7 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
         Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         Serial.println("System slowdown, rebooting");
-        RESTART();
+        RESTART(1);
     }
 }
 

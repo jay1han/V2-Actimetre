@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "303"
+#define VERSION_STR "304"
 #define _V3
 
 // CONSTANTS
@@ -10,7 +10,7 @@
 #define LONGPRESS_MILLIS  2000L
 
 #ifdef _V3
-#define I2C_BAUDRATE 3400000
+#define I2C_BAUDRATE 2000000
 #else
 #define I2C_BAUDRATE 1000000
 #endif
@@ -183,7 +183,7 @@ extern unsigned int upTime;
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);
-void RESTART();
+void RESTART(int);
 void longPress();
 void shortPress();
 #ifdef _V3

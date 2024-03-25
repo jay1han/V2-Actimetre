@@ -35,7 +35,7 @@ static time_t getActimIdAndTime() {
     if (err < INIT_LENGTH) {
 	Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
 	writeLine("Init failed");
-        RESTART();
+        RESTART(2);
     }
     unsigned char response[RESPONSE_LENGTH];
 
@@ -46,7 +46,7 @@ static time_t getActimIdAndTime() {
         if ((time(NULL) - timeout) > 10) {
             Serial.println("No response from Actiserver");
 	    writeLine("No response");
-            RESTART();
+            RESTART(2);
         }
     }
 
@@ -75,22 +75,35 @@ static void sendMessage(byte *message) {
     static int inSec = 0, thisSec = -1;
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
-    int sent = 0;
 #ifdef _V3
     static int nMessages = 0;
     int count = message[3];
-    int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
-    int msgLength = HEADER_LENGTH + dataLength * count;
+    int msgLength;
+    if (message[0] == 0xFF) {
+        msgLength = HEADER_LENGTH + count;
+        Serial.printf("FATAL message length %d\n", msgLength);
+    } else {
+        int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
+        msgLength = HEADER_LENGTH + dataLength * count;
+    }
 #else
     int msgLength = my.msgLength;
 #endif    
+    int sent = 0;
     while (sent < msgLength && micros_diff(micros(), timeout) < 1000000L) {
         sent += wifiClient.write(message + sent, msgLength - sent);
     }
+#ifdef _V3
+    if (message[0] == 0xFF) {
+        if (sent != msgLength)
+            Serial.printf("Timeout sending message\n");
+        return;
+    }
+#endif    
     if (sent != msgLength) {
         Serial.printf("Timeout sending data\n");
         writeLine("Timeout");
-        RESTART();
+        RESTART(2);
     }
 
 #ifdef _V3
@@ -117,7 +130,9 @@ static void sendMessage(byte *message) {
 }
 
 void queueMessage(void *message) {
-    xQueueSend(msgQueue, message, 0);
+    if (xQueueSend(msgQueue, message, 0) != pdTRUE) {
+        Serial.println("Error queueing. Queue full?");
+    }
 }
 
 void readRssi() {
@@ -135,7 +150,7 @@ int isConnected() {
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("\nNetwork disconnected. Rebooting");
         writeLine("WiFi lost");
-        RESTART();
+        RESTART(2);
     }
 
     if (!my.dualCore) {
@@ -203,7 +218,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
                 
             case REMOTE_RESTART:
                 Serial.println("Force reboot");
-                RESTART();
+                RESTART(1);
                 break;
             }
         }
@@ -235,7 +250,7 @@ static int scanNetworks() {
     if (nScan <= 0) {
         Serial.println("\nCan't find AP. Rebooting");
 	writeLine("No AP");
-        RESTART();
+        RESTART(2);
     }
     return nScan;
 }
@@ -257,7 +272,7 @@ static void findSsid(int nScan) {
     if (nActis == 0) {
         Serial.println("\nCan't find server, rebooting");
 	writeLine("No Actis");
-        RESTART();
+        RESTART(2);
     }
 }
 
@@ -345,7 +360,7 @@ void netInit() {
         Serial.println("\nCan't connect to any server, rebooting");
 	writeLine("No server");
         esp_wifi_stop();
-        RESTART();
+        RESTART(2);
     }
 
     WiFi.setAutoReconnect(true);
@@ -361,7 +376,7 @@ void netInit() {
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
 	writeLine("OS error");
-        RESTART();
+        RESTART(1);
     }
 
     if (my.dualCore)
