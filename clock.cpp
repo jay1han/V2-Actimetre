@@ -16,7 +16,6 @@
 
 static bool init_complete = false;
 static time_t minuteTimer = 0;
-static hw_timer_t *watchdogTimer;
 static int64_t nextMicros;
 unsigned int upTime = 0;
 
@@ -28,7 +27,6 @@ static int64_t getAbsMicros() {
 
 #ifdef _V3
 void waitNextCycle() {
-    timerWrite(watchdogTimer, 0);
     while (nextMicros - getAbsMicros() >= 10L);
     nextMicros = getAbsMicros() + (int64_t)cycleMicroseconds;
 }
@@ -40,7 +38,6 @@ int timeRemaining() {
 }
 
 void waitNextCycle() {
-    timerWrite(watchdogTimer, 0);
     if (time(NULL) - minuteTimer >= 60) {
         minuteTimer = time(NULL);
         upTime++;
@@ -58,12 +55,6 @@ void catchUpCycle() {
 }
 #endif
 
-static void watchdogReset() {
-    Serial.println("\nWatchdog reset");
-    writeLine("Watchdog");
-    RESTART(1);
-}
-
 void initClock(time_t bootEpoch) {
     struct timeval timeofday = {bootEpoch, 0};
     settimeofday(&timeofday, 0);
@@ -78,13 +69,6 @@ void initClock(time_t bootEpoch) {
     Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
                   timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-    watchdogTimer = timerBegin(0, 80, true);
-    if (watchdogTimer != NULL) {
-        timerAttachInterrupt(watchdogTimer, watchdogReset, true);
-        timerAlarmWrite(watchdogTimer, 2000000, false);
-        timerAlarmEnable(watchdogTimer);
-    }
 }
 
 void getTimeSinceBoot(time_t *r_sec, int *r_usec) {
