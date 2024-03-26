@@ -1,8 +1,12 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
-
-#define VERSION_STR "305"
 #define _V3
+
+#ifdef _V3
+#define VERSION_STR "310"
+#else
+#define VERSION_STR "290"
+#endif
 
 // CONSTANTS
 

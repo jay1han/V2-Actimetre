@@ -51,21 +51,26 @@ static int msgMicros;
 
 #ifdef _V3
 void formatHeader(unsigned char *message, int count)
-#else    
-void formatHeader(unsigned char *message)
-#endif    
 {
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
     message[0] = (msgBootEpoch >> 16) & 0xFF;
     message[1] = (msgBootEpoch >> 8) & 0xFF;
     message[2] = msgBootEpoch & 0xFF;
-#ifdef _V3
-    message[3] = count;
+
+    message[3] = count | ((my.sensorBits & 0x10) << 3) | ((my.sensorBits & 0x01) << 6);
     message[4] = ((byte)my.rssi << 5) | (byte)my.frequencyCode;
     message[5] = (msgMicros >> 16) & 0xFF;
     message[6] = (msgMicros >> 8) & 0xFF;
     message[7] = msgMicros & 0xFF;
+}
 #else    
+void formatHeader(unsigned char *message)
+{
+    getTimeSinceBoot(&msgBootEpoch, &msgMicros);
+    message[0] = (msgBootEpoch >> 16) & 0xFF;
+    message[1] = (msgBootEpoch >> 8) & 0xFF;
+    message[2] = msgBootEpoch & 0xFF;
+    
     int millis = msgMicros / 1000L;
     // 76543210
     // rrrfffmm
@@ -73,6 +78,7 @@ void formatHeader(unsigned char *message)
     message[4] = millis % 256;
 #endif    
 }
+#endif
 
 #ifndef _V3
 void formatData(unsigned char *message) {
