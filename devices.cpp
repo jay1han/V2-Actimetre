@@ -164,6 +164,14 @@ static void setSensor1Frequency(int port, int address, int frequency) {
         int divider = 8000 / frequency - 1;
         Serial.printf("Sampling rate divider %d\n", divider);
         writeByte(port, address, 0x6A, 0x04); // reset FIFO
+        if (frequency <= 1000) {
+            writeByte(port, address, 0x6C, 0x01); // Disable gz
+            writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
+            writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
+        } else {
+            writeByte(port, address, 0x6C, 0x39); // Disable accel and Gz
+            writeByte(port, address, 0x23, 0x60); // enable FIFO for gx, gy (4 bytes per sample)
+        }
         writeByte(port, address, 0x19, (byte)divider); // Sampling rate divider
         writeByte(port, address, 0x6A, 0x40); // enable FIFO
     } else {

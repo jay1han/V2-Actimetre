@@ -127,7 +127,7 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
     {0, 4, 5, 1},
     {1, 0, 5, 3},
 #ifdef _V3
-    {0, 2, 3, 4},
+    {0, 2, 3 | (SAMPLE_GYRO << 3),  4 | (SAMPLE_GYRO << 3)},
     {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
     {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
 #endif
@@ -141,27 +141,27 @@ static void switchFrequency() {
     cycleFrequency = Frequencies[my.boardType][freqCode];
 #ifdef _V3    
     my.samplingMode = my.frequencyCode >> 3;
-    if (my.sensorType == WAI_6500) {
-        switch (my.frequencyCode >> 3) {
-        case SAMPLE_ACCEL:
-            my.maxMeasures = 40;
-            my.perCycle    = 30;
-            my.dataLength  = 6;
-            break;
 
-        case SAMPLE_GYRO:
-            my.maxMeasures = 60;
-            my.perCycle    = 40;
-            my.dataLength  = 4;
-            break;
+    switch (my.frequencyCode >> 3) {
+    case SAMPLE_ACCEL:
+        my.maxMeasures = 40;
+        my.perCycle    = 30;
+        my.dataLength  = 6;
+        break;
 
-        default:
-            my.maxMeasures = 25;
-            my.perCycle    = 20;
-            my.dataLength  = 10;
-            break;
-        }
+    case SAMPLE_GYRO:
+        my.maxMeasures = 60;
+        my.perCycle    = 40;
+        my.dataLength  = 4;
+        break;
+
+    default:
+        my.maxMeasures = 25;
+        my.perCycle    = 20;
+        my.dataLength  = 10;
+        break;
     }
+    
 #endif        
     cycleMicroseconds = READING_BASE / cycleFrequency;
     

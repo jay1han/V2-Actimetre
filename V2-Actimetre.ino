@@ -76,7 +76,6 @@ void formatHeader(unsigned char *message)
     // rrrfffmm
     message[3] = (unsigned char)(millis / 256) | ((unsigned char)my.frequencyCode << 2) | ((unsigned char)my.rssi << 5) ;
     message[4] = millis % 256;
-#endif    
 }
 #endif
 
