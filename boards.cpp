@@ -49,35 +49,35 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      8, 10, 13, 14,
      3, 5, 7, 9},
     // Board Type 2 (S2 without UART, 35 and 1 are HIGH)
-    {0, 0xFF,
+    {0, 47,
      0xFF, 0xFF, 0xFF,
      21, 17, 0xFF, 15,
      8, 10, 13, 14,
      3, 5, 7, 9},
     // Board Type 3 (S3 mini with I2C)
-    {0, 0xFF,
+    {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
-     21, 17, 0xFF, 15,   // Less MUX
-     7, 8, 9, 14,
+     21, 17, 0xFF, 15 | POWERED_PIN,   // Less MUX
+     7, 8, 9 | POWERED_PIN, 14,   // PIN 14 is connected to 3V
      12, 13, 11, 10},
 #ifdef _V3    
     // Board Type 4 (S3 mini with new box)
     {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
      13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
-     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     44, 36, 35 | POWERED_PIN, 18 | POWERED_PIN, 
      0xFF, 0xFF, 0xFF, 0xFF},
     // Board Type 5 (S3 mini with MPU-6500)
     {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
      13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
-     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     44, 36, 35 | POWERED_PIN, 18 | POWERED_PIN, 
      0xFF, 0xFF, 0xFF, 0xFF},
     // Board Type 6 (S3 super mini with MPU-6500)
     {0, 21,
      0xFF, 0xFF, 0xFF,   // UART is unused
      3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
-     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     10, 9, 8 | POWERED_PIN, 7 | POWERED_PIN,
      0xFF, 0xFF, 0xFF, 0xFF},
 #endif    
 };
