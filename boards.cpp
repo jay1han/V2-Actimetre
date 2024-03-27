@@ -270,10 +270,10 @@ void setupBoard() {
         my.dualCore = 1;
         my.ledRGB = true;
         pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
-        pinMode(PIN_DETECT_45, INPUT_PULLUP);
+        pinMode(PIN_DETECT_45, INPUT_PULLDOWN);
 #ifdef _V3        
         if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
-        else if (digitalRead(PIN_DETECT_45) == 0) my.boardType = BOARD_S3_SUPER;
+        else if (digitalRead(PIN_DETECT_45) == 1) my.boardType = BOARD_S3_SUPER;
         else my.boardType = BOARD_S3_NEWBOX;
 #else
         my.boardType = BOARD_S3_I2C;
