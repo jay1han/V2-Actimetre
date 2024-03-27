@@ -13,11 +13,7 @@
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#ifdef _V3
-#define I2C_BAUDRATE 2000000
-#else
 #define I2C_BAUDRATE 1000000
-#endif
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
