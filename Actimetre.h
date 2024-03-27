@@ -31,7 +31,6 @@
 
 #ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
-#define READING_BASE     (1000000L * my.perCycle)
 #define BUFFER_LENGTH    (250 + HEADER_LENGTH)
 #define QUEUE_SIZE       800
 #else
@@ -44,7 +43,7 @@
 #ifdef _V3
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
-#define SAMPLE_ALL       3
+#define SAMPLE_ALL       0
 #endif
 
 // TYPES
@@ -59,7 +58,6 @@ typedef enum {
     BOARD_S3 = BOARD_S3_I2C,
 #ifdef _V3    
     BOARD_S3_NEWBOX,
-    BOARD_S3_6500,
     BOARD_S3_SUPER,
 #endif    
     BOARD_TYPES
@@ -68,10 +66,14 @@ typedef enum {
 // GLOBALS
 
 typedef struct {
+    byte type;
+    int samplingMode;
+    int dataLength;
+    int maxMeasures;
+} sensorDesc;
+
+typedef struct {
     BoardType boardType;
-#ifdef _V3    
-    byte sensorType;
-#endif    
     bool hasI2C[2];
     bool ledRGB;
     int dualCore;
@@ -87,15 +89,11 @@ typedef struct {
     int rssi;
     time_t bootTime;
     int frequencyCode;
-#ifdef _V3
-    int samplingMode;
-    int dataLength;
-    int maxMeasures;
-    int perCycle;
-#endif    
-
+    int cycleFrequency;
+    unsigned long cycleMicroseconds;
+    
     int displayPort;
-    int sensorPresent[2][2];
+    sensorDesc sensor[2][2];
     unsigned char sensorBits;
     int nSensors;
 #ifndef _V3    
@@ -105,9 +103,6 @@ typedef struct {
 } MyInfo;
 
 extern MyInfo my;
-extern int cycleFrequency;
-extern unsigned long cycleMicroseconds;
-
 extern int nError;
 extern int nMissed[];
 extern float avgCycleTime[];
@@ -140,8 +135,8 @@ int readFifo(int port, int address, byte *buffer);
 int readSensor(int port, int address, unsigned char *data);
 #endif
 void clearSensors();
-void setSensorsFrequency(int frequency);
-extern int nError;
+void setSensorsFrequency();
+void setSamplingMode();
 void deviceScanInit();
 
 #define REMOTE_COMMAND   0xF0
@@ -177,6 +172,7 @@ int getRelMicroseconds(time_t sec, int usec);
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);
 void waitNextCycle();
+void clearNextCycle();
 #ifndef _V3
 int timeRemaining();
 void catchUpCycle();
@@ -187,11 +183,12 @@ extern unsigned int upTime;
 
 // Actimetre.ino
 void ERROR_FATAL(char *where);
+extern bool FATAL_ERROR;
 void RESTART(int);
 void longPress();
 void shortPress();
 #ifdef _V3
-void formatHeader(unsigned char *message, int count);
+void formatHeader(int port, int address, unsigned char *message, int count, int timeOffset);
 #endif
 
 #endif //ACTIMETRE_H

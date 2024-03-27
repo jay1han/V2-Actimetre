@@ -131,7 +131,7 @@ void displayTitle(char *title) {
 
 void displaySensors() {
     char sensorLine[20];
-    sprintf(sensorLine, "%-6s %s@%d", my.sensorList, my.boardName, cycleFrequency);
+    sprintf(sensorLine, "%-6s %s@%d", my.sensorList, my.boardName, my.cycleFrequency);
     writeLine16(2, sensorLine);
 }
 

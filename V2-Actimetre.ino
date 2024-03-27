@@ -50,22 +50,28 @@ static time_t msgBootEpoch;
 static int msgMicros;
 
 #ifdef _V3
-void formatHeader(unsigned char *message, int count)
-{
+void formatHeader(int port, int address, byte *message, int count, int timeOffset) {
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
+    msgMicros -= timeOffset;
+    if (msgMicros < 0) {
+        msgMicros += 1000000;
+        msgBootEpoch -= 1;
+    }
     message[0] = (msgBootEpoch >> 16) & 0xFF;
     message[1] = (msgBootEpoch >> 8) & 0xFF;
     message[2] = msgBootEpoch & 0xFF;
 
-    message[3] = count | ((my.sensorBits & 0x10) << 3) | ((my.sensorBits & 0x01) << 6);
-    message[4] = ((byte)my.rssi << 5) | (byte)my.frequencyCode;
+    if (count > 63) {
+        ERROR_FATAL("Fifo count > 63");
+    }
+    message[3] = count | (port << 7) | (address << 6);
+    message[4] = ((byte)my.rssi << 5) | ((byte)my.sensor[port][address].samplingMode << 3) | (byte)my.frequencyCode;
     message[5] = (msgMicros >> 16) & 0xFF;
     message[6] = (msgMicros >> 8) & 0xFF;
     message[7] = msgMicros & 0xFF;
 }
 #else    
-void formatHeader(unsigned char *message)
-{
+void formatHeader(unsigned char *message) {
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
     message[0] = (msgBootEpoch >> 16) & 0xFF;
     message[1] = (msgBootEpoch >> 8) & 0xFF;
@@ -90,19 +96,27 @@ void formatData(unsigned char *message) {
 #endif
 
 void loop() {
-    static unsigned long cycle_time;
+    unsigned long cycle_time;
 
-    manageButton(0);
-
+    while (FATAL_ERROR);
     if (!isConnected()) RESTART(2);
+    manageButton(0);
     
 #ifdef _V3
     waitNextCycle();
-    message = msgQueueStore[msgIndex];
-    int fifoCount = readFifo(0, 0, message);
-    if (fifoCount > 0) {
-        queueMessage(&msgIndex);
-        if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
+    
+    cycle_time = micros();
+    for (int port = 0; port <= 1; port++) {
+        for (int address = 0; address <= 1; address++) {
+            if (my.sensor[port][address].type) {
+                message = msgQueueStore[msgIndex];
+                int fifoCount = readFifo(port, address, message);
+                if (fifoCount > 0) {
+                    queueMessage(&msgIndex);
+                    if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
+                }
+            }
+        }
     }
 #else                
     if (timeRemaining() == 0) {
@@ -117,7 +131,7 @@ void loop() {
     int offset = HEADER_LENGTH;
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
-            if (my.sensorPresent[port][address]) {
+            if (my.sensor[port][address].type) {
                 if (!readSensor(port, address, dataPoint)) nError ++;
                 formatData(message + offset);
                 offset += DATA_LENGTH;
@@ -125,8 +139,8 @@ void loop() {
         }
     }
     queueMessage(message);
-    logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
 #endif                
+    logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
 }
 
 // UTILITY FUNCTION
@@ -139,7 +153,11 @@ void RESTART(int seconds) {
     ESP.restart();
 }
 
+bool FATAL_ERROR = false;
+
 void ERROR_FATAL(char *where) {
+    while (FATAL_ERROR);
+    FATAL_ERROR = true;
     Serial.printf("\nFATAL ERROR:%s\n", where);
 #ifdef _V3
     byte *message = msgQueueStore[msgIndex];

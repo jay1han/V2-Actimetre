@@ -28,8 +28,9 @@ static int64_t getAbsMicros() {
 #ifdef _V3
 void waitNextCycle() {
     while (nextMicros - getAbsMicros() >= 10L);
-    nextMicros = getAbsMicros() + (int64_t)cycleMicroseconds;
+    nextMicros = getAbsMicros() + (int64_t)my.cycleMicroseconds;
 }
+
 #else
 int timeRemaining() {
     int64_t remain = nextMicros - getAbsMicros();
@@ -46,14 +47,18 @@ void waitNextCycle() {
     if (timeRemaining() > 1000) displayLoop(0);
     while (timeRemaining() > 2000) delayMicroseconds(1000);
     while (timeRemaining() >= 10);
-    nextMicros += (int64_t)cycleMicroseconds;
+    nextMicros += (int64_t)my.cycleMicroseconds;
 }
 
 void catchUpCycle() {
-    while (timeRemaining() < 50) nextMicros += (int64_t)cycleMicroseconds;
+    while (timeRemaining() < 50) nextMicros += (int64_t)my.cycleMicroseconds;
     waitNextCycle();
 }
 #endif
+
+void clearNextCycle() {
+    nextMicros = getAbsMicros();
+}
 
 void initClock(time_t bootEpoch) {
     struct timeval timeofday = {bootEpoch, 0};
@@ -98,11 +103,10 @@ unsigned long micros_diff(unsigned long end, unsigned long start) {
         return (((end % ONE_MEGA) + ROLLOVER_MICROS + ONE_MEGA) - (start % ONE_MEGA)) % ONE_MEGA;
 }
 
-#define BOGUS_CYCLE     50000L
 int nMissed[CoreNumMax] = {0, 0};
 float avgCycleTime[CoreNumMax] = {0.0, 0.0};
-static unsigned long mark = time(NULL);
 static unsigned long nCycles[CoreNumMax] = {0, 0};
+static time_t clear = time(NULL);
 
 void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     time_t life;
@@ -110,31 +114,29 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     if (life > 0xFEFFFF) {
         ERROR_FATAL("Alive over 6 months, rebooting");
     }
-    if (time_spent > BOGUS_CYCLE) return;  // don't count outliers
 
-    if (time(NULL) - mark > MEASURE_SECS) {
-        nCycles[0] = nCycles[1] = 0;
-        nMissed[0] = nMissed[1] = 0;
-        nError = 0;
-        mark = time(NULL);
-    }
     avgCycleTime[coreNum] = (avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
     nCycles[coreNum] ++;
 
-    if (nCycles[coreNum] < 10) return;
+    static time_t print = time(NULL);
     
-    if (nError >= 100 || nMissed[1] >= 1000
-        || avgCycleTime[1] > cycleMicroseconds) {
+    if (coreNum == Core0Net && time(NULL) != print) {
         Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-        Serial.println("System slowdown, rebooting");
-        RESTART(1);
+        print = time(NULL);
+        if (time(NULL) - clear > MEASURE_SECS) {
+            clearCycleTime();
+        }
     }
+    if (coreNum == Core1I2C && (nError >= MEASURE_SECS || nMissed[1] >= MEASURE_SECS)) {
+        ERROR_FATAL("System slowdown, rebooting");
+    }
+    
 }
 
 void clearCycleTime() {
     nCycles[0] = nCycles[1] = 0;
     nMissed[0] = nMissed[1] = 0;
     nError = 0;
-    mark = time(NULL);
+    clear = time(NULL);
 }
