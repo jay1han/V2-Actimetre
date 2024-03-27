@@ -72,12 +72,10 @@ static time_t getActimIdAndTime() {
 static int DATA_LENGTH[] = {10, 6, 4, 10};
 
 static void sendMessage(byte *message) {
-    static int inSec = 0, thisSec = -1;
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
 #ifdef _V3
-    static int nMessages = 0;
-    int count = message[3];
+    int count = message[3] & 0x3F;
     int msgLength;
     if (message[0] == 0xFF) {
         msgLength = HEADER_LENGTH + count;
@@ -107,25 +105,24 @@ static void sendMessage(byte *message) {
     }
 
 #ifdef _V3
-    inSec += count;
-    nMessages ++;
-#else
-    inSec ++;
-#endif
-    
-    if (thisSec != epochSec) {
-        if (thisSec != -1) {
-#ifdef _V3
-            int microSec = message[5] << 16 | message[6] << 8 | message[7];
-            Serial.printf("%d.%06d %d records avg. %.1f/message\n", thisSec, microSec, inSec, (float)inSec / nMessages);
-            nMessages = 0;
-#else            
-            Serial.printf("%ds %d records\n", thisSec, inSec);
-#endif            
-            inSec = 0;
-        }
-        thisSec = epochSec;
+    int port = (message[3] >> 7) & 1;
+    int address = (message[3] >> 6) & 1;
+    static int inSec[2][2];
+    static int thisSec[2][2];
+    static int nMessages[2][2];
+    nMessages[port][address] ++;
+    inSec[port][address] += count;
+    if (epochSec != thisSec[port][address]) {
+        Serial.printf("%d%c: %d samples in %d packets (mode %d, %d bytes), avg. %.1f/s\n",
+                      port + 1, address + 'A', inSec[port][address], nMessages[port][address],
+                      my.sensor[port][address].samplingMode, my.sensor[port][address].dataLength,
+                      (float)inSec[port][address] / nMessages[port][address]);
+        inSec[port][address] = 0;
+        nMessages[port][address] = 0;
+        thisSec[port][address] = epochSec;
     }
+#endif    
+
     logCycleTime(Core0Net, micros_diff(micros(), timeout));
 }
 
@@ -188,7 +185,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 #else        
         while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
         }
-#endif        
+#endif
         startWork = micros();
         
 #ifdef _V3
@@ -217,8 +214,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
                 break;
                 
             case REMOTE_RESTART:
-                Serial.println("Force reboot");
-                RESTART(1);
+                ERROR_FATAL("Remote restart");
                 break;
             }
         }

@@ -49,49 +49,42 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      8, 10, 13, 14,
      3, 5, 7, 9},
     // Board Type 2 (S2 without UART, 35 and 1 are HIGH)
-    {0, 0xFF,
+    {0, 47,
      0xFF, 0xFF, 0xFF,
      21, 17, 0xFF, 15,
      8, 10, 13, 14,
      3, 5, 7, 9},
     // Board Type 3 (S3 mini with I2C)
-    {0, 0xFF,
+    {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
-     21, 17, 0xFF, 15,   // Less MUX
-     7, 8, 9, 14,
+     21, 17, 0xFF, 15 | POWERED_PIN,   // Less MUX
+     7, 8, 9 | POWERED_PIN, 14,   // PIN 14 is connected to 3V
      12, 13, 11, 10},
 #ifdef _V3    
     // Board Type 4 (S3 mini with new box)
     {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
      13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
-     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     44, 36, 35 | POWERED_PIN, 18 | POWERED_PIN, 
      0xFF, 0xFF, 0xFF, 0xFF},
-    // Board Type 5 (S3 mini with MPU-6500)
-    {0, 47,
-     0xFF, 0xFF, 0xFF,   // UART is unused
-     13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
-     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
-     0xFF, 0xFF, 0xFF, 0xFF},
-    // Board Type 6 (S3 super mini with MPU-6500)
+    // Board Type 5 (S3 super mini)
     {0, 21,
      0xFF, 0xFF, 0xFF,   // UART is unused
      3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
-     0xFF, 0xFF, 0xFF, 0xFF,    // No I2C1
+     10, 9, 8 | POWERED_PIN, 7 | POWERED_PIN,
      0xFF, 0xFF, 0xFF, 0xFF},
 #endif    
 };
 #define PIN_DETECT_01 35 // HIGH for type 1
 #define PIN_DETECT_12 1  // if also HIGH then type 2
 #define PIN_DETECT_34 14 // if pulled HIGH then type 3 else type 4
-#define PIN_DETECT_45 16 // if pulled LOW then type 5 else type 4
-#define PIN_DETECT_46 1  // if pulled HIGH then type 6 else type 4
+#define PIN_DETECT_45 1  // if pulled HIGH then type 5 else type 4
 
 // GLOBALS
 
 static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"
 #ifdef _V3    
-    , "S3n", "S3+", "S3*"
+    , "S3n", "S3s"
 #endif    
 };
 
@@ -101,76 +94,41 @@ uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC,
     PIN_I2C0_SDA_MUX, PIN_I2C0_SCL_MUX, PIN_I2C0_VCC_MUX, PIN_I2C0_GND_MUX;
 
-int cycleFrequency;
 unsigned long cycleMicroseconds;
+#define FREQ_COUNT   4
+int freqCode =  0;
 #ifdef _V3
-typedef enum {FREQ_BASE = 0, FREQ_FAST, FREQ_MAX, FREQ_OVERMAX, FREQ_COUNT} FreqCode;
+// 0=100, 1=500, 2=1000, 3=2000, 4=4000, 5=8000
+static int Frequencies[8] = {100, 500, 1000, 2000, 4000, 8000};
 #else
-typedef enum {FREQ_BASE = 0, FREQ_SLOW, FREQ_DRIP, FREQ_TURBO, FREQ_COUNT} FreqCode;
+// 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
+static int Frequencies[8] = {50, 100, 1, 200, 30, 10};
 #endif
 
-FreqCode freqCode = FREQ_BASE;
-static int Frequencies[BOARD_TYPES][FREQ_COUNT]   = {
-    {50,  30, 10, 100},
-    {50,  30, 10, 100},
-    {50,  30, 10, 100},
-    {100, 50, 10, 200},
-#ifdef _V3
-    {100, 1000, 2000, 4000},
-    {100, 1000, 4000, 8000},
-    {100, 1000, 4000, 8000},
-#endif
-};
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
-    {0, 4, 5, 1},
-    {0, 4, 5, 1},
-    {0, 4, 5, 1},
-    {1, 0, 5, 3},
+    {0, 4, 1, 3},
+    {0, 4, 1, 3},
+    {0, 4, 1, 3},
+    {1, 0, 4, 3},
 #ifdef _V3
-    {0, 2, 3, 4},
-    {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
-    {0, 2, 4 | (SAMPLE_ACCEL << 3), 5 | (SAMPLE_GYRO << 3)},
+    {0, 2, 4, 5},
+    {0, 2, 4, 5},
 #endif
 };
-// 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
-// V3: 0=100, 1=500, 2=1000, 3=2000, 4=4000, 5=8000
 
 static void switchFrequency() {
-    freqCode = (FreqCode) (((int)freqCode + 1) % FREQ_COUNT);
+    freqCode = (freqCode + 1) % FREQ_COUNT;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
-    cycleFrequency = Frequencies[my.boardType][freqCode];
-#ifdef _V3    
-    my.samplingMode = my.frequencyCode >> 3;
-    if (my.sensorType == WAI_6500) {
-        switch (my.frequencyCode >> 3) {
-        case SAMPLE_ACCEL:
-            my.maxMeasures = 40;
-            my.perCycle    = 30;
-            my.dataLength  = 6;
-            break;
-
-        case SAMPLE_GYRO:
-            my.maxMeasures = 60;
-            my.perCycle    = 40;
-            my.dataLength  = 4;
-            break;
-
-        default:
-            my.maxMeasures = 25;
-            my.perCycle    = 20;
-            my.dataLength  = 10;
-            break;
-        }
-    }
+    my.cycleFrequency = Frequencies[my.frequencyCode];
+#ifdef _V3
+    setSamplingMode();
 #endif        
-    cycleMicroseconds = READING_BASE / cycleFrequency;
     
-    Serial.printf("Sampling at %dHz (code %X) = %dus per reading\n",
-                  cycleFrequency, my.frequencyCode, cycleMicroseconds);
-    setSensorsFrequency(cycleFrequency);
+    setSensorsFrequency();
     displaySensors();
     clearCycleTime();
-    int kHz = cycleFrequency / 1000;
+    clearNextCycle();
+    int kHz = my.cycleFrequency / 1000;
     int rank = 0;
     while (kHz > 0) {
         rank ++;
@@ -273,7 +231,8 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
     return data;
 }
 
-static int COLORS[] = {0x070007, 0x00070F, 0x000F00, 0x070700, 0x0F0000};
+// magenta, yellow, cyan, green, blue
+static int COLORS[] = {0x0F0007, 0x00070F, 0x0F0700, 0x000F00, 0x0F0000};
 
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
@@ -312,11 +271,9 @@ void setupBoard() {
         my.ledRGB = true;
         pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
         pinMode(PIN_DETECT_45, INPUT_PULLUP);
-        pinMode(PIN_DETECT_46, INPUT_PULLDOWN);
 #ifdef _V3        
         if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
-        else if (digitalRead(PIN_DETECT_45) == 0) my.boardType = BOARD_S3_6500;
-        else if (digitalRead(PIN_DETECT_46) == 1) my.boardType = BOARD_S3_SUPER;
+        else if (digitalRead(PIN_DETECT_45) == 0) my.boardType = BOARD_S3_SUPER;
         else my.boardType = BOARD_S3_NEWBOX;
 #else
         my.boardType = BOARD_S3_I2C;
@@ -348,8 +305,8 @@ void setupBoard() {
 #endif
 
     delay(1000);
-    Serial.printf("\nSoftware v%s! Board Type %s(%d). Main thread on Core %d. Cycle frequency %dHz.\n",
-                  VERSION_STR, my.boardName, my.boardType, xPortGetCoreID(), Frequencies[my.boardType][0]);
+    Serial.printf("\nSoftware v%s Board Type %s(%d)\n",
+                  VERSION_STR, my.boardName, my.boardType);
     if (my.ledRGB) setupRGB();
 
     if (PINS[my.boardType][_PIN_I2C0_SDA] & DISABLE_I2C) {
@@ -398,16 +355,11 @@ void setupBoard() {
 
     blinkLed(COLOR_WHITE);
 
-#ifdef _V3    
-    my.samplingMode = SAMPLE_ALL;
-    my.dataLength  = 10;
-    my.maxMeasures = 25;
-    my.perCycle    = 20;
-#endif    
-    cycleFrequency = Frequencies[my.boardType][FREQ_BASE];
-    cycleMicroseconds = READING_BASE / cycleFrequency;
-    my.frequencyCode = FrequencyCode[my.boardType][FREQ_BASE];
-    Serial.printf("Sampling at %dHz = %dus per reading\n", cycleFrequency, cycleMicroseconds);
+    my.frequencyCode = FrequencyCode[my.boardType][0];
+    my.cycleFrequency = Frequencies[my.frequencyCode];
+#ifdef _V3
+    setSamplingMode();
+#endif
 }
 
 TaskHandle_t core0Task;
