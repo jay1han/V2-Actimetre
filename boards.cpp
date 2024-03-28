@@ -36,57 +36,37 @@ typedef enum {
 #define POWERED_PIN  0x80
 #define DISABLE_I2C  0x80
 const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
-    // Board Type 0 (pin 35 is GND)
-    {0, 15,
-     1, 2, 4,
-     39, 37, 35, 33,
-     8, 10, 13, 14,
-     3, 5, 7, 9},
-    // Board Type 1 (pin 35 is HIGH)
-    {0, 15,
-     1, 2, 4,
-     21, 34, 36, 38,
-     8, 10, 13, 14,
-     3, 5, 7, 9},
-    // Board Type 2 (S2 without UART, 35 and 1 are HIGH)
-    {0, 47,
-     0xFF, 0xFF, 0xFF,
-     21, 17, 0xFF, 15,
-     8, 10, 13, 14,
-     3, 5, 7, 9},
-    // Board Type 3 (S3 mini with I2C)
+    // Board Type 0 (S3 mini with I2C)
     {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
      21, 17, 0xFF, 15 | POWERED_PIN,   // Less MUX
      7, 8, 9 | POWERED_PIN, 14,   // PIN 14 is connected to 3V
      12, 13, 11, 10},
-#ifdef _V3    
-    // Board Type 4 (S3 mini with new box)
+    // Board Type 1 (S3 mini with new box)
     {0, 47,
      0xFF, 0xFF, 0xFF,   // UART is unused
      13, 11, POWERED_PIN | 10, 0xFF,   // I2C0 on left side
      44, 36, 35 | POWERED_PIN, 18 | POWERED_PIN, 
      0xFF, 0xFF, 0xFF, 0xFF},
-    // Board Type 5 (S3 super mini)
+    // Board Type 2 (S3 super mini)
     {0, 21,
      0xFF, 0xFF, 0xFF,   // UART is unused
      3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
      10, 9, 8 | POWERED_PIN, 7 | POWERED_PIN,
      0xFF, 0xFF, 0xFF, 0xFF},
-#endif    
+    // Unsupported
+    {0xFF, 0xFF,
+     0xFF, 0xFF, 0xFF,   // UART is unused
+     0xFF, 0xFF, 0xFF, 0xFF,
+     0xFF, 0xFF, 0xFF, 0xFF,
+     0xFF, 0xFF, 0xFF, 0xFF},
 };
-#define PIN_DETECT_01 35 // HIGH for type 1
-#define PIN_DETECT_12 1  // if also HIGH then type 2
 #define PIN_DETECT_34 14 // if pulled HIGH then type 3 else type 4
 #define PIN_DETECT_45 1  // if pulled HIGH then type 5 else type 4
 
 // GLOBALS
 
-static char BoardName[BOARD_TYPES][4] = {".S2", "S2x", "S2u", "S3i"
-#ifdef _V3    
-    , "S3n", "S3s"
-#endif    
-};
+static char BoardName[BOARD_TYPES][4] = {"S3i", "S3n", "S3s", "BAD"};
 
 uint8_t PIN_BUTTON, PIN_LED,
     PIN_UART_GND, PIN_UART_TX, PIN_UART_RX,
@@ -97,32 +77,20 @@ uint8_t PIN_BUTTON, PIN_LED,
 unsigned long cycleMicroseconds;
 #define FREQ_COUNT   4
 int freqCode =  0;
-#ifdef _V3
-// 0=100, 1=500, 2=1000, 3=2000, 4=4000, 5=8000
 static int Frequencies[8] = {100, 500, 1000, 2000, 4000, 8000};
-#else
-// 0=50, 1=100, 2=1, 3=200, 4=30, 5=10
-static int Frequencies[8] = {50, 100, 1, 200, 30, 10};
-#endif
 
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
-    {0, 4, 1, 3},
-    {0, 4, 1, 3},
-    {0, 4, 1, 3},
-    {1, 0, 4, 3},
-#ifdef _V3
     {0, 2, 4, 5},
     {0, 2, 4, 5},
-#endif
+    {0, 2, 4, 5},
+    {0, 0, 0, 0}
 };
 
 static void switchFrequency() {
     freqCode = (freqCode + 1) % FREQ_COUNT;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
     my.cycleFrequency = Frequencies[my.frequencyCode];
-#ifdef _V3
     setSamplingMode();
-#endif        
     
     setSensorsFrequency();
     displaySensors();
@@ -271,20 +239,11 @@ void setupBoard() {
         my.ledRGB = true;
         pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
         pinMode(PIN_DETECT_45, INPUT_PULLDOWN);
-#ifdef _V3        
         if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
         else if (digitalRead(PIN_DETECT_45) == 1) my.boardType = BOARD_S3_SUPER;
         else my.boardType = BOARD_S3_NEWBOX;
-#else
-        my.boardType = BOARD_S3_I2C;
-#endif        
     } else {
-        my.dualCore = 0;
-        my.ledRGB = false;
-        pinMode(PIN_DETECT_01, INPUT);
-        if (digitalRead(PIN_DETECT_01) == 0) my.boardType = BOARD_S2;
-        else if (digitalRead(PIN_DETECT_12) == 0) my.boardType = BOARD_S2_CONNECTORS;
-        else my.boardType = BOARD_S2_NO_UART;
+        my.boardType = BOARD_BAD;
     }
     strcpy(my.boardName, BoardName[my.boardType]);
 
@@ -357,9 +316,11 @@ void setupBoard() {
 
     my.frequencyCode = FrequencyCode[my.boardType][0];
     my.cycleFrequency = Frequencies[my.frequencyCode];
-#ifdef _V3
-    setSamplingMode();
-#endif
+    if (my.boardType == BOARD_BAD) {
+        my.cycleMicroseconds = 100000;
+    } else {
+        setSamplingMode();
+    }
 }
 
 TaskHandle_t core0Task;

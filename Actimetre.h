@@ -1,12 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
-#define _V3
 
-#ifdef _V3
-#define VERSION_STR "314"
-#else
-#define VERSION_STR "290"
-#endif
+#define VERSION_STR "315"
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
@@ -28,37 +23,23 @@
 
 #define MEASURE_SECS     60
 
-#ifdef _V3
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (250 + HEADER_LENGTH)
 #define QUEUE_SIZE       800
-#else
-#define QUEUE_SIZE       50
-#define HEADER_LENGTH    5     // epoch(3), msec(2)
-#define DATA_LENGTH      12    // msec(2), accel(6), gyro(4)
-#define BUFFER_LENGTH    (4 * DATA_LENGTH + HEADER_LENGTH)
-#endif
 
-#ifdef _V3
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
 #define SAMPLE_ALL       0
-#endif
 
 // TYPES
 
 typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
 
 typedef enum {
-    BOARD_S2 = 0,
-    BOARD_S2_CONNECTORS,
-    BOARD_S2_NO_UART,
-    BOARD_S3_I2C,
-    BOARD_S3 = BOARD_S3_I2C,
-#ifdef _V3    
+    BOARD_S3_I2C = 0,
     BOARD_S3_NEWBOX,
     BOARD_S3_SUPER,
-#endif    
+    BOARD_BAD,
     BOARD_TYPES
 } BoardType;
 
@@ -95,9 +76,6 @@ typedef struct {
     sensorDesc sensor[2][2];
     unsigned char sensorBits;
     int nSensors;
-#ifndef _V3    
-    int msgLength;
-#endif    
     char sensorList[10];
 } MyInfo;
 
@@ -122,17 +100,11 @@ void queueMessage(void *message);
 void netCore0(void *dummy_to_match_argument_signature);
 extern float queueFill;
 
-#ifdef _V3
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 extern int msgIndex;
-#endif
 
 // devices.cpp
-#ifdef _V3
 int readFifo(int port, int address, byte *buffer);
-#else
-int readSensor(int port, int address, unsigned char *data);
-#endif
 void clearSensors();
 void setSensorsFrequency();
 void setSamplingMode();
@@ -167,16 +139,11 @@ void setupCore0(void (*core0Loop)(void*));
 // clock.cpp
 void initClock(time_t bootEpoch);
 void getTimeSinceBoot(time_t *sec, int *usec);
-int getRelMicroseconds(time_t sec, int usec);
 int64_t getAbsMicros();
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);
 void waitNextCycle();
 void clearNextCycle();
-#ifndef _V3
-int timeRemaining();
-void catchUpCycle();
-#endif
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
 void clearCycleTime();
 extern unsigned int upTime;
@@ -187,8 +154,6 @@ extern bool FATAL_ERROR;
 void RESTART(int);
 void longPress();
 void shortPress();
-#ifdef _V3
 void formatHeader(int port, int address, unsigned char *message, int count, int timeOffset);
-#endif
 
 #endif //ACTIMETRE_H
