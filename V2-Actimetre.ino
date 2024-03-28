@@ -38,6 +38,13 @@ void setup() {
     sprintf(title, "v%s", VERSION_STR);
     displayTitle(title);
     displaySensors();
+#ifdef _V3
+    if (my.boardType < BOARD_S3) {
+        Serial.println("ESP32-S2 not supported in V3");
+        writeLine("S2 unsupported");
+        RESTART(30);
+    }
+#endif    
 
     netInit();
     clearSensors();
