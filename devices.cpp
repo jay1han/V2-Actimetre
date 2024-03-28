@@ -353,7 +353,7 @@ void deviceScanInit() {
     Serial.println("Checking I2C devices");
 
     my.displayPort = -1;
-#ifndef _V3    
+
     if (my.hasI2C[0]) {
         Wire.beginTransmission(SSD1306_ADDR);
         if (Wire.endTransmission(true) == 0) {
@@ -373,7 +373,6 @@ void deviceScanInit() {
     if (my.displayPort < 0) {
         Serial.println("No display found");
     }
-#endif
     
     int port, address;
     my.sensorBits = 0;

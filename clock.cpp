@@ -19,25 +19,25 @@ static time_t minuteTimer = 0;
 static int64_t nextMicros;
 unsigned int upTime = 0;
 
-static int64_t getAbsMicros() {
+int64_t getAbsMicros() {
     struct timeval timeofday;
     gettimeofday(&timeofday, NULL);
     return (int64_t)timeofday.tv_sec * 1000000L + (int64_t)timeofday.tv_usec;
 }
 
+int timeRemaining() {
+    int64_t remain = nextMicros - getAbsMicros();
+    return (int)remain;
+}
+
 #ifdef _V3
 void waitNextCycle() {
-    while (nextMicros - getAbsMicros() >= 10L);
+    while (timeRemaining() > 500) displayLoop(0);
+    while (timeRemaining() >= 10L);
     nextMicros = getAbsMicros() + (int64_t)my.cycleMicroseconds;
 }
 
 #else
-int timeRemaining() {
-    int64_t remain = nextMicros - getAbsMicros();
-    if (remain < 10L) return 0;
-    else return (int)remain;
-}
-
 void waitNextCycle() {
     if (time(NULL) - minuteTimer >= 60) {
         minuteTimer = time(NULL);
@@ -118,20 +118,13 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     avgCycleTime[coreNum] = (avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
     nCycles[coreNum] ++;
 
-    static time_t print = time(NULL);
-    
-    if (coreNum == Core0Net && time(NULL) != print) {
+    if (coreNum == Core1I2C && (nError >= MEASURE_SECS || nMissed[1] >= MEASURE_SECS)) {
         Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-        print = time(NULL);
-        if (time(NULL) - clear > MEASURE_SECS) {
-            clearCycleTime();
-        }
-    }
-    if (coreNum == Core1I2C && (nError >= MEASURE_SECS || nMissed[1] >= MEASURE_SECS)) {
         ERROR_FATAL("System slowdown, rebooting");
     }
     
+    if (time(NULL) - clear > MEASURE_SECS) clearCycleTime();
 }
 
 void clearCycleTime() {

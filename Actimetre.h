@@ -3,7 +3,7 @@
 #define _V3
 
 #ifdef _V3
-#define VERSION_STR "310"
+#define VERSION_STR "312"
 #else
 #define VERSION_STR "290"
 #endif
@@ -165,6 +165,7 @@ void setupCore0(void (*core0Loop)(void*));
 void initClock(time_t bootEpoch);
 void getTimeSinceBoot(time_t *sec, int *usec);
 int getRelMicroseconds(time_t sec, int usec);
+int64_t getAbsMicros();
 unsigned long millis_diff_10(unsigned long end, unsigned long start);
 unsigned long micros_diff(unsigned long end, unsigned long start);
 void waitNextCycle();

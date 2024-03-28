@@ -131,7 +131,10 @@ void displayTitle(char *title) {
 
 void displaySensors() {
     char sensorLine[20];
-    sprintf(sensorLine, "%-6s %s@%d", my.sensorList, my.boardName, my.cycleFrequency);
+    if (my.cycleFrequency >= 1000)
+        sprintf(sensorLine, "%-6s %s@%dk", my.sensorList, my.boardName, my.cycleFrequency / 1000);
+    else
+        sprintf(sensorLine, "%-6s %s@%d", my.sensorList, my.boardName, my.cycleFrequency);
     writeLine16(2, sensorLine);
 }
 
@@ -190,9 +193,13 @@ static void textPanel(int step) {
 
     case 2:
         static unsigned char blink = ' ';
-        if (blink == ' ') blink = '>';
-        else blink = ' ';
-        write_char16(BLINK_POS, 0, blink);
+        static time_t stopwatch = time(NULL);
+        if (stopwatch != time(NULL)) {
+            if (blink == ' ') blink = '>';
+            else blink = ' ';
+            write_char16(BLINK_POS, 0, blink);
+            stopwatch = time(NULL);
+        }
         break;
 
     case 3:
@@ -248,22 +255,14 @@ static void displayScanLine(int scanLine) {
 }
 
 void displayScan(int scanLine) {
-    if (scanLine == TOTAL_SCAN_LINE - 1) {
-        static int step = 0;
-        switch (step) {
-        case 0:
-            Serial.printf("%dh%02d %.1f %.1f ", upTime / 60, upTime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
-            break;
-        
-        case 1:
-            if (my.dualCore) 
-                Serial.printf("M%d,%d E%d Q%.0f%%\n", nMissed[1], nMissed[0], nError, queueFill);
-            else
-                Serial.printf("M%d E%d Q%.0f%%\n", nMissed[1], nError, queueFill);
-            break;
-        }
-        step = (step + 1) % 2;
-        blinkLed(COLOR_SWAP);
+    static time_t stopwatch = time(NULL);
+    if (scanLine == TOTAL_SCAN_LINE - 1 && stopwatch != time(NULL)) {
+        stopwatch = time(NULL);
+        Serial.printf("%dh%02d %.1f %.1f ", upTime / 60, upTime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+        if (my.dualCore) 
+            Serial.printf("M%d,%d E%d Q%.0f%%\n", nMissed[1], nMissed[0], nError, queueFill);
+        else
+            Serial.printf("M%d E%d Q%.0f%%\n", nMissed[1], nError, queueFill);
         return;
     }
 
@@ -274,7 +273,11 @@ void displayScan(int scanLine) {
 
 void displayLoop(int force) {
     static int scanLine = 0;
-
+    static int profiling = 0;
+    static int entries   = 0;
+    static int reporting = time(NULL);
+    int64_t stopwatch = getAbsMicros();
+    
     if (my.displayPort >= 0) {
         if (force == 1) {
             ssd1306_on();
@@ -285,8 +288,15 @@ void displayLoop(int force) {
             scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
             displayScan(scanLine);
         }
-    } else {
-        scanLine = (scanLine + 1) % TOTAL_SCAN_LINE;
-        if (scanLine == 0) blinkLed(COLOR_SWAP);
+    }
+    
+    profiling += (int)(getAbsMicros() - stopwatch);
+    entries ++;
+    if (time(NULL) != reporting) {
+        Serial.printf("displayLoop() %dus/%d = %.1fms avg\n",
+                      profiling, entries, (float)profiling / entries);
+        profiling = 0;
+        entries = 0;
+        reporting = time(NULL);
     }
 }
