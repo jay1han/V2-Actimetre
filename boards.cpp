@@ -232,7 +232,7 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
 }
 
 // magenta, yellow, cyan, green, blue
-static int COLORS[] = {0x0F0007, 0x00070F, 0x0F0700, 0x000F00, 0x0F0000};
+static int COLORS[] = {0x0F0007, 0x00070F, 0x0F0700, 0x000F00, 0x170000};
 
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
