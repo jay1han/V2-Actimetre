@@ -99,7 +99,6 @@ static void initSensor(int port, int address) {
     Serial.println(" OK!");
 }
 
-#ifdef _V3
 static void clear1Sensor(int port, int address) {
     if (!my.hasI2C[port]) {
         Serial.printf("clear1Sensor(port=%d, address=%d)\n", port, address);
@@ -167,10 +166,8 @@ static void setSensor1Frequency(int port, int address) {
         }
     }
 }
-#endif
 
 void setSensorsFrequency() {
-#ifdef _V3
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
             if (my.sensor[port][address].type) {
@@ -179,10 +176,8 @@ void setSensorsFrequency() {
             }
         }
     }
-#endif
 }
 
-#ifdef _V3
 void setSamplingMode() {
     int perCycle = 100;
     
@@ -232,10 +227,8 @@ void setSamplingMode() {
     Serial.printf("Sampling frequency %dHz(code %d), cycle time %dus\n",
                   my.cycleFrequency, my.frequencyCode, my.cycleMicroseconds);
 }
-#endif
 
 void clearSensors() {
-#ifdef _V3
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
             if (my.sensor[port][address].type) {
@@ -243,7 +236,6 @@ void clearSensors() {
             }
         }
     }
-#endif
 }
 
 static int detectSensor(int port, int address) {
@@ -259,8 +251,6 @@ static int detectSensor(int port, int address) {
         return 0;
     }
 }
-
-#ifdef _V3
 
 int readFifo(int port, int address, byte *message) {
     if (!my.hasI2C[port]) {
@@ -313,40 +303,6 @@ int readFifo(int port, int address, byte *message) {
     return fifoCount / dataLength;
 }
 
-#else // _V3
-
-#define MPU6050_DATA_REG   0x3B
-#define MPU6050_DATA_SIZE  12
-int readSensor(int port, int address, unsigned char *dataPoint) {
-    if (!my.hasI2C[port]) {
-        Serial.printf("readSensor(port=%d, address=%d)\n", port, address);
-        return 0;
-    }
-    TwoWire &wire = (port == 0) ? Wire : Wire1;
-    
-    wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write(MPU6050_DATA_REG) != 1) {
-        Serial.printf("ERROR on sensor %d%c: readByte() -> write", port + 1, 'A' + address);
-        return 0;
-    }
-    if (wire.endTransmission(false) != 0) {
-        Serial.printf("ERROR on sensor %d%c: readByte() -> endTransmission", port + 1, 'A' + address);
-        return 0;
-    }
-    if (wire.requestFrom(MPU6050_ADDR + address, MPU6050_DATA_SIZE) != MPU6050_DATA_SIZE) {
-        Serial.printf("ERROR on sensor %d%c: readByte() -> requestFrom", port + 1, 'A' + address);
-        return 0;
-    }
-    if ((n = wire.readBytes(dataPoint, MPU6050_DATA_SIZE)) != MPU6050_DATA_SIZE) {
-        Serial.printf("ERROR on sensor %d%c: readByte() -> readBytes", port + 1, 'A' + address);
-        memset(dataPoint, 0, 12);
-        return 0;
-    }
-    wire.endTransmission(true);
-    return 1;
-}
-#endif
-
 // GLOBAL
 
 void deviceScanInit() {
@@ -390,10 +346,6 @@ void deviceScanInit() {
         RESTART(5);
     }
 
-#ifndef _V3    
-    my.msgLength = HEADER_LENGTH + DATA_LENGTH * my.nSensors;
-#endif
-    
     my.sensorList[0] = 0;
     for (port = 0; port < 2; port++) {
         if (my.sensor[port][0].type || my.sensor[port][1].type)

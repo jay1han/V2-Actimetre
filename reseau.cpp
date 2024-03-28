@@ -11,12 +11,8 @@ static WiFiClient wifiClient;
 
 QueueHandle_t msgQueue;
 float queueFill = 0.0;
-#ifdef _V3
 StaticQueue_t msgQueueStatic;
 byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
-#else
-byte msgBuffer[BUFFER_LENGTH];
-#endif
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
@@ -74,7 +70,6 @@ static int DATA_LENGTH[] = {10, 6, 4, 10};
 static void sendMessage(byte *message) {
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
-#ifdef _V3
     int count = message[3] & 0x3F;
     int msgLength;
     if (message[0] == 0xFF) {
@@ -84,27 +79,25 @@ static void sendMessage(byte *message) {
         int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
         msgLength = HEADER_LENGTH + dataLength * count;
     }
-#else
-    int msgLength = my.msgLength;
-#endif    
+    
     int sent = 0;
     while (sent < msgLength && micros_diff(micros(), timeout) < 1000000L) {
         sent += wifiClient.write(message + sent, msgLength - sent);
     }
-#ifdef _V3
+
     if (message[0] == 0xFF) {
         if (sent != msgLength)
             Serial.printf("Timeout sending message\n");
         return;
     }
-#endif    
+
     if (sent != msgLength) {
         Serial.printf("Timeout sending data\n");
         writeLine("Timeout");
         RESTART(2);
     }
 
-#if defined _V3 && defined PROFILE_NETWORK
+#ifdef PROFILE_NETWORK
     int port = (message[3] >> 7) & 1;
     int address = (message[3] >> 6) & 1;
     static int inSec[2][2];
@@ -150,26 +143,6 @@ int isConnected() {
         RESTART(2);
     }
 
-    if (!my.dualCore) {
-#ifndef _V3    
-        int availableSpaces = uxQueueSpacesAvailable(msgQueue);
-        if (availableSpaces == 0) {
-            nMissed[Core0Net] ++;
-            xQueueReset(msgQueue);
-            Serial.print("Queue full, cleared");
-            queueFill = 0.0;
-        } else {
-            while (timeRemaining() > 0
-                   && xQueueReceive(msgQueue, msgBuffer, 0) == pdTRUE) {
-                sendMessage(msgBuffer);
-            }
-            availableSpaces = uxQueueSpacesAvailable(msgQueue);
-            queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
-        }    
-        readRssi();
-#endif
-    }
-    
     return 1;
 }
 
@@ -178,21 +151,12 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 
     unsigned long startWork;
     for (;;) {
-#ifdef _V3
         int index;
         while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
         }
-#else        
-        while (xQueueReceive(msgQueue, msgBuffer, 1) != pdTRUE) {
-        }
-#endif
         startWork = micros();
         
-#ifdef _V3
         sendMessage(msgQueueStore[index]);
-#else        
-        sendMessage(msgBuffer);
-#endif        
 
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
         if (availableSpaces < QUEUE_SIZE / 5) {
@@ -364,11 +328,7 @@ void netInit() {
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
 
-#ifdef _V3    
     msgQueue = xQueueCreateStatic(QUEUE_SIZE, sizeof(int), msgQueueItems, &msgQueueStatic);
-#else
-    msgQueue = xQueueCreate(QUEUE_SIZE, BUFFER_LENGTH);
-#endif    
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
 	writeLine("OS error");

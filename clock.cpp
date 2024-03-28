@@ -15,7 +15,6 @@
 #define ROLLOVER_TEN_MICROS  4967296L
 
 static bool init_complete = false;
-static time_t minuteTimer = 0;
 static int64_t nextMicros;
 unsigned int upTime = 0;
 
@@ -30,31 +29,12 @@ int timeRemaining() {
     return (int)remain;
 }
 
-#ifdef _V3
 void waitNextCycle() {
+    upTime = (time(NULL) - my.bootTime) / 60;
     while (timeRemaining() > 500) displayLoop(0);
     while (timeRemaining() >= 10L);
     nextMicros = getAbsMicros() + (int64_t)my.cycleMicroseconds;
 }
-
-#else
-void waitNextCycle() {
-    if (time(NULL) - minuteTimer >= 60) {
-        minuteTimer = time(NULL);
-        upTime++;
-    }
-
-    if (timeRemaining() > 1000) displayLoop(0);
-    while (timeRemaining() > 2000) delayMicroseconds(1000);
-    while (timeRemaining() >= 10);
-    nextMicros += (int64_t)my.cycleMicroseconds;
-}
-
-void catchUpCycle() {
-    while (timeRemaining() < 50) nextMicros += (int64_t)my.cycleMicroseconds;
-    waitNextCycle();
-}
-#endif
 
 void clearNextCycle() {
     nextMicros = getAbsMicros();
@@ -65,7 +45,6 @@ void initClock(time_t bootEpoch) {
     settimeofday(&timeofday, 0);
     nextMicros = (int64_t)bootEpoch * 1000000L + 1000000L;
     
-    minuteTimer = time(NULL);
     my.bootTime = bootEpoch;
     init_complete = true;
 
@@ -82,11 +61,6 @@ void getTimeSinceBoot(time_t *r_sec, int *r_usec) {
     int64_t usec = clock % 1000000L;
     if (r_sec != NULL) *r_sec = (time_t)sec;
     if (r_usec != NULL) *r_usec = (int)usec;
-}
-
-int getRelMicroseconds(time_t secRef, int usecRef) {
-    int64_t diff = getAbsMicros() - (int64_t)(my.bootTime + secRef) * 1000000L - (int64_t)usecRef;
-    return (int)diff;
 }
 
 unsigned long millis_diff_10(unsigned long end, unsigned long start) {
