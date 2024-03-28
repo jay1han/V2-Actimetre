@@ -273,9 +273,6 @@ void displayScan(int scanLine) {
 
 void displayLoop(int force) {
     static int scanLine = 0;
-    static int profiling = 0;
-    static int entries   = 0;
-    static int reporting = time(NULL);
     int64_t stopwatch = getAbsMicros();
     
     if (my.displayPort >= 0) {
@@ -289,7 +286,11 @@ void displayLoop(int force) {
             displayScan(scanLine);
         }
     }
-    
+
+#ifdef PROFILE_DISPLAY    
+    static int profiling = 0;
+    static int entries   = 0;
+    static int reporting = time(NULL);
     profiling += (int)(getAbsMicros() - stopwatch);
     entries ++;
     if (time(NULL) != reporting) {
@@ -299,4 +300,5 @@ void displayLoop(int force) {
         entries = 0;
         reporting = time(NULL);
     }
+#endif
 }

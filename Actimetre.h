@@ -3,10 +3,13 @@
 #define _V3
 
 #ifdef _V3
-#define VERSION_STR "312"
+#define VERSION_STR "313"
 #else
 #define VERSION_STR "290"
 #endif
+
+//#define PROFILE_DISPLAY
+//#define PROFILE_NETWORK
 
 // CONSTANTS
 

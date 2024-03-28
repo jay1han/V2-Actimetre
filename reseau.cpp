@@ -104,7 +104,7 @@ static void sendMessage(byte *message) {
         RESTART(2);
     }
 
-#ifdef _V3
+#if defined _V3 && defined PROFILE_NETWORK
     int port = (message[3] >> 7) & 1;
     int address = (message[3] >> 6) & 1;
     static int inSec[2][2];
