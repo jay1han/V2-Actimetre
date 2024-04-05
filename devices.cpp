@@ -266,18 +266,15 @@ int readFifo(int port, int address, byte *message) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     byte *buffer = message + HEADER_LENGTH;
 
+    if (readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
+        nMissed[Core1I2C]++;
+        clear1Sensor(port, address);
+        return 0;
+    }
+    
+    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & (my.sensor[port][address].type == WAI_6050 ? 1023 : 511);
     int dataLength  = my.sensor[port][address].dataLength;
-    int fifoCount;
-    do {
-        if (readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
-            nMissed[Core1I2C]++;
-            clear1Sensor(port, address);
-            return 0;
-        }
-    
-        fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & (my.sensor[port][address].type == WAI_6050 ? 1023 : 511);
-    } while ((fifoCount % dataLength) != 0);
-    
+    if (fifoCount < dataLength) return 0;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
     if (fifoCount > maxMeasures * dataLength) {
