@@ -109,17 +109,21 @@ void RESTART(int seconds) {
 
 bool FATAL_ERROR = false;
 
-void ERROR_FATAL(char *where) {
-    while (FATAL_ERROR);
-    FATAL_ERROR = true;
-    Serial.printf("\nFATAL ERROR:%s\n", where);
+void ERROR_REPORT(char *what) {
+    Serial.printf("\nREPORT:%s\n", what);
 
     byte *message = msgQueueStore[msgIndex];
     message[0] = 0xFF;
-    message[3] = strlen(where);
-    strcpy((char*)message + 8, where);
+    message[3] = strlen(what);
+    strcpy((char*)message + 8, what);
     queueMessage(&msgIndex);
     if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
+}
 
+void ERROR_FATAL(char *where) {
+    while (FATAL_ERROR);
+    FATAL_ERROR = true;
+    Serial.printf("\nFATAL ERROR");
+    ERROR_REPORT(where);
     RESTART(5);
 }

@@ -261,7 +261,10 @@ void displayScan(int scanLine) {
     static time_t stopwatch = time(NULL);
     if (scanLine == TOTAL_SCAN_LINE - 1 && stopwatch != time(NULL)) {
         stopwatch = time(NULL);
-        Serial.printf("%dh%02d %.1f %.1f ", upTime / 60, upTime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+        Serial.printf("%dh%02d %.1f %.1f (%.1f) ",
+                      upTime / 60, upTime % 60,
+                      avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0,
+                      (float)my.cycleMicroseconds / 1000.0);
         if (my.dualCore) 
             Serial.printf("M%d,%d E%d Q%.0f%%\n", nMissed[1], nMissed[0], nError, queueFill);
         else
