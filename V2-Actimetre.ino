@@ -85,14 +85,17 @@ void loop() {
     waitNextCycle();
     
     cycle_time = micros();
+    int fifoState;
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
             if (my.sensor[port][address].type) {
-                int index = nextIndex();
-                int fifoCount = readFifo(port, address, msgQueueStore[index]);
-                if (fifoCount > 0) {
-                    queueMessage(&index);
-                }
+                do {
+                    int index = nextIndex();
+                    fifoState = readFifo(port, address, msgQueueStore[index]);
+                    if (fifoState > 0) {
+                        queueMessage(&index);
+                    }
+                } while (fifoState > 1);
             }
         }
     }

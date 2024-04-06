@@ -204,18 +204,21 @@ void setSamplingMode() {
             switch (samplingMode) {
             case SAMPLE_ACCEL:
                 my.sensor[port][address].maxMeasures = 40;
+                my.sensor[port][address].fifoThreshold = 10;
                 my.sensor[port][address].dataLength  = 6;
                 if (perCycle > 30) perCycle = 30;
                 break;
 
             case SAMPLE_GYRO:
                 my.sensor[port][address].maxMeasures = 60;
+                my.sensor[port][address].fifoThreshold = 20;
                 my.sensor[port][address].dataLength  = 4;
                 if (perCycle > 40) perCycle = 40;
                 break;
 
             default:
                 my.sensor[port][address].maxMeasures = 25;
+                my.sensor[port][address].fifoThreshold = 5;
                 my.sensor[port][address].dataLength  = 10;
                 if (perCycle > 20) perCycle = 20;
                 break;
@@ -281,7 +284,12 @@ int readFifo(int port, int address, byte *message) {
     if (fifoCount < dataLength) return 0;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
+    bool moreToRead = false;
     if (fifoCount > maxMeasures * dataLength) {
+        if ((fifoCount / dataLength) - maxMeasures > my.sensor[port][address].fifoThreshold) {
+            moreToRead = true;
+            Serial.printf("FIFO %d%c more to read %d\n", port + 1, address + 'A', fifoCount / dataLength - maxMeasures);
+        }
         timeOffset = (fifoCount / dataLength - maxMeasures) * (1000000 / my.cycleFrequency) ;
         fifoCount = maxMeasures * dataLength;
     }
@@ -308,8 +316,9 @@ int readFifo(int port, int address, byte *message) {
         ERROR_FATAL("readFifo() -> endTransmission1");
         return 0;
     }
-        
-    return fifoCount / dataLength;
+
+    if (moreToRead) return 2;
+    else return 1;
 }
 
 // GLOBAL

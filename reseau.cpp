@@ -166,7 +166,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
         if (availableSpaces < QUEUE_SIZE / 5) {
             nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
             xQueueReset(msgQueue);
-            Serial.print("Queue more than 80%, cleared");
+            Serial.println("Queue more than 80%, cleared");
             queueFill = 0.0;
         } else {
             queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;

@@ -258,6 +258,7 @@ static void displayScanLine(int scanLine) {
 }
 
 void displayScan(int scanLine) {
+#ifdef LOG_HEARTBEAT        
     static time_t stopwatch = time(NULL);
     if (scanLine == TOTAL_SCAN_LINE - 1 && stopwatch != time(NULL)) {
         stopwatch = time(NULL);
@@ -271,6 +272,7 @@ void displayScan(int scanLine) {
             Serial.printf("M%d E%d Q%.0f%%\n", nMissed[1], nError, queueFill);
         return;
     }
+#endif        
 
     if (scanLine < RSSI_STEPS) displayRssi(scanLine);
     else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);
