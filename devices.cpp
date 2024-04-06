@@ -269,8 +269,8 @@ int readFifo(int port, int address, byte *message) {
     if (readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
         char error[64];
         sprintf(error, "FIFO overflow %d%c", port + 1, address + 'A');
-//        ERROR_REPORT(error);
         Serial.println(error);
+        ERROR_REPORT(error);
         nMissed[Core1I2C]++;
         clear1Sensor(port, address);
         return 0;

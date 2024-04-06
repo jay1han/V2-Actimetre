@@ -13,8 +13,12 @@ MyInfo my;
 // FILE-WIDE GLOBAL
 
 byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
-int msgIndex = 0;
-byte *message;
+static int nextIndex() {
+    static int msgIndex = 0;
+    int index = msgIndex++;
+    if (msgIndex >= QUEUE_SIZE) msgIndex = 0;
+    return index;
+}
 
 // STATISTICS
 
@@ -84,11 +88,10 @@ void loop() {
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
             if (my.sensor[port][address].type) {
-                message = msgQueueStore[msgIndex];
-                int fifoCount = readFifo(port, address, message);
+                int index = nextIndex();
+                int fifoCount = readFifo(port, address, msgQueueStore[index]);
                 if (fifoCount > 0) {
-                    queueMessage(&msgIndex);
-                    if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
+                    queueMessage(&index);
                 }
             }
         }
@@ -112,12 +115,12 @@ bool FATAL_ERROR = false;
 void ERROR_REPORT(char *what) {
     Serial.printf("\nREPORT:%s\n", what);
 
-    byte *message = msgQueueStore[msgIndex];
+    int index = nextIndex();
+    byte *message = msgQueueStore[index];
     message[0] = 0xFF;
     message[3] = strlen(what);
-    strcpy((char*)message + 8, what);
-    queueMessage(&msgIndex);
-    if (++msgIndex >= QUEUE_SIZE) msgIndex = 0;
+    strcpy((char*)message + HEADER_LENGTH, what);
+    queueMessage(&index);
 }
 
 void ERROR_FATAL(char *where) {

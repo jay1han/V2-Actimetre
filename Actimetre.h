@@ -25,7 +25,7 @@
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (250 + HEADER_LENGTH)
-#define QUEUE_SIZE       800
+#define QUEUE_SIZE       200
 
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
@@ -101,7 +101,6 @@ void netCore0(void *dummy_to_match_argument_signature);
 extern float queueFill;
 
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
-extern int msgIndex;
 
 // devices.cpp
 int readFifo(int port, int address, byte *buffer);

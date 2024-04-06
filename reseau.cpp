@@ -74,7 +74,7 @@ static void sendMessage(byte *message) {
     int msgLength;
     if (message[0] == 0xFF) {
         msgLength = HEADER_LENGTH + count;
-        Serial.printf("FATAL message length %d\n", msgLength);
+        Serial.printf("ERROR message length %d\n", msgLength);
     } else {
         int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
         msgLength = HEADER_LENGTH + dataLength * count;
@@ -155,7 +155,11 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
         while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
         }
         startWork = micros();
-        
+
+        if (index >= QUEUE_SIZE) {
+            Serial.printf("ASSERT msgIndex = %d\n", index);
+            continue;
+        }
         sendMessage(msgQueueStore[index]);
 
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
