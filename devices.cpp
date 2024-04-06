@@ -292,6 +292,8 @@ int readFifo(int port, int address, byte *message) {
         }
         timeOffset = (fifoCount / dataLength - maxMeasures) * (1000000 / my.cycleFrequency) ;
         fifoCount = maxMeasures * dataLength;
+    } else {
+        fifoCount = (fifoCount / dataLength) * dataLength;
     }
     formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
 
