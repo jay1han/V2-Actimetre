@@ -43,7 +43,7 @@ void clearNextCycle() {
 void initClock(time_t bootEpoch) {
     struct timeval timeofday = {bootEpoch, 0};
     settimeofday(&timeofday, 0);
-    nextMicros = (int64_t)bootEpoch * 1000000L + 1000000L;
+    nextMicros = (int64_t)bootEpoch * 1000000L;
     
     my.bootTime = bootEpoch;
     init_complete = true;

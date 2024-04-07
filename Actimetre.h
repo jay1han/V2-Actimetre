@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "321"
+#define VERSION_STR "322"
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
@@ -14,7 +14,7 @@
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#define I2C_BAUDRATE 1000000
+#define I2C_BAUDRATE 400000
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68

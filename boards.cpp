@@ -80,7 +80,6 @@ uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC,
     PIN_I2C0_SDA_MUX, PIN_I2C0_SCL_MUX, PIN_I2C0_VCC_MUX, PIN_I2C0_GND_MUX;
 
-unsigned long cycleMicroseconds;
 #define FREQ_COUNT   4
 int freqCode =  0;
 static int Frequencies[8] = {100, 500, 1000, 2000, 4000, 8000};

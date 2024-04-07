@@ -8,6 +8,7 @@
 #define MPU6050_FIFO_CNT_L  0x73
 #define MPU6050_FIFO_DATA   0x74
 #define MPU6050_INT_STATUS  0x3A
+#define MPU6050_DATA_RDY    0x01
 #define MPU6050_FIFO_OVER   0x10
 
 // GENERAL
@@ -65,6 +66,9 @@ int readWord(int port, int address, int memory) {
 
 static void initSensor(int port, int address) {
     Serial.printf("Initializing %d%c", port + 1, 'A' + address);
+    writeByte(port, address, 0x6B, 0x80);    // Reset
+    delay(100);
+    
     byte sensorType = readByte(port, address, 0x75);
     Serial.printf(" WAI=0x%02X, ", sensorType);
     if (sensorType != WAI_6050 && sensorType != WAI_6500) {
@@ -80,9 +84,8 @@ static void initSensor(int port, int address) {
         writeByte(port, address, 0x19, 79);   // Sampling rate divider = 79 (100Hz)
         writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
         writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
-        writeByte(port, address, 0x38, 0x10); // enable FIFO interrupts
-        writeByte(port, address, 0x6A, 0x04); // reset FIFO
-        delay(1);
+//        writeByte(port, address, 0x38, 0x11); // enable interrupts
+//        writeByte(port, address, 0x6A, 0x04); // reset FIFO
         writeByte(port, address, 0x6A, 0x40); // enable FIFO
     } else {
         my.sensor[port][address].fifoOverflow = 500;
@@ -94,9 +97,8 @@ static void initSensor(int port, int address) {
         writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
         writeByte(port, address, 0x1D, 0x00); // A_FCHOICE_B = b0, A_DLPF = 0
         writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
-        writeByte(port, address, 0x38, 0x10); // enable FIFO interrupts
-        writeByte(port, address, 0x6A, 0x04); // reset FIFO
-        delay(1);
+//        writeByte(port, address, 0x38, 0x11); // enable interrupts
+//        writeByte(port, address, 0x6A, 0x04); // reset FIFO
         writeByte(port, address, 0x6A, 0x40); // enable FIFO
     }
 
@@ -111,10 +113,12 @@ static void clear1Sensor(int port, int address) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    Serial.printf("Reset sensor %d%c FIFO %d bytes\n", port + 1, address + 'A', fifoCount);
+    Serial.printf("Reset sensor %d%c FIFO %d", port + 1, address + 'A', fifoCount);
+    
     writeByte(port, address, 0x6A, 0x04); // reset FIFO
-    delay(1);
     writeByte(port, address, 0x6A, 0x40); // enable FIFO
+    fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
+    Serial.printf(" -> %d bytes\n", fifoCount);
 }
 
 static void setSensor1Frequency(int port, int address) {
@@ -122,7 +126,6 @@ static void setSensor1Frequency(int port, int address) {
         int divider = 8000 / my.cycleFrequency - 1;
         Serial.printf("Sampling rate divider %d\n", divider);
         writeByte(port, address, 0x6A, 0x04); // reset FIFO
-        delay(1);
         if (my.cycleFrequency <= 1000) {
             writeByte(port, address, 0x6C, 0x01); // Disable gz
             writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
@@ -138,7 +141,6 @@ static void setSensor1Frequency(int port, int address) {
             int divider = 1000 / my.cycleFrequency - 1;
             Serial.printf("Sampling rate divider %d\n", divider);
             writeByte(port, address, 0x6A, 0x04); // reset FIFO
-            delay(1);
             writeByte(port, address, 0x6C, 0x01); // Disable gz
             writeByte(port, address, 0x19, (byte)divider); // Sampling rate divider
             writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
@@ -149,7 +151,6 @@ static void setSensor1Frequency(int port, int address) {
             writeByte(port, address, 0x6A, 0x40); // enable FIFO
         } else { 
             writeByte(port, address, 0x6A, 0x04); // reset FIFO
-            delay(1);
 
             if (my.cycleFrequency <= 4000) {  // only accel
                 writeByte(port, address, 0x6C, 0x07); // Disable gyro
@@ -272,8 +273,7 @@ int readFifo(int port, int address, byte *message) {
     byte *buffer = message + HEADER_LENGTH;
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    if (fifoCount > my.sensor[port][address].fifoOverflow ||
-        readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
+    if (fifoCount > my.sensor[port][address].fifoOverflow) {
         char error[64];
         sprintf(error, "FIFO overflow %d%c", port + 1, address + 'A');
         Serial.println(error);
@@ -282,14 +282,21 @@ int readFifo(int port, int address, byte *message) {
         clear1Sensor(port, address);
         return 0;
     }
-    
     int dataLength = my.sensor[port][address].dataLength;
-    if (fifoCount < dataLength) return 0;
+    if (fifoCount < dataLength) {
+        Serial.printf("No data (%d) on sensor %d%c\n", fifoCount, port + 1, address + 'A');
+        return 0;
+    }
+
+//    while (fifoCount % dataLength != 0)
+//        fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
     if (fifoCount > maxMeasures * dataLength) {
         timeOffset = (fifoCount / dataLength - maxMeasures) * (1000000 / my.cycleFrequency) ;
         fifoCount = maxMeasures * dataLength;
+    } else {
+        fifoCount = (fifoCount / dataLength) * dataLength;
     }
     formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
 
