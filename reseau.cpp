@@ -33,7 +33,7 @@ static time_t getActimIdAndTime() {
 	writeLine("Init failed");
         RESTART(2);
     }
-    unsigned char response[RESPONSE_LENGTH];
+    byte response[RESPONSE_LENGTH];
 
     err = 0;
     time_t timeout = time(NULL);
