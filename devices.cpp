@@ -74,7 +74,7 @@ static void initSensor(int port, int address) {
     my.sensor[port][address].type = sensorType;
 
     if (sensorType == WAI_6050) {
-        my.sensor[port][address].overflow = 1000;
+        my.sensor[port][address].fifoOverflow = 1000;
         writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x09); // Disable temp, Gx clock source
         writeByte(port, address, 0x19, 79);   // Sampling rate divider = 79 (100Hz)
@@ -85,7 +85,7 @@ static void initSensor(int port, int address) {
         delay(1);
         writeByte(port, address, 0x6A, 0x40); // enable FIFO
     } else {
-        my.sensor[port][address].overflow = 500;
+        my.sensor[port][address].fifoOverflow = 500;
         writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
         writeByte(port, address, 0x19, 9);    // Sampling rate divider
@@ -272,7 +272,7 @@ int readFifo(int port, int address, byte *message) {
     byte *buffer = message + HEADER_LENGTH;
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    if (fifoCount > fifoOverflow ||
+    if (fifoCount > my.sensor[port][address].fifoOverflow ||
         readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
         char error[64];
         sprintf(error, "FIFO overflow %d%c", port + 1, address + 'A');

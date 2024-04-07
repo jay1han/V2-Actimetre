@@ -42,6 +42,7 @@ typedef enum {
     BOARD_S3_I2C = 0,
     BOARD_S3_NEWBOX,
     BOARD_S3_SUPER,
+    BOARD_S3_SINGLE,
     BOARD_BAD,
     BOARD_TYPES
 } BoardType;
@@ -54,7 +55,7 @@ typedef struct {
     int dataLength;
     int maxMeasures;
     int fifoThreshold;
-    int overflow;
+    int fifoOverflow;
 } sensorDesc;
 
 typedef struct {
