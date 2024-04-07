@@ -1,11 +1,13 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "320"
+#define VERSION_STR "321"
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
+//#define STATIC_QUEUE
+//#define LOG_QUEUE
 
 // CONSTANTS
 
@@ -26,7 +28,7 @@
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (256 + HEADER_LENGTH)
-#define QUEUE_SIZE       400
+#define QUEUE_SIZE       512
 
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
@@ -52,6 +54,7 @@ typedef struct {
     int dataLength;
     int maxMeasures;
     int fifoThreshold;
+    int overflow;
 } sensorDesc;
 
 typedef struct {
@@ -101,7 +104,6 @@ int isConnected();
 void queueMessage(void *message);
 void netCore0(void *dummy_to_match_argument_signature);
 extern float queueFill;
-
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 
 // devices.cpp
@@ -150,7 +152,7 @@ void clearCycleTime();
 extern unsigned int upTime;
 
 // Actimetre.ino
-void dump(byte *address, int size);
+void dump(void *address, int size);
 void ERROR_REPORT(char *what);
 void ERROR_FATAL(char *where);
 extern bool FATAL_ERROR;

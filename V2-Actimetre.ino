@@ -14,9 +14,9 @@ MyInfo my;
 
 byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 static int nextIndex() {
-    static int msgIndex = 0;
+    static int msgIndex = 1;
     int index = msgIndex++;
-    if (msgIndex >= QUEUE_SIZE) msgIndex = 0;
+    if (msgIndex >= QUEUE_SIZE) msgIndex = 1;
     return index;
 }
 
@@ -30,6 +30,12 @@ void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
     
     setupBoard();
+
+    if (my.boardType == BOARD_BAD) {
+        Serial.println("Unsupported board type");
+        writeLine("Unsupported");
+        RESTART(30);
+    }
     delay(100);
     deviceScanInit();
 
@@ -38,12 +44,6 @@ void setup() {
     displayTitle(title);
     displaySensors();
     
-    if (my.boardType == BOARD_BAD) {
-        Serial.println("Unsupported board type");
-        writeLine("Unsupported");
-        RESTART(30);
-    }
-
     netInit();
     clearSensors();
     blinkLed(COLOR_FREQ | 0);
@@ -133,7 +133,8 @@ void ERROR_FATAL(char *where) {
     RESTART(5);
 }
 
-void dump(byte *address, int size) {
+void dump(void *pointer, int size) {
+    byte *address = (byte*)pointer;
     for(int line = 0; line < size; line += 16) {
         for (int i = 0; (i < 16) && (line + i < size); i++) {
             Serial.printf("%02X ", address[line + i]);

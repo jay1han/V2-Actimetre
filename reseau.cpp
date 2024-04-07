@@ -11,8 +11,11 @@ static WiFiClient wifiClient;
 
 QueueHandle_t msgQueue;
 float queueFill = 0.0;
-StaticQueue_t msgQueueStatic;
-byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
+
+#ifdef STATIC_QUEUE
+static StaticQueue_t msgQueueStatic;
+static byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
+#endif
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
@@ -120,6 +123,11 @@ static void sendMessage(byte *message) {
 }
 
 void queueMessage(void *message) {
+    int index = *(int*)message;
+    if (index <= 0 || index >= QUEUE_SIZE) {
+        Serial.printf("Queue index %d OOB\n", index);
+        return;
+    }
     if (xQueueSend(msgQueue, message, 0) != pdTRUE) {
         Serial.println("Error queueing. Queue full?");
     }
@@ -156,9 +164,11 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
         }
         startWork = micros();
 
-        if (index >= QUEUE_SIZE) {
+        if (index <= 0 || index >= QUEUE_SIZE) {
             Serial.printf("ASSERT msgIndex = %d\n", index);
+#ifdef STATIC_QUEUE            
             dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
+#endif            
             continue;
         }
         sendMessage(msgQueueStore[index]);
@@ -172,6 +182,15 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
         } else {
             queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }
+
+#ifdef LOG_QUEUE
+        static time_t timer = 0;
+        if (time(NULL) != timer) {
+            timer = time(NULL);
+            Serial.printf("===== Dump at %d\n", timer);
+            dump(msgQueueItems, 32 * sizeof(int));
+        }
+#endif        
 
         int command = wifiClient.read();
         if (command >= 0) {
@@ -333,7 +352,11 @@ void netInit() {
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
 
+#ifdef STATIC_QUEUE    
     msgQueue = xQueueCreateStatic(QUEUE_SIZE, sizeof(int), msgQueueItems, &msgQueueStatic);
+#else    
+    msgQueue = xQueueCreate(QUEUE_SIZE, sizeof(int));
+#endif    
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
 	writeLine("OS error");

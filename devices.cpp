@@ -74,6 +74,7 @@ static void initSensor(int port, int address) {
     my.sensor[port][address].type = sensorType;
 
     if (sensorType == WAI_6050) {
+        my.sensor[port][address].overflow = 1000;
         writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x09); // Disable temp, Gx clock source
         writeByte(port, address, 0x19, 79);   // Sampling rate divider = 79 (100Hz)
@@ -84,6 +85,7 @@ static void initSensor(int port, int address) {
         delay(1);
         writeByte(port, address, 0x6A, 0x40); // enable FIFO
     } else {
+        my.sensor[port][address].overflow = 500;
         writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
         writeByte(port, address, 0x19, 9);    // Sampling rate divider
@@ -269,7 +271,9 @@ int readFifo(int port, int address, byte *message) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
     byte *buffer = message + HEADER_LENGTH;
 
-    if (readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
+    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
+    if (fifoCount > fifoOverflow ||
+        readByte(port, address, MPU6050_INT_STATUS) & MPU6050_FIFO_OVER) {
         char error[64];
         sprintf(error, "FIFO overflow %d%c", port + 1, address + 'A');
         Serial.println(error);
@@ -279,21 +283,13 @@ int readFifo(int port, int address, byte *message) {
         return 0;
     }
     
-    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     int dataLength = my.sensor[port][address].dataLength;
     if (fifoCount < dataLength) return 0;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
-    bool moreToRead = false;
     if (fifoCount > maxMeasures * dataLength) {
-        if ((fifoCount / dataLength) - maxMeasures > my.sensor[port][address].fifoThreshold) {
-            moreToRead = true;
-            Serial.printf("FIFO %d%c more to read %d\n", port + 1, address + 'A', fifoCount / dataLength - maxMeasures);
-        }
         timeOffset = (fifoCount / dataLength - maxMeasures) * (1000000 / my.cycleFrequency) ;
         fifoCount = maxMeasures * dataLength;
-    } else {
-        fifoCount = (fifoCount / dataLength) * dataLength;
     }
     formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
 
@@ -319,21 +315,25 @@ int readFifo(int port, int address, byte *message) {
         return 0;
     }
 
-    if (moreToRead) return 2;
-    else return 1;
+    fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
+    if (fifoCount / dataLength > my.sensor[port][address].fifoThreshold) {
+        Serial.printf("FIFO %d%c more to read %d\n", port + 1, address + 'A', fifoCount / dataLength);
+        return 2;
+    }
+    return 1;
 }
 
 // GLOBAL
 
 void deviceScanInit() {
-    Serial.println("Checking I2C devices");
+    Serial.print("Checking I2C devices\n");
 
     my.displayPort = -1;
 
     if (my.hasI2C[0]) {
         Wire.beginTransmission(SSD1306_ADDR);
         if (Wire.endTransmission(true) == 0) {
-            Serial.println("Display found on port 0");
+            Serial.print("SSD1306 found on port 0\n");
             my.displayPort = 0;
             initDisplay();
         }
@@ -341,13 +341,13 @@ void deviceScanInit() {
     if (my.displayPort < 0 && my.hasI2C[1]) {
         Wire1.beginTransmission(SSD1306_ADDR);
         if (Wire1.endTransmission(true) == 0) {
-            Serial.println("Display found on port 1");
+            Serial.print("ssd1306 found on port 1\n");
             my.displayPort = 1;
             initDisplay();
         }
     }
     if (my.displayPort < 0) {
-        Serial.println("No display found");
+        Serial.print("No display found\n");
     }
     
     int port, address;
