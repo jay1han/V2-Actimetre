@@ -282,14 +282,8 @@ int readFifo(int port, int address, byte *message) {
         clear1Sensor(port, address);
         return 0;
     }
-    int dataLength = my.sensor[port][address].dataLength;
-    if (fifoCount < dataLength) {
-        Serial.printf("No data (%d) on sensor %d%c\n", fifoCount, port + 1, address + 'A');
-        return 0;
-    }
 
-//    while (fifoCount % dataLength != 0)
-//        fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;;
+    int dataLength = my.sensor[port][address].dataLength;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
     if (fifoCount > maxMeasures * dataLength) {
@@ -300,31 +294,33 @@ int readFifo(int port, int address, byte *message) {
     }
     formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
 
-    wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write(MPU6050_FIFO_DATA) != 1) {
-        ERROR_FATAL("readFifo() -> write");
-        return 0;
+    if (fifoCount > 0) {
+        wire.beginTransmission(MPU6050_ADDR + address);
+        if (wire.write(MPU6050_FIFO_DATA) != 1) {
+            ERROR_FATAL("readFifo() -> write");
+            return 0;
+        }
+        if (wire.endTransmission(false) != 0) {
+            ERROR_FATAL("readFifo() -> endTransmission0");
+            return 0;
+        }
+        if (wire.requestFrom(MPU6050_ADDR + address, fifoCount) != fifoCount) {
+            ERROR_FATAL("readFifo() -> requestFrom");
+            return 0;
+        }
+        if (wire.readBytes(buffer, fifoCount) != fifoCount) {
+            ERROR_FATAL("readFifo() -> readBytes");
+            return 0;
+        }
+        if (wire.endTransmission(true) != 0) {
+            ERROR_FATAL("readFifo() -> endTransmission1");
+            return 0;
+        }
     }
-    if (wire.endTransmission(false) != 0) {
-        ERROR_FATAL("readFifo() -> endTransmission0");
-        return 0;
-    }
-    if (wire.requestFrom(MPU6050_ADDR + address, fifoCount) != fifoCount) {
-        ERROR_FATAL("readFifo() -> requestFrom");
-        return 0;
-    }
-    if (wire.readBytes(buffer, fifoCount) != fifoCount) {
-        ERROR_FATAL("readFifo() -> readBytes");
-        return 0;
-    }
-    if (wire.endTransmission(true) != 0) {
-        ERROR_FATAL("readFifo() -> endTransmission1");
-        return 0;
-    }
-
+    
     fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     if (fifoCount / dataLength > my.sensor[port][address].fifoThreshold) {
-        Serial.printf("FIFO %d%c more to read %d\n", port + 1, address + 'A', fifoCount / dataLength);
+//        Serial.printf("FIFO %d%c more to read %d\n", port + 1, address + 'A', fifoCount / dataLength);
         return 2;
     }
     return 1;
