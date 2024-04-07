@@ -18,7 +18,7 @@ byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
 
 static time_t getActimIdAndTime() {
-    static unsigned char initMessage[INIT_LENGTH];
+    byte initMessage[INIT_LENGTH];
     Serial.print("Getting name and time ");
 
     memcpy(initMessage, my.boardName, 3);
@@ -158,6 +158,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 
         if (index >= QUEUE_SIZE) {
             Serial.printf("ASSERT msgIndex = %d\n", index);
+            dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
             continue;
         }
         sendMessage(msgQueueStore[index]);
@@ -182,8 +183,8 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
                 break;
                 
             case REMOTE_RESTART:
-                ERROR_FATAL("Remote restart");
-                break;
+                Serial.println("Remote restart");
+                RESTART(5);
             }
         }
         

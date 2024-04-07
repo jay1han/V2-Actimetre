@@ -5,7 +5,7 @@
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
-#define LOG_HEARTBEAT
+//#define LOG_HEARTBEAT
 
 // CONSTANTS
 
@@ -26,7 +26,7 @@
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (256 + HEADER_LENGTH)
-#define QUEUE_SIZE       800
+#define QUEUE_SIZE       400
 
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
@@ -150,6 +150,7 @@ void clearCycleTime();
 extern unsigned int upTime;
 
 // Actimetre.ino
+void dump(byte *address, int size);
 void ERROR_REPORT(char *what);
 void ERROR_FATAL(char *where);
 extern bool FATAL_ERROR;

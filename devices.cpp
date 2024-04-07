@@ -108,7 +108,7 @@ static void clear1Sensor(int port, int address) {
     }
     TwoWire &wire = (port == 0) ? Wire : Wire1;
 
-    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H);
+    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     Serial.printf("Reset sensor %d%c FIFO %d bytes\n", port + 1, address + 'A', fifoCount);
     writeByte(port, address, 0x6A, 0x04); // reset FIFO
     delay(1);
@@ -279,8 +279,8 @@ int readFifo(int port, int address, byte *message) {
         return 0;
     }
     
-    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & (my.sensor[port][address].type == WAI_6050 ? 1023 : 511);
-    int dataLength  = my.sensor[port][address].dataLength;
+    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
+    int dataLength = my.sensor[port][address].dataLength;
     if (fifoCount < dataLength) return 0;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;

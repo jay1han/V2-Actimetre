@@ -51,10 +51,9 @@ void setup() {
 
 // MAIN LOOP
 
-static time_t msgBootEpoch;
-static int msgMicros;
-
 void formatHeader(int port, int address, byte *message, int count, int timeOffset) {
+    time_t msgBootEpoch;
+    int msgMicros;
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
     msgMicros -= timeOffset;
     if (msgMicros < 0) {
@@ -132,4 +131,19 @@ void ERROR_FATAL(char *where) {
     Serial.printf("\nFATAL ERROR");
     ERROR_REPORT(where);
     RESTART(5);
+}
+
+void dump(byte *address, int size) {
+    for(int line = 0; line < size; line += 16) {
+        for (int i = 0; (i < 16) && (line + i < size); i++) {
+            Serial.printf("%02X ", address[line + i]);
+        }
+        Serial.print("    ");
+        for (int i = 0; (i < 16) && (line + i < size); i++) {
+            byte c = address[line + i];
+            if (c < 0x20) c = '.';
+            Serial.printf("%c", c);
+        }
+        Serial.println();
+    }
 }
