@@ -92,7 +92,8 @@ static void initSensor(int port, int address) {
     } else {
         my.sensor[port][address].fifoOverflow = 500;
         writeByte(port, address, 0x6C, 0x01); // Disable gz
-        writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
+//        writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
+        writeByte(port, address, 0x6B, 0x09); // Disable temperature, Gx clock source
         writeByte(port, address, 0x19, 9);    // Sampling rate divider
         writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
         writeByte(port, address, 0x1A, 0x01); // DLPF = 1
@@ -149,6 +150,7 @@ static void setSensor1Frequency(int port, int address) {
             int divider = 1000 / my.sampleFrequency - 1;
             Serial.printf("Sampling rate divider %d\n", divider);
             writeByte(port, address, 0x6A, 0x04); // reset FIFO
+            writeByte(port, address, 0x6B, 0x09); // Disable temperature, Gx clock source
             writeByte(port, address, 0x6C, 0x01); // Disable gz
             writeByte(port, address, 0x19, (byte)divider); // Sampling rate divider
             writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
@@ -161,6 +163,7 @@ static void setSensor1Frequency(int port, int address) {
             writeByte(port, address, 0x6A, 0x04); // reset FIFO
 
             if (my.sampleFrequency <= 4000) {  // only accel
+                writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
                 writeByte(port, address, 0x6C, 0x07); // Disable gyro
                 writeByte(port, address, 0x1A, 0x00); // DLPF = 0
                 writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
@@ -168,6 +171,7 @@ static void setSensor1Frequency(int port, int address) {
                 writeByte(port, address, 0x1D, 0x08); // A_FCHOICE_B = b1, Disable A_DLPF
                 writeByte(port, address, 0x23, 0x08); // enable FIFO for accel (6 bytes per sample)
             } else if (my.sampleFrequency == 8000) { // only gyro
+                writeByte(port, address, 0x6B, 0x09); // Disable temperature, Gx clock source
                 writeByte(port, address, 0x6C, 0x39); // Disable accel and Gz
                 writeByte(port, address, 0x1A, 0x07); // DLPF = 7
                 writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00

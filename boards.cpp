@@ -324,10 +324,14 @@ void setupBoard() {
     if ((PINS[my.boardType][_PIN_I2C0_SDA_MUX] & 0x80) == 0)
         pinMode(PIN_I2C0_SDA_MUX = PINS[my.boardType][_PIN_I2C0_SDA_MUX], INPUT);
 
-    if (my.hasI2C[0])
+    if (my.hasI2C[0]) {
         Wire.begin(PIN_I2C0_SDA, PIN_I2C0_SCL, I2C_BAUDRATE);
-    if (my.hasI2C[1])
+        Serial.printf("I2C0 started %d baud\n", Wire.getClock());
+    }
+    if (my.hasI2C[1]) {
         Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
+        Serial.printf("I2C1 started %d baud\n", Wire.getClock());
+    }
 
     blinkLed(COLOR_WHITE);
 
