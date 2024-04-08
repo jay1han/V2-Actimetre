@@ -128,7 +128,7 @@ void ERROR_REPORT(char *what) {
 void ERROR_FATAL(char *where) {
     while (FATAL_ERROR);
     FATAL_ERROR = true;
-    Serial.printf("\nFATAL ERROR");
+    Serial.printf("\nFATAL:%s\n", where);
     ERROR_REPORT(where);
     RESTART(5);
 }
