@@ -20,10 +20,6 @@ static int nextIndex() {
     return index;
 }
 
-// STATISTICS
-
-int nError              = 0;
-
 // MAIN SETUP
 
 void setup() {
@@ -51,7 +47,7 @@ void setup() {
 
 // MAIN LOOP
 
-void formatHeader(int port, int address, byte *message, int count, int timeOffset) {
+int64_t formatHeader(int port, int address, byte *message, int count, int timeOffset) {
     time_t msgBootEpoch;
     int msgMicros;
     getTimeSinceBoot(&msgBootEpoch, &msgMicros);
@@ -72,6 +68,7 @@ void formatHeader(int port, int address, byte *message, int count, int timeOffse
     message[5] = (msgMicros >> 16) & 0xFF;
     message[6] = (msgMicros >> 8) & 0xFF;
     message[7] = msgMicros & 0xFF;
+    return (int64_t)msgBootEpoch * 1000000 + msgMicros;
 }
 
 void loop() {
@@ -105,6 +102,7 @@ void loop() {
 // UTILITY FUNCTION
 
 void RESTART(int seconds) {
+    FATAL_ERROR = true;
     Serial.printf("RESTART in %d\n", seconds);
     blinkLed(COLOR_RED);
     delay(1000 * seconds);

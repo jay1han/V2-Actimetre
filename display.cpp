@@ -132,10 +132,10 @@ void displayTitle(char *title) {
 
 void displaySensors() {
     char sensorLine[20];
-    if (my.cycleFrequency >= 1000)
-        sprintf(sensorLine, "%-6s %s@%dk", my.sensorList, my.boardName, my.cycleFrequency / 1000);
+    if (my.sampleFrequency >= 1000)
+        sprintf(sensorLine, "%-6s %s@%dk", my.sensorList, my.boardName, my.sampleFrequency / 1000);
     else
-        sprintf(sensorLine, "%-6s %s@%d", my.sensorList, my.boardName, my.cycleFrequency);
+        sprintf(sensorLine, "%-6s %s@%d", my.sensorList, my.boardName, my.sampleFrequency);
     writeLine16(2, sensorLine);
 }
 
@@ -188,10 +188,27 @@ static void textPanel(int step) {
         break;
         
     case 1:
+#ifdef FIFO_INFO
+    {
+        float rating = 0.0;
+        for (int port = 0; port < 2; port++) {
+            for (int address = 0; address < 2; address++) {
+                if (my.sensor[port][address].type) {
+                    if (my.sensor[port][address].nCycles > 0 &&
+                        my.sensor[port][address].nSamples <= my.sensor[port][address].nCycles) 
+                        rating += 1.0 - (float)my.sensor[port][address].nSamples / my.sensor[port][address].nCycles;
+                }
+            }
+        }
+        rating /= my.nSensors;
+        sprintf(textBuffer[1], "%.3f%% M%d Q%.0f%%", rating, nMissed[1], queueFill);
+    }
+#else        
         if (my.dualCore) 
-            sprintf(textBuffer[1], "M%d,%d E%d Q%.0f%%", nMissed[1], nMissed[0], nError, queueFill);
+            sprintf(textBuffer[1], "M%d,%d Q%.0f%%", nMissed[1], nMissed[0], queueFill);
         else
-            sprintf(textBuffer[1], "M%d E%d Q%.0f%%", nMissed[1], nError, queueFill);
+            sprintf(textBuffer[1], "M%d Q%.0f%%", nMissed[1], queueFill);
+#endif        
         strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
 
@@ -268,9 +285,9 @@ void displayScan(int scanLine) {
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0,
                       (float)my.cycleMicroseconds / 1000.0);
         if (my.dualCore) 
-            Serial.printf("M%d,%d E%d Q%.0f%%\n", nMissed[1], nMissed[0], nError, queueFill);
+            Serial.printf("M%d,%d Q%.0f%%\n", nMissed[1], nMissed[0], queueFill);
         else
-            Serial.printf("M%d E%d Q%.0f%%\n", nMissed[1], nError, queueFill);
+            Serial.printf("M%d Q%.0f%%\n", nMissed[1], queueFill);
         return;
     }
 #endif        

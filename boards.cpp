@@ -95,14 +95,14 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
 static void switchFrequency() {
     freqCode = (freqCode + 1) % FREQ_COUNT;
     my.frequencyCode = FrequencyCode[my.boardType][freqCode];
-    my.cycleFrequency = Frequencies[my.frequencyCode];
+    my.sampleFrequency = Frequencies[my.frequencyCode];
     setSamplingMode();
     
     setSensorsFrequency();
     displaySensors();
     clearCycleTime();
     clearNextCycle();
-    int kHz = my.cycleFrequency / 1000;
+    int kHz = my.sampleFrequency / 1000;
     int rank = 0;
     while (kHz > 0) {
         rank ++;
@@ -333,7 +333,7 @@ void setupBoard() {
     blinkLed(COLOR_WHITE);
 
     my.frequencyCode = FrequencyCode[my.boardType][0];
-    my.cycleFrequency = Frequencies[my.frequencyCode];
+    my.sampleFrequency = Frequencies[my.frequencyCode];
     if (my.boardType == BOARD_BAD) {
         my.cycleMicroseconds = 100000;
     } else {

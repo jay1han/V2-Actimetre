@@ -93,8 +93,8 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     avgCycleTime[coreNum] = (avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
     nCycles[coreNum] ++;
 
-    if (coreNum == Core1I2C && (nError >= MEASURE_SECS || nMissed[1] >= MEASURE_SECS)) {
-        Serial.printf("M%d,%d E%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], nError, queueFill,
+    if (coreNum == Core1I2C && nMissed[1] >= MEASURE_SECS) {
+        Serial.printf("M%d,%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], queueFill,
                       avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
         ERROR_FATAL("System slowdown, rebooting");
     }
@@ -105,6 +105,5 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
 void clearCycleTime() {
     nCycles[0] = nCycles[1] = 0;
     nMissed[0] = nMissed[1] = 0;
-    nError = 0;
     clear = time(NULL);
 }
