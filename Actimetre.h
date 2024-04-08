@@ -61,7 +61,7 @@ typedef struct {
 typedef struct {
     BoardType boardType;
     bool hasI2C[2];
-    bool ledRGB;
+    int ledRGB;
     int dualCore;
     char boardName[4];
     unsigned char mac[6];

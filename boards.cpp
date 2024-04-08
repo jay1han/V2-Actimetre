@@ -171,7 +171,7 @@ void manageButton(int set) {
 #define RMT_SIZE (8 * 3)
 static rmt_obj_t *RmtObject;
 static rmt_data_t RmtBuffer[RMT_SIZE];
-static void setupRGB() {
+static void setupLED() {
     Serial.printf("RGB pin %d init ", PIN_LED);
     RmtObject = rmtInit(PIN_LED, RMT_TX_MODE, RMT_MEM_64);
     if (RmtObject == NULL) {
@@ -207,6 +207,9 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
 
 // magenta, yellow, cyan, green, blue
 static int COLORS[] = {0x0F0007, 0x00070F, 0x0F0700, 0x000F00, 0x170000};
+#define LED_MONO  0
+#define LED_RGB   1
+#define LED_GRB   2
 
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
@@ -225,10 +228,16 @@ void blinkLed(int command) {
         state = true;
     }
     
-    if (my.ledRGB) {
+    if (my.ledRGB == LED_RGB) {
         rmt_data_t *data = RmtBuffer;
         data = stuffBits(data, color & 0xFF);
         data = stuffBits(data, (color >> 8) & 0xFF);
+        data = stuffBits(data, color >> 16);
+        rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
+    } else if (my.ledRGB == LED_GRB) {
+        rmt_data_t *data = RmtBuffer;
+        data = stuffBits(data, (color >> 8) & 0xFF);
+        data = stuffBits(data, color & 0xFF);
         data = stuffBits(data, color >> 16);
         rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
     } else {
@@ -242,11 +251,14 @@ void setupBoard() {
     esp_chip_info(&chip_info);
     if (chip_info.model == CHIP_ESP32S3) {
         my.dualCore = 1;
-        my.ledRGB = true;
+        my.ledRGB = LED_RGB;
         pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
         pinMode(PIN_DETECT_45, INPUT_PULLDOWN);
         if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
-        else if (digitalRead(PIN_DETECT_45) == 1) my.boardType = BOARD_S3_SUPER;
+        else if (digitalRead(PIN_DETECT_45) == 1) {
+            my.boardType = BOARD_S3_SUPER;
+            my.ledRGB = LED_GRB;
+        }
         else my.boardType = BOARD_S3_NEWBOX;
     } else {
         my.boardType = BOARD_BAD;
@@ -272,7 +284,7 @@ void setupBoard() {
     delay(1000);
     Serial.printf("\nSoftware v%s Board Type %s(%d)\n",
                   VERSION_STR, my.boardName, my.boardType);
-    if (my.ledRGB) setupRGB();
+    if (my.ledRGB) setupLED();
 
     if (PINS[my.boardType][_PIN_I2C0_SDA] & DISABLE_I2C) {
         my.hasI2C[0] = false;
