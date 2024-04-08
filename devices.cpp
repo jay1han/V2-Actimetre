@@ -302,9 +302,8 @@ int readFifo(int port, int address, byte *message) {
     } else {
         fifoCount = (fifoCount / dataLength) * dataLength;
     }
-    formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
+    int64_t now = formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
 
-    int64_t now = getAbsMicros();
     int64_t points;
     if (my.sensor[port][address].lastMessage != 0) {
         points = (now - my.sensor[port][address].lastMessage) / (1000000 / my.sampleFrequency);

@@ -6,7 +6,7 @@
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
-//#define STATIC_QUEUE
+#define STATIC_QUEUE
 //#define LOG_QUEUE
 #define FIFO_INFO
 
@@ -28,8 +28,8 @@
 #define MEASURE_SECS     60
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
-#define BUFFER_LENGTH    (256 + HEADER_LENGTH)
-#define QUEUE_SIZE       512
+#define BUFFER_LENGTH    (250 + HEADER_LENGTH)
+#define QUEUE_SIZE       800
 
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
@@ -163,6 +163,6 @@ extern bool FATAL_ERROR;
 void RESTART(int);
 void longPress();
 void shortPress();
-void formatHeader(int port, int address, unsigned char *message, int count, int timeOffset);
+int64_t formatHeader(int port, int address, unsigned char *message, int count, int timeOffset);
 
 #endif //ACTIMETRE_H

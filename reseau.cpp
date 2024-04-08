@@ -130,6 +130,7 @@ void queueMessage(void *message) {
     }
     if (xQueueSend(msgQueue, message, 0) != pdTRUE) {
         Serial.println("Error queueing. Queue full?");
+        RESTART(2);
     }
 }
 

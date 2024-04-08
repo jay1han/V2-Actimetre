@@ -194,7 +194,8 @@ static void textPanel(int step) {
         for (int port = 0; port < 2; port++) {
             for (int address = 0; address < 2; address++) {
                 if (my.sensor[port][address].type) {
-                    if (my.sensor[port][address].nCycles > 0) 
+                    if (my.sensor[port][address].nCycles > 0 &&
+                        my.sensor[port][address].nSamples <= my.sensor[port][address].nCycles) 
                         rating += 1.0 - (float)my.sensor[port][address].nSamples / my.sensor[port][address].nCycles;
                 }
             }
