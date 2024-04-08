@@ -20,10 +20,6 @@ static int nextIndex() {
     return index;
 }
 
-// STATISTICS
-
-int nError              = 0;
-
 // MAIN SETUP
 
 void setup() {

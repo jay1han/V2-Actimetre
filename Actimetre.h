@@ -1,13 +1,14 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "323"
+#define VERSION_STR "324"
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
 //#define STATIC_QUEUE
 //#define LOG_QUEUE
+#define FIFO_INFO
 
 // CONSTANTS
 
@@ -56,6 +57,9 @@ typedef struct {
     int maxMeasures;
     int fifoThreshold;
     int fifoOverflow;
+    uint64_t nSamples;
+    uint64_t nCycles;
+    int64_t lastMessage;
 } sensorDesc;
 
 typedef struct {
@@ -75,7 +79,7 @@ typedef struct {
     int rssi;
     time_t bootTime;
     int frequencyCode;
-    int cycleFrequency;
+    int sampleFrequency;
     unsigned long cycleMicroseconds;
     
     int displayPort;
@@ -86,7 +90,6 @@ typedef struct {
 } MyInfo;
 
 extern MyInfo my;
-extern int nError;
 extern int nMissed[];
 extern float avgCycleTime[];
 

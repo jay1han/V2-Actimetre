@@ -175,7 +175,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
         if (availableSpaces < QUEUE_SIZE / 5) {
-            nMissed[Core0Net] += QUEUE_SIZE - availableSpaces;
+            nMissed[Core0Net] ++;
             xQueueReset(msgQueue);
             Serial.println("Queue more than 80%, cleared");
             queueFill = 0.0;
