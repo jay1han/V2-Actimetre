@@ -180,10 +180,12 @@ static void write_block(int x, int y) {
 static void textPanel(int step) {
     switch(step) {
     case 0:
-        if (upTime >= 6000)
-            sprintf(textBuffer[0], "%dh %.1f %.1f", upTime / 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+        if (my.upTime >= 6000)
+            sprintf(textBuffer[0], "%dh %.1f %.1f", my.upTime / 60,
+                    my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
         else
-            sprintf(textBuffer[0], "%dh%02d %.1f %.1f", upTime / 60, upTime % 60, avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+            sprintf(textBuffer[0], "%dh%02d %.1f %.1f", my.upTime / 60, my.upTime % 60,
+                    my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
         strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
         break;
         
@@ -201,13 +203,10 @@ static void textPanel(int step) {
             }
         }
         rating /= my.nSensors;
-        sprintf(textBuffer[1], "%.3f%% M%d Q%.0f%%", rating, nMissed[1], queueFill);
+        sprintf(textBuffer[1], "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
     }
 #else        
-        if (my.dualCore) 
-            sprintf(textBuffer[1], "M%d,%d Q%.0f%%", nMissed[1], nMissed[0], queueFill);
-        else
-            sprintf(textBuffer[1], "M%d Q%.0f%%", nMissed[1], queueFill);
+        sprintf(textBuffer[1], "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
 #endif        
         strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
@@ -281,13 +280,10 @@ void displayScan(int scanLine) {
     if (scanLine == TOTAL_SCAN_LINE - 1 && stopwatch != time(NULL)) {
         stopwatch = time(NULL);
         Serial.printf("%dh%02d %.1f %.1f (%.1f) ",
-                      upTime / 60, upTime % 60,
-                      avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0,
+                      my.upTime / 60, my.upTime % 60,
+                      my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0,
                       (float)my.cycleMicroseconds / 1000.0);
-        if (my.dualCore) 
-            Serial.printf("M%d,%d Q%.0f%%\n", nMissed[1], nMissed[0], queueFill);
-        else
-            Serial.printf("M%d Q%.0f%%\n", nMissed[1], queueFill);
+        Serial.printf("M%d,%d Q%.0f%%\n", my.nMissed[1], my.nMissed[0], my.queueFill);
         return;
     }
 #endif        

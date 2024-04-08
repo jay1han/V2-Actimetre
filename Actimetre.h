@@ -1,12 +1,13 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "324"
+#define VERSION_STR "325"
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
 #define STATIC_QUEUE
+#define TIGHT_QUEUE
 //#define LOG_QUEUE
 #define FIFO_INFO
 
@@ -60,13 +61,12 @@ typedef struct {
     uint64_t nSamples;
     uint64_t nCycles;
     int64_t lastMessage;
-} sensorDesc;
+} SensorDesc;
 
 typedef struct {
     BoardType boardType;
     bool hasI2C[2];
     int ledRGB;
-    int dualCore;
     char boardName[4];
     unsigned char mac[6];
     char macString[15];
@@ -83,15 +83,18 @@ typedef struct {
     unsigned long cycleMicroseconds;
     
     int displayPort;
-    sensorDesc sensor[2][2];
+    SensorDesc sensor[2][2];
     unsigned char sensorBits;
     int nSensors;
     char sensorList[10];
+
+    float queueFill;
+    int nMissed[2];
+    float avgCycleTime[2];
+    unsigned int upTime;
 } MyInfo;
 
 extern MyInfo my;
-extern int nMissed[];
-extern float avgCycleTime[];
 
 // INTERFACES
 
@@ -107,7 +110,6 @@ void netInit();
 int isConnected();
 void queueMessage(void *message);
 void netCore0(void *dummy_to_match_argument_signature);
-extern float queueFill;
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 
 // devices.cpp
@@ -122,12 +124,6 @@ void deviceScanInit();
 #define REMOTE_RESTART   0xF0
 
 // boards.cpp
-extern BoardType boardType;
-extern uint8_t PIN_BUTTON, PIN_LED, 
-    PIN_UART_GND, PIN_UART_TX, PIN_UART_RX,
-    PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
-    PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC,
-    PIN_I2C0_SDA_MUX, PIN_I2C0_SCL_MUX, PIN_I2C0_VCC_MUX, PIN_I2C0_GND_MUX;
 void setupBoard();
 void blinkLed(int color);
 int buttonPressed();
@@ -153,7 +149,6 @@ void waitNextCycle();
 void clearNextCycle();
 void logCycleTime(CoreNum coreNum, unsigned long time_spent);
 void clearCycleTime();
-extern unsigned int upTime;
 
 // Actimetre.ino
 void dump(void *address, int size);

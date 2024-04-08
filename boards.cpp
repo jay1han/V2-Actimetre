@@ -74,7 +74,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
 
 static char BoardName[BOARD_TYPES][4] = {"S3i", "S3n", "S3s", "S3d", "BAD"};
 
-uint8_t PIN_BUTTON, PIN_LED,
+static uint8_t PIN_BUTTON, PIN_LED,
     PIN_UART_GND, PIN_UART_TX, PIN_UART_RX,
     PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
     PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC,
@@ -250,7 +250,6 @@ void setupBoard() {
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
     if (chip_info.model == CHIP_ESP32S3) {
-        my.dualCore = 1;
         my.ledRGB = LED_RGB;
         pinMode(PIN_DETECT_34, INPUT_PULLDOWN);
         pinMode(PIN_DETECT_45, INPUT_PULLDOWN);

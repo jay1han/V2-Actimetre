@@ -288,7 +288,7 @@ int readFifo(int port, int address, byte *message) {
         sprintf(error, "FIFO overflow %d%c", port + 1, address + 'A');
         Serial.println(error);
         ERROR_REPORT(error);
-        nMissed[Core1I2C]++;
+        my.nMissed[Core1I2C]++;
         fifoCount = clear1Sensor(port, address);
     }
 

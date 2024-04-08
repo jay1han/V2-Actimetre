@@ -16,7 +16,6 @@
 
 static bool init_complete = false;
 static int64_t nextMicros;
-unsigned int upTime = 0;
 
 int64_t getAbsMicros() {
     struct timeval timeofday;
@@ -30,7 +29,7 @@ int timeRemaining() {
 }
 
 void waitNextCycle() {
-    upTime = (time(NULL) - my.bootTime) / 60;
+    my.upTime = (time(NULL) - my.bootTime) / 60;
     while (timeRemaining() > 500)
         displayLoop(0);
     while (timeRemaining() >= 10L);
@@ -54,6 +53,12 @@ void initClock(time_t bootEpoch) {
     Serial.printf("%04d/%02d/%02d %02d:%02d:%02d UTC\n",
                   timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
                   timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    
+    for (int core = 0; core < 2; core++) {
+        my.nMissed[core] = 0;
+        my.avgCycleTime[core] = 0.0;
+    }
+    my.upTime = 0;
 }
 
 void getTimeSinceBoot(time_t *r_sec, int *r_usec) {
@@ -78,8 +83,6 @@ unsigned long micros_diff(unsigned long end, unsigned long start) {
         return (((end % ONE_MEGA) + ROLLOVER_MICROS + ONE_MEGA) - (start % ONE_MEGA)) % ONE_MEGA;
 }
 
-int nMissed[CoreNumMax] = {0, 0};
-float avgCycleTime[CoreNumMax] = {0.0, 0.0};
 static unsigned long nCycles[CoreNumMax] = {0, 0};
 static time_t clear = time(NULL);
 
@@ -90,12 +93,12 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
         ERROR_FATAL("Alive over 6 months, rebooting");
     }
 
-    avgCycleTime[coreNum] = (avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
+    my.avgCycleTime[coreNum] = (my.avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
     nCycles[coreNum] ++;
 
-    if (coreNum == Core1I2C && nMissed[1] >= MEASURE_SECS) {
-        Serial.printf("M%d,%d Q%.1f Avg %.1f,%.1f\n", nMissed[1], nMissed[0], queueFill,
-                      avgCycleTime[1] / 1000.0, avgCycleTime[0] / 1000.0);
+    if (coreNum == Core1I2C && my.nMissed[1] >= MEASURE_SECS) {
+        Serial.printf("M%d,%d Q%.1f Avg %.1f,%.1f\n", my.nMissed[1], my.nMissed[0], my.queueFill,
+                      my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
         ERROR_FATAL("System slowdown, rebooting");
     }
     
@@ -104,6 +107,6 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
 
 void clearCycleTime() {
     nCycles[0] = nCycles[1] = 0;
-    nMissed[0] = nMissed[1] = 0;
+    my.nMissed[0] = my.nMissed[1] = 0;
     clear = time(NULL);
 }

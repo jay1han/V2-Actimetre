@@ -8,9 +8,7 @@
 #define ACTI_PORT 2883
 
 static WiFiClient wifiClient;
-
-QueueHandle_t msgQueue;
-float queueFill = 0.0;
+static QueueHandle_t msgQueue;
 
 #ifdef STATIC_QUEUE
 static StaticQueue_t msgQueueStatic;
@@ -174,15 +172,17 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
         }
         sendMessage(msgQueueStore[index]);
 
+#ifndef TIGHT_QUEUE        
         int availableSpaces = uxQueueSpacesAvailable(msgQueue);
         if (availableSpaces < QUEUE_SIZE / 5) {
-            nMissed[Core0Net] ++;
+            my.nMissed[Core0Net] ++;
             xQueueReset(msgQueue);
             Serial.println("Queue more than 80%, cleared");
-            queueFill = 0.0;
+            my.queueFill = 0.0;
         } else {
-            queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
+            my.queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }
+#endif        
 
 #ifdef LOG_QUEUE
         static time_t timer = 0;
@@ -363,7 +363,7 @@ void netInit() {
 	writeLine("OS error");
         RESTART(1);
     }
+    my.queueFill = 0.0;
 
-    if (my.dualCore)
-        setupCore0(Core0Loop);
+    setupCore0(Core0Loop);
 }
