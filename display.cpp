@@ -22,7 +22,7 @@ static void write_cmd(unsigned char cmd) {
     wire.beginTransmission(SSD1306_ADDR);
     wire.write(0x80);
     wire.write(cmd);
-    wire.endTransmission();
+    wire.endTransmission(true);
 }
 
 static const unsigned char ssd1306_init_cmd[] = {
@@ -59,7 +59,7 @@ static void ssd1306_init() {
         wire.beginTransmission(SSD1306_ADDR);
         wire.write(0x40);
         wire.write(init_buffer, 2);
-        wire.endTransmission();
+        wire.endTransmission(true);
     }
 }
 
@@ -81,7 +81,7 @@ static void write_page(int page) {
     wire.beginTransmission(SSD1306_ADDR);
     wire.write(0x40);
     wire.write(displayBuffer + page * LCD_H_RES, LCD_H_RES);
-    wire.endTransmission();
+    wire.endTransmission(true);
 }
 
 static void ssd1306_showpages(int page0, int page1) {
@@ -170,7 +170,7 @@ static void write_block(int x, int y) {
     wire.beginTransmission(SSD1306_ADDR);
     wire.write(0x40);
     wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
-    wire.endTransmission();
+    wire.endTransmission(true);
 }
 
 #define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
@@ -282,7 +282,9 @@ void displayScan(int scanLine) {
 
 void displayLoop(int force) {
     static int scanLine = 0;
+#ifdef PROFILE_DISPLAY    
     int64_t stopwatch = getAbsMicros();
+#endif
     
     if (my.displayPort >= 0) {
         if (force == 1) {
