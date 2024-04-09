@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "326"
+#define VERSION_STR "327"
 
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
@@ -153,7 +153,8 @@ void clearCycleTime();
 // Actimetre.ino
 void dump(void *address, int size);
 void ERROR_REPORT(char *what);
-void ERROR_FATAL(char *where);
+void ERROR_FATAL1(char *where);
+void ERROR_FATAL0(char *where);
 extern bool FATAL_ERROR;
 void RESTART(int);
 void longPress();

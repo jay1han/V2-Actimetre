@@ -61,7 +61,7 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
     message[2] = msgBootEpoch & 0xFF;
 
     if (count > 63) {
-        ERROR_FATAL("Fifo count > 63");
+        ERROR_FATAL1("Fifo count > 63");
     }
     message[3] = count | (port << 7) | (address << 6);
     message[4] = ((byte)my.rssi << 5) | ((byte)my.sensor[port][address].samplingMode << 3) | (byte)my.frequencyCode;
@@ -111,8 +111,8 @@ void RESTART(int seconds) {
 bool FATAL_ERROR = false;
 
 void ERROR_REPORT(char *what) {
-    Serial.printf("\nREPORT:%s\n", what);
-
+    Serial.printf("REPORT:%s\n", what);
+    
     int index = nextIndex();
     byte *message = msgQueueStore[index];
     message[0] = 0xFF;
@@ -121,12 +121,25 @@ void ERROR_REPORT(char *what) {
     queueMessage(&index);
 }
 
-void ERROR_FATAL(char *where) {
+void ERROR_FATAL1(char *where) {
     while (FATAL_ERROR);
     FATAL_ERROR = true;
-    Serial.printf("\nFATAL:%s\n", where);
+    Serial.print("FATAL1\n");
     ERROR_REPORT(where);
     RESTART(5);
+}
+
+void ERROR_FATAL0(char *where) {
+    FATAL_ERROR = true;
+    Serial.print("FATAL0\n");
+
+    char display[16];
+    strncpy(display, where, 15);
+    display[15] = 0;
+    writeLine("FATAL0");
+    writeLine(display);
+    
+    while (FATAL_ERROR);
 }
 
 void dump(void *pointer, int size) {

@@ -90,7 +90,7 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     time_t life;
     getTimeSinceBoot(&life, NULL);
     if (life > 0xFEFFFF) {
-        ERROR_FATAL("Alive over 6 months, rebooting");
+        ERROR_FATAL1("Alive over 6 months, rebooting");
     }
 
     my.avgCycleTime[coreNum] = (my.avgCycleTime[coreNum] * nCycles[coreNum] + time_spent) / (nCycles[coreNum] + 1);
@@ -99,7 +99,7 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     if (coreNum == Core1I2C && my.nMissed[1] >= MEASURE_SECS) {
         Serial.printf("M%d,%d Q%.1f Avg %.1f,%.1f\n", my.nMissed[1], my.nMissed[0], my.queueFill,
                       my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
-        ERROR_FATAL("System slowdown, rebooting");
+        ERROR_FATAL1("System slowdown, rebooting");
     }
     
     if (time(NULL) - clear > MEASURE_SECS) clearCycleTime();
