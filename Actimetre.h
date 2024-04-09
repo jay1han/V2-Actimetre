@@ -4,6 +4,7 @@
 #define VERSION_STR "327"
 
 #define PROFILE_DISPLAY
+//#define LOG_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
 //#define LOG_STACK

@@ -173,13 +173,14 @@ void initDisplay() {
 
 static void write_block(int x, int y) {
     if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
 
     int pixel_x = x * FONT_PITCH_16;
     write_cmd(0xB0 | y);
     write_cmd(0x00 | (pixel_x & 0x0F));
     write_cmd(0x10 | (pixel_x >> 4));
 
-    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
     wire.beginTransmission(SSD1306_ADDR);
     wire.write(0x40);
     wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
@@ -371,8 +372,10 @@ void displayLoop(int force) {
     entries ++;
     if (time(NULL) != reporting) {
         avgDisplay = (float)profiling / entries;
+#ifdef LOG_DISPLAY        
         Serial.printf("displayLoop() %dus/%d = %.1fms avg, max %d:%d\n",
                       profiling, entries, avgDisplay, maxDisplayLine, maxDisplayMax);
+#endif        
         profiling = 0;
         entries = 0;
         reporting = time(NULL);
