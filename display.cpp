@@ -146,8 +146,6 @@ void writeLine(char *message) {
                displayBuffer + (scroll + 2) * LCD_H_RES,
                LCD_H_RES);
     ssd1306_showpages(4, 5);
-    if (strlen(message) > CHAR_PER_LINE_16)
-        message[CHAR_PER_LINE_16] = 0;
     writeLine16(6, message);
 }
 
@@ -181,17 +179,17 @@ static void textPanel(int step) {
     switch(step) {
     case 0:
         if (my.upTime >= 6000)
-            sprintf(textBuffer[0], "%dh %.1f %.1f", my.upTime / 60,
+            snprintf(textBuffer[0], CHAR_PER_LINE_16 + 1, "%dh %.1f %.1f", my.upTime / 60,
                     my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
         else
-            sprintf(textBuffer[0], "%dh%02d %.1f %.1f", my.upTime / 60, my.upTime % 60,
+            snprintf(textBuffer[0], CHAR_PER_LINE_16 + 1, "%dh%02d %.1f %.1f", my.upTime / 60, my.upTime % 60,
                     my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
-        strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
+        if (strlen(textBuffer[0]) < CHAR_PER_LINE_16)
+            strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
         break;
         
     case 1:
 #if INFO_DISPLAY == 1
-    {
         float rating = 0.0;
         for (int port = 0; port < 2; port++) {
             for (int address = 0; address < 2; address++) {
@@ -203,18 +201,22 @@ static void textPanel(int step) {
             }
         }
         rating /= my.nSensors;
-        sprintf(textBuffer[1], "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
-    }
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
 #endif    
 #if INFO_DISPLAY == 2
-        sprintf(textBuffer[1], "%d %d",
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%d %d",
                 uxTaskGetStackHighWaterMark(my.core1Task),
                 uxTaskGetStackHighWaterMark(my.core0Task));
 #endif    
+#if INFO_DISPLAY == 3
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%d %.1f",
+                 my.maxDisplay, my.avgDisplay);
+#endif    
 #if INFO_DISPLAY == 0
-        sprintf(textBuffer[1], "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
 #endif        
-        strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
+        if (strlen(textBuffer[1]) < CHAR_PER_LINE_16)
+            strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
 
     case 2:
@@ -332,13 +334,17 @@ void displayLoop(int force) {
     static int profiling = 0;
     static int entries   = 0;
     static int reporting = time(NULL);
-    profiling += (int)(getAbsMicros() - stopwatch);
+    int microseconds = (int)(getAbsMicros() - stopwatch);
+    if (microseconds > my.maxDisplay) my.maxDisplay = microseconds;
+    profiling += microseconds;
     entries ++;
     if (time(NULL) != reporting) {
-        Serial.printf("displayLoop() %dus/%d = %.1fms avg\n",
-                      profiling, entries, (float)profiling / entries);
+        my.avgDisplay = (float)profiling / entries;
+        Serial.printf("displayLoop() %dus/%d = %.1fms avg, max %d\n",
+                      profiling, entries, my.avgDisplay, my.maxDisplay);
         profiling = 0;
         entries = 0;
+        my.maxDisplay = 0;
         reporting = time(NULL);
     }
 #endif

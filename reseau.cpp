@@ -120,15 +120,14 @@ static void sendMessage(byte *message) {
     logCycleTime(Core0Net, micros_diff(micros(), timeout));
 }
 
-void queueMessage(void *message) {
-    int index = *(int*)message;
+void queueIndex(int index) {
     if (index <= 0 || index >= QUEUE_SIZE) {
         char error[16];
         sprintf(error, "Q %X", index);
         Serial.println(error);
         ERROR_FATAL1(error);
     }
-    if (xQueueSend(msgQueue, message, 0) != pdTRUE) {
+    if (xQueueSend(msgQueue, &index, 0) != pdTRUE) {
         Serial.println("Error queueing. Queue full?");
         RESTART(2);
     }

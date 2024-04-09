@@ -3,7 +3,7 @@
 
 #define VERSION_STR "327"
 
-//#define PROFILE_DISPLAY
+#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
 //#define LOG_STACK
@@ -11,7 +11,7 @@
 #define STATIC_STACK
 #define TIGHT_QUEUE
 //#define LOG_QUEUE
-#define INFO_DISPLAY       2   // 0 = normal, 1 = fifo, 2 = stack
+#define INFO_DISPLAY       3   // 0 = normal, 1 = fifo, 2 = stack, 3 = display
 #define STOP_FATAL
 
 static void _test(int);
@@ -90,6 +90,8 @@ typedef struct {
     unsigned long cycleMicroseconds;
     
     int displayPort;
+    int maxDisplay;
+    float avgDisplay;
     SensorDesc sensor[2][2];
     unsigned char sensorBits;
     int nSensors;
@@ -116,7 +118,7 @@ void writeLine(char *message);
 // reseau.cpp
 void netInit();
 int isConnected();
-void queueMessage(void *message);
+void queueIndex(int);
 void netCore0(void *dummy_to_match_argument_signature);
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 

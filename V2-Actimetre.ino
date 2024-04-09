@@ -114,7 +114,7 @@ void loop()
                     int index = nextIndex();
                     fifoState = readFifo(port, address, msgQueueStore[index]);
                     if (fifoState > 0) {
-                        queueMessage(&index);
+                        queueIndex(index);
                     }
                 } while (fifoState > 1);
             }
@@ -146,7 +146,7 @@ void ERROR_REPORT(char *what) {
     message[0] = 0xFF;
     message[3] = strlen(what);
     strcpy((char*)message + HEADER_LENGTH, what);
-    queueMessage(&index);
+    queueIndex(index);
 }
 
 void ERROR_FATAL1(char *where) {
