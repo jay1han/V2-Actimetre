@@ -23,7 +23,9 @@ static void _test(int);
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#define I2C_BAUDRATE 1000000
+#define MPU_BAUDRATE     800000
+#define DISPLAY_BAUDRATE 400000
+#define LOW_BAUDRATE     400000
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -90,8 +92,6 @@ typedef struct {
     unsigned long cycleMicroseconds;
     
     int displayPort;
-    int maxDisplay;
-    float avgDisplay;
     SensorDesc sensor[2][2];
     unsigned char sensorBits;
     int nSensors;

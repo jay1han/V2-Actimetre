@@ -119,6 +119,7 @@ static int clear1Sensor(int port, int address) {
         return 0;
     }
     TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     Serial.printf("Reset sensor %d%c FIFO %d", port + 1, address + 'A', fifoCount);
@@ -131,6 +132,9 @@ static int clear1Sensor(int port, int address) {
 }
 
 static void setSensor1Frequency(int port, int address) {
+    TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
+    
     if (my.sensor[port][address].type == WAI_6050) {
         int divider = 8000 / my.sampleFrequency - 1;
         Serial.printf("Sampling rate divider %d\n", divider);
@@ -267,6 +271,7 @@ void clearSensors() {
 static int detectSensor(int port, int address) {
     if (!my.hasI2C[port]) return 0;
     TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
     
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.endTransmission(true) == 0) {
@@ -285,6 +290,8 @@ int readFifo(int port, int address, byte *message) {
     }
 
     TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
+    
     byte *buffer = message + HEADER_LENGTH;
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
@@ -359,6 +366,7 @@ void deviceScanInit() {
     my.displayPort = -1;
 
     if (my.hasI2C[0]) {
+        Wire.setClock(DISPLAY_BAUDRATE);
         Wire.beginTransmission(SSD1306_ADDR);
         if (Wire.endTransmission(true) == 0) {
             Serial.print("SSD1306 found on port 0\n");
@@ -367,6 +375,7 @@ void deviceScanInit() {
         }
     }
     if (my.displayPort < 0 && my.hasI2C[1]) {
+        Wire1.setClock(DISPLAY_BAUDRATE);
         Wire1.beginTransmission(SSD1306_ADDR);
         if (Wire1.endTransmission(true) == 0) {
             Serial.print("ssd1306 found on port 1\n");

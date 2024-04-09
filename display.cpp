@@ -127,10 +127,18 @@ static void writeLine16(int line, const char *message) {
 }
 
 void displayTitle(char *title) {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
+    
     writeLine16(0, title);
 }
 
 void displaySensors() {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
+    
     char sensorLine[20];
     if (my.sampleFrequency >= 1000)
         sprintf(sensorLine, "%-6s %s@%dk", my.sensorList, my.boardName, my.sampleFrequency / 1000);
@@ -140,6 +148,10 @@ void displaySensors() {
 }
 
 void writeLine(char *message) {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
+    
     int scroll;
     for (scroll = 4; scroll < 6; scroll++)
         memcpy(displayBuffer + scroll * LCD_H_RES,
@@ -151,6 +163,9 @@ void writeLine(char *message) {
 
 void initDisplay() {
     if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+
+    wire.setClock(DISPLAY_BAUDRATE);
     ssd1306_init();
     memset(displayBuffer, 0, sizeof(displayBuffer));
     ssd1306_showall();
@@ -171,10 +186,19 @@ static void write_block(int x, int y) {
     wire.endTransmission(true);
 }
 
-#define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
-
+#define RSSI_POS   10
+#define RSSI_X     (FONT_PITCH_16 * RSSI_POS)
+#define RSSI_STEPS 3
 #define TEXT_STEPS 5
 #define BLINK_POS  4
+
+#define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
+#ifdef PROFILE_DISPLAY
+float avgDisplay;
+int maxDisplay[TOTAL_SCAN_LINE];
+int maxDisplayMax, maxDisplayLine;
+#endif
+
 static void textPanel(int step) {
     switch(step) {
     case 0:
@@ -209,8 +233,8 @@ static void textPanel(int step) {
                 uxTaskGetStackHighWaterMark(my.core0Task));
 #endif    
 #if INFO_DISPLAY == 3
-        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%d %.1f",
-                 my.maxDisplay, my.avgDisplay);
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.0f %d:%d",
+                 avgDisplay, maxDisplayLine, maxDisplayMax);
 #endif    
 #if INFO_DISPLAY == 0
         snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
@@ -240,10 +264,6 @@ static void textPanel(int step) {
     }
 }
 
-#define RSSI_POS 10
-#define RSSI_X   (FONT_PITCH_16 * RSSI_POS)
-
-#define RSSI_STEPS 3
 static void displayRssi(int step) {
     
     switch(step) {
@@ -283,6 +303,13 @@ static void displayScanLine(int scanLine) {
 }
 
 void displayScan(int scanLine) {
+    if (scanLine < TOTAL_SCAN_LINE - 1) {
+        if (scanLine < RSSI_STEPS) displayRssi(scanLine);
+        else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);
+        else displayScanLine(scanLine - RSSI_STEPS - TEXT_STEPS);
+        return;
+    }
+    
 #ifdef LOG_HEARTBEAT        
     static time_t heartbeat = time(NULL);
     if (scanLine == TOTAL_SCAN_LINE - 1 && heartbeat != time(NULL)) {
@@ -306,13 +333,13 @@ void displayScan(int scanLine) {
         return;
     }
 #endif    
-
-    if (scanLine < RSSI_STEPS) displayRssi(scanLine);
-    else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);
-    else displayScanLine(scanLine - RSSI_STEPS - TEXT_STEPS);
 }    
 
 void displayLoop(int force) {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+
+    wire.setClock(DISPLAY_BAUDRATE);
     static int scanLine = 0;
 #ifdef PROFILE_DISPLAY    
     int64_t stopwatch = getAbsMicros();
@@ -335,16 +362,19 @@ void displayLoop(int force) {
     static int entries   = 0;
     static int reporting = time(NULL);
     int microseconds = (int)(getAbsMicros() - stopwatch);
-    if (microseconds > my.maxDisplay) my.maxDisplay = microseconds;
+    if (microseconds > maxDisplay[scanLine]) maxDisplay[scanLine] = microseconds;
+    if (microseconds > maxDisplayMax) {
+        maxDisplayMax = microseconds;
+        maxDisplayLine = scanLine;
+    }
     profiling += microseconds;
     entries ++;
     if (time(NULL) != reporting) {
-        my.avgDisplay = (float)profiling / entries;
-        Serial.printf("displayLoop() %dus/%d = %.1fms avg, max %d\n",
-                      profiling, entries, my.avgDisplay, my.maxDisplay);
+        avgDisplay = (float)profiling / entries;
+        Serial.printf("displayLoop() %dus/%d = %.1fms avg, max %d:%d\n",
+                      profiling, entries, avgDisplay, maxDisplayLine, maxDisplayMax);
         profiling = 0;
         entries = 0;
-        my.maxDisplay = 0;
         reporting = time(NULL);
     }
 #endif
