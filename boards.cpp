@@ -270,6 +270,7 @@ void setupBoard() {
 #if ARDUINO_USB_CDC_ON_BOOT
 #define HWSerial  Serial0
 #define USBSerial Serial
+    Serial.setTxTimeoutMs(0);
     Serial.begin(921600);
 #else
 #define HWSerial  Serial
