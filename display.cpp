@@ -190,7 +190,7 @@ static void textPanel(int step) {
         break;
         
     case 1:
-#ifdef FIFO_INFO
+#if INFO_DISPLAY == 1
     {
         float rating = 0.0;
         for (int port = 0; port < 2; port++) {
@@ -205,7 +205,13 @@ static void textPanel(int step) {
         rating /= my.nSensors;
         sprintf(textBuffer[1], "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
     }
-#else        
+#endif    
+#if INFO_DISPLAY == 2
+        sprintf(textBuffer[1], "%d %d",
+                uxTaskGetStackHighWaterMark(my.core1Task),
+                uxTaskGetStackHighWaterMark(my.core0Task));
+#endif    
+#if INFO_DISPLAY == 0
         sprintf(textBuffer[1], "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
 #endif        
         strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));

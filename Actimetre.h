@@ -6,12 +6,12 @@
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
-#define LOG_STACK
+//#define LOG_STACK
 #define STATIC_QUEUE
 #define STATIC_STACK
 #define TIGHT_QUEUE
 //#define LOG_QUEUE
-#define FIFO_INFO
+#define INFO_DISPLAY       2   // 0 = normal, 1 = fifo, 2 = stack
 #define STOP_FATAL
 
 static void _test(int);
