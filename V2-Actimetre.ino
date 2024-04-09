@@ -72,15 +72,13 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
 }
 
 void loop() {
-    unsigned long cycle_time;
-
     while (FATAL_ERROR);
     if (!isConnected()) RESTART(2);
     manageButton(0);
     
     waitNextCycle();
     
-    cycle_time = micros();
+    unsigned long cycle_time = micros();
     int fifoState;
     for (int port = 0; port <= 1; port++) {
         for (int address = 0; address <= 1; address++) {
