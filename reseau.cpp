@@ -124,9 +124,9 @@ void queueMessage(void *message) {
     int index = *(int*)message;
     if (index <= 0 || index >= QUEUE_SIZE) {
         char error[16];
-        sprintf(error, "QUEUE %d", index);
+        sprintf(error, "Q %X", index);
         Serial.println(error);
-        ERROR_FATAL0(error);
+        ERROR_FATAL1(error);
     }
     if (xQueueSend(msgQueue, message, 0) != pdTRUE) {
         Serial.println("Error queueing. Queue full?");
@@ -168,7 +168,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 
         if (index <= 0 || index >= QUEUE_SIZE) {
             char error[16];
-            sprintf(error, "0LOOP %d", index);
+            sprintf(error, "0 %X", index);
             Serial.println(error);
 #ifdef STATIC_QUEUE            
             dump(msgQueueItems, QUEUE_SIZE * sizeof(int));

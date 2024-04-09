@@ -136,11 +136,15 @@ void ERROR_FATAL0(char *where) {
     FATAL_ERROR = true;
     Serial.print("FATAL0\n");
     Serial.println(where);
+#ifdef STOP_FATAL    
     memset(errorDisplay, 0, sizeof(errorDisplay));
     strcpy(errorDisplay, "FATAL0");
     strcpy(errorDisplay + 7, where);
     blinkLed(COLOR_RED);
     while (true) delay(1);
+#else
+    RESTART(5);
+#endif    
 }
 
 static bool processError() {

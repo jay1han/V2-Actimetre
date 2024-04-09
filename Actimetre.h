@@ -10,6 +10,7 @@
 #define TIGHT_QUEUE
 //#define LOG_QUEUE
 #define FIFO_INFO
+#define STOP_FATAL
 
 static void _test(int);
 #define TEST_LOCAL(t)     _test(t)
