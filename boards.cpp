@@ -93,10 +93,11 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
 };
 
 static void switchFrequency() {
-    freqCode = (freqCode + 1) % FREQ_COUNT;
-    my.frequencyCode = FrequencyCode[my.boardType][freqCode];
-    my.sampleFrequency = Frequencies[my.frequencyCode];
-    setSamplingMode();
+    do {
+        freqCode = (freqCode + 1) % FREQ_COUNT;
+        my.frequencyCode = FrequencyCode[my.boardType][freqCode];
+        my.sampleFrequency = Frequencies[my.frequencyCode];
+    } while (setSamplingMode() > MPU_BAUDRATE);
     
     setSensorsFrequency();
     displaySensors();

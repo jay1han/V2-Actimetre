@@ -127,7 +127,7 @@ extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 int readFifo(int port, int address, byte *buffer);
 void clearSensors();
 void setSensorsFrequency();
-void setSamplingMode();
+int setSamplingMode();
 void deviceScanInit();
 
 #define REMOTE_COMMAND   0xF0

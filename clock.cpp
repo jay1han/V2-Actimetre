@@ -30,7 +30,7 @@ int timeRemaining() {
 
 void waitNextCycle() {
     my.upTime = (time(NULL) - my.bootTime) / 60;
-    while (timeRemaining() > 2000) displayLoop(0);
+    while (timeRemaining() > 500) displayLoop(0);
     while (timeRemaining() >= 10L);
     nextMicros = getAbsMicros() + (int64_t)my.cycleMicroseconds;
 }

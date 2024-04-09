@@ -203,8 +203,9 @@ void setSensorsFrequency() {
     }
 }
 
-void setSamplingMode() {
+int setSamplingMode() {
     int perCycle = 100;
+    int budget = 0;
     
     for (int port = 0; port < 2; port++) {
         for (int address = 0; address < 2; address++) {
@@ -242,6 +243,8 @@ void setSamplingMode() {
                 if (perCycle > 20) perCycle = 20;
                 break;
             }
+            if (my.sensor[port][address].type)
+                budget += my.sampleFrequency * my.sensor[port][address].dataLength;
 
             Serial.printf("Sensor %d%c type %02X ",
                           port + 1, 'A' + address, my.sensor[port][address].type);
@@ -251,10 +254,13 @@ void setSamplingMode() {
                           my.sensor[port][address].dataLength);
         }
     }
-
+    budget *= 8 * 2;
+    
     my.cycleMicroseconds = perCycle * 1000000 / my.sampleFrequency;
-    Serial.printf("Sampling frequency %dHz(code %d), cycle time %dus\n",
+    Serial.printf("Sampling frequency %dHz(code %d), cycle time %dus.",
                   my.sampleFrequency, my.frequencyCode, my.cycleMicroseconds);
+    Serial.printf(" Req. %d baud\n", budget);
+    return budget;
 }
 
 void clearSensors() {
