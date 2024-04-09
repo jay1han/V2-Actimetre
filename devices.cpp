@@ -239,8 +239,9 @@ void setSamplingMode() {
                 break;
             }
 
-            Serial.printf("Sensor %d%c type %02X mode %d (max %d, sample %d bytes)\n",
-                          port + 1, 'A' + address, my.sensor[port][address].type,
+            Serial.printf("Sensor %d%c type %02X ",
+                          port + 1, 'A' + address, my.sensor[port][address].type);
+            Serial.printf("mode %d (max %d, sample %d bytes)\n",
                           my.sensor[port][address].samplingMode,
                           my.sensor[port][address].maxMeasures,
                           my.sensor[port][address].dataLength);

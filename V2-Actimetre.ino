@@ -10,28 +10,20 @@
 
 MyInfo my;
 
-// FILE-WIDE GLOBAL
-
-byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
-static int nextIndex() {
-    static int msgIndex = 1;
-    int index = msgIndex++;
-    if (msgIndex >= QUEUE_SIZE) msgIndex = 1;
-    return index;
-}
-
 // MAIN SETUP
+
+SET_LOOP_TASK_STACK_SIZE(16 * 1024)
 
 void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
     
     setupBoard();
-
     if (my.boardType == BOARD_BAD) {
         Serial.println("Unsupported board type");
         writeLine("Unsupported");
         RESTART(30);
     }
+    
     delay(100);
     deviceScanInit();
 
@@ -71,6 +63,14 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
     return (int64_t)msgBootEpoch * 1000000 + msgMicros;
 }
 
+byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
+static int nextIndex() {
+    static int msgIndex = 1;
+    int index = msgIndex++;
+    if (msgIndex >= QUEUE_SIZE) msgIndex = 1;
+    return index;
+}
+
 void loop() {
 //    TEST_LOCAL(1);
     if (processError()) return;
@@ -100,6 +100,9 @@ void loop() {
 
 // UTILITY FUNCTION
 
+bool FATAL_ERROR = false;
+static char errorDisplay[32] = "";
+
 void RESTART(int seconds) {
     FATAL_ERROR = true;
     Serial.printf("RESTART in %d\n", seconds);
@@ -108,8 +111,6 @@ void RESTART(int seconds) {
     blinkLed(COLOR_BLACK);
     ESP.restart();
 }
-
-bool FATAL_ERROR = false;
 
 void ERROR_REPORT(char *what) {
     Serial.printf("REPORT:%s\n", what);
@@ -126,11 +127,20 @@ void ERROR_FATAL1(char *where) {
     while (FATAL_ERROR) delay(1);
     FATAL_ERROR = true;
     Serial.print("FATAL1\n");
+#ifdef STOP_FATAL
+    memset(errorDisplay, 0, sizeof(errorDisplay));
+    strcpy(errorDisplay, "FATAL1");
+    strcpy(errorDisplay + 7, where);
+    blinkLed(COLOR_RED);
+    Wire.endTransmission(true);
+    Wire1.endTransmission(true);
+    processError();
+    while (true) delay(1);
+#else    
     ERROR_REPORT(where);
     RESTART(5);
+#endif    
 }
-
-static char errorDisplay[32] = "";
 
 void ERROR_FATAL0(char *where) {
     FATAL_ERROR = true;
