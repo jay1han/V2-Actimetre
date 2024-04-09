@@ -12,7 +12,8 @@ MyInfo my;
 
 // MAIN SETUP
 
-SET_LOOP_TASK_STACK_SIZE(16 * 1024)
+static StaticTask_t core1Task;
+static StackType_t core1Stack[16384];
 
 void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
@@ -24,6 +25,10 @@ void setup() {
         RESTART(30);
     }
     
+#ifdef LOG_STACK
+    Serial.printf("Loop stack size %d\n", getArduinoLoopTaskStackSize());
+#endif    
+
     delay(100);
     deviceScanInit();
 
@@ -35,6 +40,14 @@ void setup() {
     netInit();
     clearSensors();
     blinkLed(COLOR_FREQ | 0);
+
+#ifdef STATIC_STACK
+    my.core1Task = xTaskCreateStaticPinnedToCore(Core1Loop, "Core1", 16384, NULL, 2, core1Stack, &core1Task, 1);
+    if (my.core1Task == NULL) {
+        Serial.println("Error starting Main task");
+        ESP.restart();
+    }
+#endif        
 }
 
 // MAIN LOOP
@@ -71,7 +84,20 @@ static int nextIndex() {
     return index;
 }
 
-void loop() {
+#ifdef STATIC_STACK
+static void Core1Loop(void *dummy_to_match_argument_signature) {
+    Serial.printf("Core %d started\n", xPortGetCoreID());
+    for (;;) {
+        MainLoop();
+        delayMicroseconds(1);
+    }
+}
+void loop() {}
+void MainLoop()
+#else
+void loop()    
+#endif
+{
 //    TEST_LOCAL(1);
     if (processError()) return;
     if (!isConnected()) RESTART(2);

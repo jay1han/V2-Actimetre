@@ -276,9 +276,9 @@ static void displayScanLine(int scanLine) {
 
 void displayScan(int scanLine) {
 #ifdef LOG_HEARTBEAT        
-    static time_t stopwatch = time(NULL);
-    if (scanLine == TOTAL_SCAN_LINE - 1 && stopwatch != time(NULL)) {
-        stopwatch = time(NULL);
+    static time_t heartbeat = time(NULL);
+    if (scanLine == TOTAL_SCAN_LINE - 1 && heartbeat != time(NULL)) {
+        heartbeat = time(NULL);
         Serial.printf("%dh%02d %.1f %.1f (%.1f) ",
                       my.upTime / 60, my.upTime % 60,
                       my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0,
@@ -286,7 +286,18 @@ void displayScan(int scanLine) {
         Serial.printf("M%d,%d Q%.0f%%\n", my.nMissed[1], my.nMissed[0], my.queueFill);
         return;
     }
-#endif        
+#endif
+
+#ifdef LOG_STACK
+    static time_t breath = time(NULL);
+    if ((scanLine == TOTAL_SCAN_LINE - 1) && (time(NULL) - breath > 10)) {
+        breath = time(NULL);
+        Serial.printf("Stack loop:%d net:%d\n",
+                      uxTaskGetStackHighWaterMark(NULL),
+                      uxTaskGetStackHighWaterMark(my.core0Task));
+        return;
+    }
+#endif    
 
     if (scanLine < RSSI_STEPS) displayRssi(scanLine);
     else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);

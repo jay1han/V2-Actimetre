@@ -6,7 +6,9 @@
 //#define PROFILE_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
+#define LOG_STACK
 #define STATIC_QUEUE
+#define STATIC_STACK
 #define TIGHT_QUEUE
 //#define LOG_QUEUE
 #define FIFO_INFO
@@ -97,6 +99,7 @@ typedef struct {
     int nMissed[2];
     float avgCycleTime[2];
     unsigned int upTime;
+    TaskHandle_t core0Task, core1Task;
 } MyInfo;
 
 extern MyInfo my;

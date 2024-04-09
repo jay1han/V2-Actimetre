@@ -344,10 +344,18 @@ void setupBoard() {
     }
 }
 
-TaskHandle_t core0Task;
+#ifdef STATIC_STACK
+static StaticTask_t core0Task;
+static byte core0Stack[16384];
+#endif
 void setupCore0(void (*core0Loop)(void*)) {
-    if (xTaskCreatePinnedToCore(core0Loop, "Core0", 16384, NULL, 2, &core0Task, 0) != pdPASS) {
-        Serial.println("Error starting Core 0");
+#ifdef STATIC_STACK
+    my.core0Task = xTaskCreateStaticPinnedToCore(core0Loop, "Core0", 16384, NULL, 2, core0Stack, &core0Task, 0);
+    if (my.core0Task == NULL) {
+#else    
+    if (xTaskCreatePinnedToCore(core0Loop, "Core0", 16384, NULL, 2, &my.core0Task, 0) != pdPASS) {
+#endif        
+        Serial.println("Error starting Network task");
         ESP.restart();
     }
 }
