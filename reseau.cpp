@@ -75,7 +75,7 @@ static void sendMessage(byte *message) {
     int msgLength;
     if (message[0] == 0xFF) {
         msgLength = HEADER_LENGTH + count;
-        Serial.printf("ERROR message length %d\n", msgLength);
+        Serial.printf("REPORT message length %d\n", msgLength);
     } else {
         int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
         msgLength = HEADER_LENGTH + dataLength * count;
@@ -160,6 +160,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 
     unsigned long startWork;
     for (;;) {
+//        TEST_LOCAL(1);
         int index;
         while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
         }
@@ -370,4 +371,14 @@ void netInit() {
     my.queueFill = 0.0;
 
     setupCore0(Core0Loop);
+}
+
+static void _test(int type) {
+    switch (type) {
+    case 1:
+        if (getAbsMicros() > 10000000) {
+            ERROR_FATAL0("Test FATAL0");
+        }
+        break;
+    }
 }

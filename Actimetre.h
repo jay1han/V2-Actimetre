@@ -11,6 +11,10 @@
 //#define LOG_QUEUE
 #define FIFO_INFO
 
+static void _test(int);
+#define TEST_LOCAL(t)     _test(t)
+//#define TEST_LOCAL(t)
+
 // CONSTANTS
 
 #define ACTISERVER  "Actis"

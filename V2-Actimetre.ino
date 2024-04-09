@@ -72,7 +72,8 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
 }
 
 void loop() {
-    while (FATAL_ERROR);
+//    TEST_LOCAL(1);
+    if (processError()) return;
     if (!isConnected()) RESTART(2);
     manageButton(0);
     
@@ -122,24 +123,42 @@ void ERROR_REPORT(char *what) {
 }
 
 void ERROR_FATAL1(char *where) {
-    while (FATAL_ERROR);
+    while (FATAL_ERROR) delay(1);
     FATAL_ERROR = true;
     Serial.print("FATAL1\n");
     ERROR_REPORT(where);
     RESTART(5);
 }
 
+static char errorDisplay[32] = "";
+
 void ERROR_FATAL0(char *where) {
     FATAL_ERROR = true;
     Serial.print("FATAL0\n");
+    Serial.println(where);
+    memset(errorDisplay, 0, sizeof(errorDisplay));
+    strcpy(errorDisplay, "FATAL0");
+    strcpy(errorDisplay + 7, where);
+    blinkLed(COLOR_RED);
+    while (true) delay(1);
+}
 
-    char display[16];
-    strncpy(display, where, 15);
-    display[15] = 0;
-    writeLine("FATAL0");
-    writeLine(display);
-    
-    while (FATAL_ERROR);
+static bool processError() {
+    if (FATAL_ERROR) {
+        if (errorDisplay[0] != 0) {
+            Serial.printf("processError:%s\n", errorDisplay);
+            char *error = errorDisplay;
+            for (int line = 0; line < 2; line++) {
+                int linelen = 0;
+                while (error[linelen] != 0) linelen++;
+                writeLine(error);
+                error += linelen + 1;
+            }
+            memset(errorDisplay, 0, sizeof(errorDisplay));
+        }
+        return true;
+    }
+    return false;
 }
 
 void dump(void *pointer, int size) {
@@ -155,5 +174,14 @@ void dump(void *pointer, int size) {
             Serial.printf("%c", c);
         }
         Serial.println();
+    }
+}
+
+static void _test(int type) {
+    switch (type) {
+    case 1:
+        if (getAbsMicros() > 10000000) {
+            ERROR_FATAL1("Test FATAL1");
+        }
     }
 }

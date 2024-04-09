@@ -270,7 +270,7 @@ void setupBoard() {
 #if ARDUINO_USB_CDC_ON_BOOT
 #define HWSerial  Serial0
 #define USBSerial Serial
-    Serial.begin(2000000);
+    Serial.begin(1000000);
 #else
 #define HWSerial  Serial
     USBCDC USBSerial;
@@ -330,7 +330,7 @@ void setupBoard() {
     }
     if (my.hasI2C[1]) {
         Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
-        Serial.printf("I2C1 started %d baud\n", Wire.getClock());
+        Serial.printf("I2C1 started %d baud\n", Wire1.getClock());
     }
 
     blinkLed(COLOR_WHITE);

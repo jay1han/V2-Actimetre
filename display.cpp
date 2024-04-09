@@ -154,7 +154,7 @@ void writeLine(char *message) {
 void initDisplay() {
     if (my.displayPort < 0) return;
     ssd1306_init();
-    memset(displayBuffer, 0x00, LCD_H_RES * LCD_V_RES / 8);
+    memset(displayBuffer, 0, sizeof(displayBuffer));
     ssd1306_showall();
 }
 
