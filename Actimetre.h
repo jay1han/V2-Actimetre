@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "328"
+#define VERSION_STR "329"
 
 #define PROFILE_DISPLAY
 //#define LOG_DISPLAY
