@@ -84,7 +84,7 @@ static void initSensor(int port, int address) {
         my.sensor[port][address].fifoOverflow = 1000;
         writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x09); // Disable temp, Gx clock source
-        writeByte(port, address, 0x19, 79);   // Sampling rate divider = 79 (100Hz)
+        writeByte(port, address, 0x19, 7);   // Sampling rate divider = 7 (1kHz)
         writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
         writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
 //        writeByte(port, address, 0x38, 0x11); // enable interrupts
@@ -94,7 +94,7 @@ static void initSensor(int port, int address) {
         writeByte(port, address, 0x6C, 0x01); // Disable gz
 //        writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
         writeByte(port, address, 0x6B, 0x09); // Disable temperature, Gx clock source
-        writeByte(port, address, 0x19, 9);    // Sampling rate divider
+        writeByte(port, address, 0x19, 0);    // Sampling rate divider
         writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
         writeByte(port, address, 0x1A, 0x01); // DLPF = 1
         writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00

@@ -39,7 +39,7 @@ void setup() {
     
     netInit();
     clearSensors();
-    blinkLed(COLOR_FREQ | 0);
+    blinkLed(COLOR_FREQ | 1);
 
 #ifdef STATIC_STACK
     my.core1Task = xTaskCreateStaticPinnedToCore(Core1Loop, "Core1", 16384, NULL, 2, core1Stack, &core1Task, 1);
