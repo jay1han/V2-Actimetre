@@ -412,8 +412,8 @@ void deviceScanInit() {
         for (address = 0; address <= 1; address++)
             if (detectSensor(port, address)) {
                 my.sensorBits |= 1 << (port * 4 + address);
-                if (my.sensorList[port][address].type == WAI_6500)
-                    my.sensorBits |= 1 << (address + 2);
+                if (my.sensor[port][address].type == WAI_6500)
+                    my.sensorBits |= 1 << (port * 4 + address + 2);
                 my.nSensors++;
             }
 
