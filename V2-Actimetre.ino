@@ -10,28 +10,25 @@
 
 MyInfo my;
 
-// FILE-WIDE GLOBAL
-
-byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
-static int nextIndex() {
-    static int msgIndex = 1;
-    int index = msgIndex++;
-    if (msgIndex >= QUEUE_SIZE) msgIndex = 1;
-    return index;
-}
-
 // MAIN SETUP
+
+static StaticTask_t core1Task;
+static StackType_t core1Stack[16384];
 
 void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
     
     setupBoard();
-
     if (my.boardType == BOARD_BAD) {
         Serial.println("Unsupported board type");
         writeLine("Unsupported");
         RESTART(30);
     }
+    
+#ifdef LOG_STACK
+    Serial.printf("Loop stack size %d\n", getArduinoLoopTaskStackSize());
+#endif    
+
     delay(100);
     deviceScanInit();
 
@@ -43,6 +40,14 @@ void setup() {
     netInit();
     clearSensors();
     blinkLed(COLOR_FREQ | 0);
+
+#ifdef STATIC_STACK
+    my.core1Task = xTaskCreateStaticPinnedToCore(Core1Loop, "Core1", 16384, NULL, 2, core1Stack, &core1Task, 1);
+    if (my.core1Task == NULL) {
+        Serial.println("Error starting Main task");
+        ESP.restart();
+    }
+#endif        
 }
 
 // MAIN LOOP
@@ -61,7 +66,7 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
     message[2] = msgBootEpoch & 0xFF;
 
     if (count > 63) {
-        ERROR_FATAL("Fifo count > 63");
+        ERROR_FATAL1("Fifo count > 63");
     }
     message[3] = count | (port << 7) | (address << 6);
     message[4] = ((byte)my.rssi << 5) | ((byte)my.sensor[port][address].samplingMode << 3) | (byte)my.frequencyCode;
@@ -71,8 +76,30 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
     return (int64_t)msgBootEpoch * 1000000 + msgMicros;
 }
 
-void loop() {
-    while (FATAL_ERROR);
+byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
+static int nextIndex() {
+    static int msgIndex = 1;
+    int index = msgIndex++;
+    if (msgIndex >= QUEUE_SIZE) msgIndex = 1;
+    return index;
+}
+
+#ifdef STATIC_STACK
+static void Core1Loop(void *dummy_to_match_argument_signature) {
+    Serial.printf("Core %d started\n", xPortGetCoreID());
+    for (;;) {
+        MainLoop();
+        delayMicroseconds(1);
+    }
+}
+void loop() {}
+void MainLoop()
+#else
+void loop()    
+#endif
+{
+//    TEST_LOCAL(1);
+    if (processError()) return;
     if (!isConnected()) RESTART(2);
     manageButton(0);
     
@@ -87,7 +114,7 @@ void loop() {
                     int index = nextIndex();
                     fifoState = readFifo(port, address, msgQueueStore[index]);
                     if (fifoState > 0) {
-                        queueMessage(&index);
+                        queueIndex(index);
                     }
                 } while (fifoState > 1);
             }
@@ -99,6 +126,9 @@ void loop() {
 
 // UTILITY FUNCTION
 
+bool FATAL_ERROR = false;
+static char errorDisplay[32] = "";
+
 void RESTART(int seconds) {
     FATAL_ERROR = true;
     Serial.printf("RESTART in %d\n", seconds);
@@ -108,25 +138,67 @@ void RESTART(int seconds) {
     ESP.restart();
 }
 
-bool FATAL_ERROR = false;
-
 void ERROR_REPORT(char *what) {
-    Serial.printf("\nREPORT:%s\n", what);
-
+    Serial.printf("REPORT:%s\n", what);
+    
     int index = nextIndex();
     byte *message = msgQueueStore[index];
     message[0] = 0xFF;
     message[3] = strlen(what);
     strcpy((char*)message + HEADER_LENGTH, what);
-    queueMessage(&index);
+    queueIndex(index);
 }
 
-void ERROR_FATAL(char *where) {
-    while (FATAL_ERROR);
+void ERROR_FATAL1(char *where) {
+    while (FATAL_ERROR) delay(1);
     FATAL_ERROR = true;
-    Serial.printf("\nFATAL:%s\n", where);
+    Serial.print("FATAL1\n");
+#ifdef STOP_FATAL
+    memset(errorDisplay, 0, sizeof(errorDisplay));
+    strcpy(errorDisplay, "FATAL1");
+    strcpy(errorDisplay + 7, where);
+    blinkLed(COLOR_RED);
+    Wire.endTransmission(true);
+    Wire1.endTransmission(true);
+    processError();
+    while (true) delay(1);
+#else    
     ERROR_REPORT(where);
     RESTART(5);
+#endif    
+}
+
+void ERROR_FATAL0(char *where) {
+    FATAL_ERROR = true;
+    Serial.print("FATAL0\n");
+    Serial.println(where);
+#ifdef STOP_FATAL    
+    memset(errorDisplay, 0, sizeof(errorDisplay));
+    strcpy(errorDisplay, "FATAL0");
+    strcpy(errorDisplay + 7, where);
+    blinkLed(COLOR_RED);
+    while (true) delay(1);
+#else
+    RESTART(5);
+#endif    
+}
+
+static bool processError() {
+    if (FATAL_ERROR) {
+        if (errorDisplay[0] != 0) {
+            Serial.printf("processError:%s\n", errorDisplay);
+            char *error = errorDisplay;
+            for (int line = 0; line < 2; line++) {
+                int linelen = 0;
+                while (error[linelen] != 0) linelen++;
+                writeLine(error);
+                error += linelen + 1;
+            }
+            memset(errorDisplay, 0, sizeof(errorDisplay));
+        }
+        return true;
+    }
+    return false;
 }
 
 void dump(void *pointer, int size) {
@@ -142,5 +214,14 @@ void dump(void *pointer, int size) {
             Serial.printf("%c", c);
         }
         Serial.println();
+    }
+}
+
+static void _test(int type) {
+    switch (type) {
+    case 1:
+        if (getAbsMicros() > 10000000) {
+            ERROR_FATAL1("Test FATAL1");
+        }
     }
 }

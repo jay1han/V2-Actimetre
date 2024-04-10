@@ -1,22 +1,32 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "326"
+#define VERSION_STR "327"
 
-//#define PROFILE_DISPLAY
+#define PROFILE_DISPLAY
+//#define LOG_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
+//#define LOG_STACK
 #define STATIC_QUEUE
+#define STATIC_STACK
 #define TIGHT_QUEUE
 //#define LOG_QUEUE
-#define FIFO_INFO
+#define INFO_DISPLAY       0   // 0 = none, 1 = fifo, 2 = stack, 3 = display
+//#define STOP_FATAL
+
+static void _test(int);
+#define TEST_LOCAL(t)     _test(t)
+//#define TEST_LOCAL(t)
 
 // CONSTANTS
 
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#define I2C_BAUDRATE 1000000
+#define MPU_BAUDRATE     800000
+#define DISPLAY_BAUDRATE 400000
+#define LOW_BAUDRATE     400000
 
 #define SSD1306_ADDR 0x3C
 #define MPU6050_ADDR 0x68
@@ -30,7 +40,7 @@
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (250 + HEADER_LENGTH)
-#define QUEUE_SIZE       800
+#define QUEUE_SIZE       400
 
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
@@ -92,6 +102,7 @@ typedef struct {
     int nMissed[2];
     float avgCycleTime[2];
     unsigned int upTime;
+    TaskHandle_t core0Task, core1Task;
 } MyInfo;
 
 extern MyInfo my;
@@ -108,7 +119,7 @@ void writeLine(char *message);
 // reseau.cpp
 void netInit();
 int isConnected();
-void queueMessage(void *message);
+void queueIndex(int);
 void netCore0(void *dummy_to_match_argument_signature);
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 
@@ -116,7 +127,7 @@ extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 int readFifo(int port, int address, byte *buffer);
 void clearSensors();
 void setSensorsFrequency();
-void setSamplingMode();
+int setSamplingMode();
 void deviceScanInit();
 
 #define REMOTE_COMMAND   0xF0
@@ -153,7 +164,8 @@ void clearCycleTime();
 // Actimetre.ino
 void dump(void *address, int size);
 void ERROR_REPORT(char *what);
-void ERROR_FATAL(char *where);
+void ERROR_FATAL1(char *where);
+void ERROR_FATAL0(char *where);
 extern bool FATAL_ERROR;
 void RESTART(int);
 void longPress();

@@ -93,10 +93,11 @@ static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
 };
 
 static void switchFrequency() {
-    freqCode = (freqCode + 1) % FREQ_COUNT;
-    my.frequencyCode = FrequencyCode[my.boardType][freqCode];
-    my.sampleFrequency = Frequencies[my.frequencyCode];
-    setSamplingMode();
+    do {
+        freqCode = (freqCode + 1) % FREQ_COUNT;
+        my.frequencyCode = FrequencyCode[my.boardType][freqCode];
+        my.sampleFrequency = Frequencies[my.frequencyCode];
+    } while (setSamplingMode() > MPU_BAUDRATE);
     
     setSensorsFrequency();
     displaySensors();
@@ -270,7 +271,8 @@ void setupBoard() {
 #if ARDUINO_USB_CDC_ON_BOOT
 #define HWSerial  Serial0
 #define USBSerial Serial
-    Serial.begin(2000000);
+    Serial.setTxTimeoutMs(0);
+    Serial.begin(921600);
 #else
 #define HWSerial  Serial
     USBCDC USBSerial;
@@ -325,12 +327,14 @@ void setupBoard() {
         pinMode(PIN_I2C0_SDA_MUX = PINS[my.boardType][_PIN_I2C0_SDA_MUX], INPUT);
 
     if (my.hasI2C[0]) {
-        Wire.begin(PIN_I2C0_SDA, PIN_I2C0_SCL, I2C_BAUDRATE);
+        Wire.begin(PIN_I2C0_SDA, PIN_I2C0_SCL, LOW_BAUDRATE);
+        Wire.setTimeout(0);
         Serial.printf("I2C0 started %d baud\n", Wire.getClock());
     }
     if (my.hasI2C[1]) {
-        Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, I2C_BAUDRATE);
-        Serial.printf("I2C1 started %d baud\n", Wire.getClock());
+        Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, LOW_BAUDRATE);
+        Wire1.setTimeout(0);
+        Serial.printf("I2C1 started %d baud\n", Wire1.getClock());
     }
 
     blinkLed(COLOR_WHITE);
@@ -344,10 +348,18 @@ void setupBoard() {
     }
 }
 
-TaskHandle_t core0Task;
+#ifdef STATIC_STACK
+static StaticTask_t core0Task;
+static byte core0Stack[16384];
+#endif
 void setupCore0(void (*core0Loop)(void*)) {
-    if (xTaskCreatePinnedToCore(core0Loop, "Core0", 16384, NULL, 2, &core0Task, 0) != pdPASS) {
-        Serial.println("Error starting Core 0");
+#ifdef STATIC_STACK
+    my.core0Task = xTaskCreateStaticPinnedToCore(core0Loop, "Core0", 16384, NULL, 2, core0Stack, &core0Task, 0);
+    if (my.core0Task == NULL) {
+#else    
+    if (xTaskCreatePinnedToCore(core0Loop, "Core0", 16384, NULL, 2, &my.core0Task, 0) != pdPASS) {
+#endif        
+        Serial.println("Error starting Network task");
         ESP.restart();
     }
 }

@@ -21,9 +21,9 @@ void writeByte(int port, int address, int memory, unsigned char cmd) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
 
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("writeByte() -> write(memory)");
-    if (wire.write(cmd) != 1) ERROR_FATAL("writeByte() -> write(cmd)");
-    if (wire.endTransmission(true) != 0) ERROR_FATAL("writeByte() -> endTransmission");
+    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL1("writeByte() -> write(memory)");
+    if (wire.write(cmd) != 1) ERROR_FATAL1("writeByte() -> write(cmd)");
+    if (wire.endTransmission(true) != 0) ERROR_FATAL1("writeByte() -> endTransmission");
 }
 
 unsigned char readByte(int port, int address, int memory) {
@@ -35,11 +35,11 @@ unsigned char readByte(int port, int address, int memory) {
 
     unsigned char data;
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("readByte() -> write");
-    if (wire.endTransmission(false) != 0) ERROR_FATAL("readByte() -> endTransmission0");
-    if (wire.requestFrom(MPU6050_ADDR + address, 1) != 1) ERROR_FATAL("readByte() -> requestFrom");
+    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL1("readByte() -> write");
+    if (wire.endTransmission(false) != 0) ERROR_FATAL1("readByte() -> endTransmission0");
+    if (wire.requestFrom(MPU6050_ADDR + address, 1) != 1) ERROR_FATAL1("readByte() -> requestFrom");
     data = wire.read();
-    if (wire.endTransmission(true) != 0) ERROR_FATAL("readByte() -> endTransmission1");
+    if (wire.endTransmission(true) != 0) ERROR_FATAL1("readByte() -> endTransmission1");
 
     return data;
 }
@@ -53,11 +53,11 @@ int readWord(int port, int address, int memory) {
 
     byte bytes[2];
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("readWord() -> write");
-    if (wire.endTransmission(false) != 0) ERROR_FATAL("readWord() -> endTransmission0");
-    if (wire.requestFrom(MPU6050_ADDR + address, 2) != 2) ERROR_FATAL("readWord() -> requestFrom");
-    if (wire.readBytes(bytes, 2) != 2) ERROR_FATAL("readWord() -> readBytes");
-    if (wire.endTransmission(true) != 0) ERROR_FATAL("readWord() -> endTransmission1");
+    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL1("readWord() -> write");
+    if (wire.endTransmission(false) != 0) ERROR_FATAL1("readWord() -> endTransmission0");
+    if (wire.requestFrom(MPU6050_ADDR + address, 2) != 2) ERROR_FATAL1("readWord() -> requestFrom");
+    if (wire.readBytes(bytes, 2) != 2) ERROR_FATAL1("readWord() -> readBytes");
+    if (wire.endTransmission(true) != 0) ERROR_FATAL1("readWord() -> endTransmission1");
 
     return (int)bytes[0] << 8 | bytes[1];
 }
@@ -119,6 +119,7 @@ static int clear1Sensor(int port, int address) {
         return 0;
     }
     TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     Serial.printf("Reset sensor %d%c FIFO %d", port + 1, address + 'A', fifoCount);
@@ -131,6 +132,9 @@ static int clear1Sensor(int port, int address) {
 }
 
 static void setSensor1Frequency(int port, int address) {
+    TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
+    
     if (my.sensor[port][address].type == WAI_6050) {
         int divider = 8000 / my.sampleFrequency - 1;
         Serial.printf("Sampling rate divider %d\n", divider);
@@ -199,8 +203,9 @@ void setSensorsFrequency() {
     }
 }
 
-void setSamplingMode() {
+int setSamplingMode() {
     int perCycle = 100;
+    int budget = 0;
     
     for (int port = 0; port < 2; port++) {
         for (int address = 0; address < 2; address++) {
@@ -238,18 +243,24 @@ void setSamplingMode() {
                 if (perCycle > 20) perCycle = 20;
                 break;
             }
+            if (my.sensor[port][address].type)
+                budget += my.sampleFrequency * my.sensor[port][address].dataLength;
 
-            Serial.printf("Sensor %d%c type %02X mode %d (max %d, sample %d bytes)\n",
-                          port + 1, 'A' + address, my.sensor[port][address].type,
+            Serial.printf("Sensor %d%c type %02X ",
+                          port + 1, 'A' + address, my.sensor[port][address].type);
+            Serial.printf("mode %d (max %d, sample %d bytes)\n",
                           my.sensor[port][address].samplingMode,
                           my.sensor[port][address].maxMeasures,
                           my.sensor[port][address].dataLength);
         }
     }
-
+    budget *= 8 * 2;
+    
     my.cycleMicroseconds = perCycle * 1000000 / my.sampleFrequency;
-    Serial.printf("Sampling frequency %dHz(code %d), cycle time %dus\n",
+    Serial.printf("Sampling frequency %dHz(code %d), cycle time %dus.",
                   my.sampleFrequency, my.frequencyCode, my.cycleMicroseconds);
+    Serial.printf(" Req. %d baud\n", budget);
+    return budget;
 }
 
 void clearSensors() {
@@ -266,6 +277,7 @@ void clearSensors() {
 static int detectSensor(int port, int address) {
     if (!my.hasI2C[port]) return 0;
     TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
     
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.endTransmission(true) == 0) {
@@ -284,6 +296,8 @@ int readFifo(int port, int address, byte *message) {
     }
 
     TwoWire &wire = (port == 0) ? Wire : Wire1;
+    wire.setClock(MPU_BAUDRATE);
+    
     byte *buffer = message + HEADER_LENGTH;
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
@@ -322,23 +336,23 @@ int readFifo(int port, int address, byte *message) {
     if (fifoCount > 0) {
         wire.beginTransmission(MPU6050_ADDR + address);
         if (wire.write(MPU6050_FIFO_DATA) != 1) {
-            ERROR_FATAL("readFifo() -> write");
+            ERROR_FATAL1("readFifo() -> write");
             return 0;
         }
         if (wire.endTransmission(false) != 0) {
-            ERROR_FATAL("readFifo() -> endTransmission0");
+            ERROR_FATAL1("readFifo() -> endTransmission0");
             return 0;
         }
         if (wire.requestFrom(MPU6050_ADDR + address, fifoCount) != fifoCount) {
-            ERROR_FATAL("readFifo() -> requestFrom");
+            ERROR_FATAL1("readFifo() -> requestFrom");
             return 0;
         }
         if (wire.readBytes(buffer, fifoCount) != fifoCount) {
-            ERROR_FATAL("readFifo() -> readBytes");
+            ERROR_FATAL1("readFifo() -> readBytes");
             return 0;
         }
         if (wire.endTransmission(true) != 0) {
-            ERROR_FATAL("readFifo() -> endTransmission1");
+            ERROR_FATAL1("readFifo() -> endTransmission1");
             return 0;
         }
     
@@ -358,6 +372,7 @@ void deviceScanInit() {
     my.displayPort = -1;
 
     if (my.hasI2C[0]) {
+        Wire.setClock(DISPLAY_BAUDRATE);
         Wire.beginTransmission(SSD1306_ADDR);
         if (Wire.endTransmission(true) == 0) {
             Serial.print("SSD1306 found on port 0\n");
@@ -366,6 +381,7 @@ void deviceScanInit() {
         }
     }
     if (my.displayPort < 0 && my.hasI2C[1]) {
+        Wire1.setClock(DISPLAY_BAUDRATE);
         Wire1.beginTransmission(SSD1306_ADDR);
         if (Wire1.endTransmission(true) == 0) {
             Serial.print("ssd1306 found on port 1\n");

@@ -127,10 +127,18 @@ static void writeLine16(int line, const char *message) {
 }
 
 void displayTitle(char *title) {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
+    
     writeLine16(0, title);
 }
 
 void displaySensors() {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
+    
     char sensorLine[20];
     if (my.sampleFrequency >= 1000)
         sprintf(sensorLine, "%-6s %s@%dk", my.sensorList, my.boardName, my.sampleFrequency / 1000);
@@ -140,58 +148,73 @@ void displaySensors() {
 }
 
 void writeLine(char *message) {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
+    
     int scroll;
     for (scroll = 4; scroll < 6; scroll++)
         memcpy(displayBuffer + scroll * LCD_H_RES,
                displayBuffer + (scroll + 2) * LCD_H_RES,
                LCD_H_RES);
     ssd1306_showpages(4, 5);
-    if (strlen(message) > CHAR_PER_LINE_16)
-        message[CHAR_PER_LINE_16] = 0;
     writeLine16(6, message);
 }
 
 void initDisplay() {
     if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+
+    wire.setClock(DISPLAY_BAUDRATE);
     ssd1306_init();
-    memset(displayBuffer, 0x00, LCD_H_RES * LCD_V_RES / 8);
+    memset(displayBuffer, 0, sizeof(displayBuffer));
     ssd1306_showall();
 }
 
 static void write_block(int x, int y) {
     if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+    wire.setClock(DISPLAY_BAUDRATE);
 
     int pixel_x = x * FONT_PITCH_16;
     write_cmd(0xB0 | y);
     write_cmd(0x00 | (pixel_x & 0x0F));
     write_cmd(0x10 | (pixel_x >> 4));
 
-    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
     wire.beginTransmission(SSD1306_ADDR);
     wire.write(0x40);
     wire.write(displayBuffer + (y * LCD_H_RES) + pixel_x, FONT_WIDTH_16);
     wire.endTransmission(true);
 }
 
-#define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
-
+#define RSSI_POS   10
+#define RSSI_X     (FONT_PITCH_16 * RSSI_POS)
+#define RSSI_STEPS 3
 #define TEXT_STEPS 5
 #define BLINK_POS  4
+
+#define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
+#ifdef PROFILE_DISPLAY
+float avgDisplay;
+int maxDisplay[TOTAL_SCAN_LINE];
+int maxDisplayMax, maxDisplayLine;
+#endif
+
 static void textPanel(int step) {
     switch(step) {
     case 0:
         if (my.upTime >= 6000)
-            sprintf(textBuffer[0], "%dh %.1f %.1f", my.upTime / 60,
+            snprintf(textBuffer[0], CHAR_PER_LINE_16 + 1, "%dh %.1f %.1f", my.upTime / 60,
                     my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
         else
-            sprintf(textBuffer[0], "%dh%02d %.1f %.1f", my.upTime / 60, my.upTime % 60,
+            snprintf(textBuffer[0], CHAR_PER_LINE_16 + 1, "%dh%02d %.1f %.1f", my.upTime / 60, my.upTime % 60,
                     my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0);
-        strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
+        if (strlen(textBuffer[0]) < CHAR_PER_LINE_16)
+            strncat(textBuffer[0], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[0]));
         break;
         
     case 1:
-#ifdef FIFO_INFO
-    {
+#if INFO_DISPLAY == 1
         float rating = 0.0;
         for (int port = 0; port < 2; port++) {
             for (int address = 0; address < 2; address++) {
@@ -203,12 +226,22 @@ static void textPanel(int step) {
             }
         }
         rating /= my.nSensors;
-        sprintf(textBuffer[1], "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
-    }
-#else        
-        sprintf(textBuffer[1], "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
+#endif    
+#if INFO_DISPLAY == 2
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%d %d",
+                uxTaskGetStackHighWaterMark(my.core1Task),
+                uxTaskGetStackHighWaterMark(my.core0Task));
+#endif    
+#if INFO_DISPLAY == 3
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.0f %d:%d",
+                 avgDisplay, maxDisplayLine, maxDisplayMax);
+#endif    
+#if INFO_DISPLAY == 0
+        textBuffer[1][0] = 0;
 #endif        
-        strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
+        if (strlen(textBuffer[1]) < CHAR_PER_LINE_16)
+            strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
 
     case 2:
@@ -232,10 +265,6 @@ static void textPanel(int step) {
     }
 }
 
-#define RSSI_POS 10
-#define RSSI_X   (FONT_PITCH_16 * RSSI_POS)
-
-#define RSSI_STEPS 3
 static void displayRssi(int step) {
     
     switch(step) {
@@ -275,10 +304,17 @@ static void displayScanLine(int scanLine) {
 }
 
 void displayScan(int scanLine) {
+    if (scanLine < TOTAL_SCAN_LINE - 1) {
+        if (scanLine < RSSI_STEPS) displayRssi(scanLine);
+        else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);
+        else displayScanLine(scanLine - RSSI_STEPS - TEXT_STEPS);
+        return;
+    }
+    
 #ifdef LOG_HEARTBEAT        
-    static time_t stopwatch = time(NULL);
-    if (scanLine == TOTAL_SCAN_LINE - 1 && stopwatch != time(NULL)) {
-        stopwatch = time(NULL);
+    static time_t heartbeat = time(NULL);
+    if (scanLine == TOTAL_SCAN_LINE - 1 && heartbeat != time(NULL)) {
+        heartbeat = time(NULL);
         Serial.printf("%dh%02d %.1f %.1f (%.1f) ",
                       my.upTime / 60, my.upTime % 60,
                       my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0,
@@ -286,14 +322,25 @@ void displayScan(int scanLine) {
         Serial.printf("M%d,%d Q%.0f%%\n", my.nMissed[1], my.nMissed[0], my.queueFill);
         return;
     }
-#endif        
+#endif
 
-    if (scanLine < RSSI_STEPS) displayRssi(scanLine);
-    else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);
-    else displayScanLine(scanLine - RSSI_STEPS - TEXT_STEPS);
+#ifdef LOG_STACK
+    static time_t breath = time(NULL);
+    if ((scanLine == TOTAL_SCAN_LINE - 1) && (time(NULL) - breath > 10)) {
+        breath = time(NULL);
+        Serial.printf("Stack loop:%d net:%d\n",
+                      uxTaskGetStackHighWaterMark(NULL),
+                      uxTaskGetStackHighWaterMark(my.core0Task));
+        return;
+    }
+#endif    
 }    
 
 void displayLoop(int force) {
+    if (my.displayPort < 0) return;
+    TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
+
+    wire.setClock(DISPLAY_BAUDRATE);
     static int scanLine = 0;
 #ifdef PROFILE_DISPLAY    
     int64_t stopwatch = getAbsMicros();
@@ -315,11 +362,20 @@ void displayLoop(int force) {
     static int profiling = 0;
     static int entries   = 0;
     static int reporting = time(NULL);
-    profiling += (int)(getAbsMicros() - stopwatch);
+    int microseconds = (int)(getAbsMicros() - stopwatch);
+    if (microseconds > maxDisplay[scanLine]) maxDisplay[scanLine] = microseconds;
+    if (microseconds > maxDisplayMax) {
+        maxDisplayMax = microseconds;
+        maxDisplayLine = scanLine;
+    }
+    profiling += microseconds;
     entries ++;
     if (time(NULL) != reporting) {
-        Serial.printf("displayLoop() %dus/%d = %.1fms avg\n",
-                      profiling, entries, (float)profiling / entries);
+        avgDisplay = (float)profiling / entries;
+#ifdef LOG_DISPLAY        
+        Serial.printf("displayLoop() %dus/%d = %.1fms avg, max %d:%d\n",
+                      profiling, entries, avgDisplay, maxDisplayLine, maxDisplayMax);
+#endif        
         profiling = 0;
         entries = 0;
         reporting = time(NULL);
