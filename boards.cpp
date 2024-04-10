@@ -54,12 +54,6 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
      10, 9, 8 | POWERED_PIN, 7 | POWERED_PIN,
      0xFF, 0xFF, 0xFF, 0xFF},
-    // Board Type 3 (S3 super mini single with display)
-    {0, 21,
-     0xFF, 0xFF, 0xFF,   // UART is unused
-     3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
-     10, 9, 8 | POWERED_PIN, 7 | POWERED_PIN,
-     0xFF, 0xFF, 0xFF, 0xFF},
     // Unsupported
     {0xFF, 0xFF,
      0xFF, 0xFF, 0xFF,   // UART is unused
@@ -72,7 +66,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
 
 // GLOBALS
 
-static char BoardName[BOARD_TYPES][4] = {"S3i", "S3n", "S3s", "S3d", "BAD"};
+static char BoardName[BOARD_TYPES][4] = {"S3i", "S3n", "S3s", "BAD"};
 
 static uint8_t PIN_BUTTON, PIN_LED,
     PIN_UART_GND, PIN_UART_TX, PIN_UART_RX,
@@ -85,10 +79,9 @@ int freqCode =  0;
 static int Frequencies[8] = {100, 500, 1000, 2000, 4000, 8000};
 
 static int FrequencyCode[BOARD_TYPES][FREQ_COUNT] = {
-    {0, 2, 4, 5},
-    {0, 2, 4, 5},
-    {0, 2, 4, 5},
-    {0, 2, 4, 5},
+    {2, 4, 5, 0},
+    {2, 4, 5, 0},
+    {2, 4, 5, 0},
     {0, 0, 0, 0}
 };
 

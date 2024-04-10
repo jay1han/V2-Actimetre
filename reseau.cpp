@@ -128,8 +128,7 @@ void queueIndex(int index) {
         ERROR_FATAL1(error);
     }
     if (xQueueSend(msgQueue, &index, 0) != pdTRUE) {
-        Serial.println("Error queueing. Queue full?");
-        RESTART(2);
+        ERROR_FATAL1("Queue full");
     }
 }
 
