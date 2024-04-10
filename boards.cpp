@@ -48,7 +48,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      13, 11, POWERED_PIN | 10, 12 | POWERED_PIN,   // I2C0 on left side
      44, 36, 35 | POWERED_PIN, 18 | POWERED_PIN, 
      0xFF, 0xFF, 0xFF, 0xFF},
-    // Board Type 2 (S3 super mini)
+    // Board Type 2 (S3 zero)
     {0, 21,
      0xFF, 0xFF, 0xFF,   // UART is unused
      3, 4, POWERED_PIN | 5, POWERED_PIN | 6,   // I2C0
@@ -66,7 +66,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
 
 // GLOBALS
 
-static char BoardName[BOARD_TYPES][4] = {"S3i", "S3n", "S3s", "BAD"};
+static char BoardName[BOARD_TYPES][4] = {"S3i", "S3n", "S3z", "BAD"};
 
 static uint8_t PIN_BUTTON, PIN_LED,
     PIN_UART_GND, PIN_UART_TX, PIN_UART_RX,
@@ -249,7 +249,7 @@ void setupBoard() {
         pinMode(PIN_DETECT_45, INPUT_PULLDOWN);
         if (digitalRead(PIN_DETECT_34) == 1) my.boardType = BOARD_S3_I2C;
         else if (digitalRead(PIN_DETECT_45) == 1) {
-            my.boardType = BOARD_S3_SUPER;
+            my.boardType = BOARD_S3_ZERO;
             my.ledRGB = LED_GRB;
         }
         else my.boardType = BOARD_S3_NEWBOX;

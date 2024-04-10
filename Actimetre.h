@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "329"
+#define VERSION_STR "330"
 
 #define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -53,7 +53,7 @@ typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
 typedef enum {
     BOARD_S3_I2C = 0,
     BOARD_S3_NEWBOX,
-    BOARD_S3_SUPER,
+    BOARD_S3_ZERO,
     BOARD_BAD,
     BOARD_TYPES
 } BoardType;
