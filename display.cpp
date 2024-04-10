@@ -238,7 +238,7 @@ static void textPanel(int step) {
                  avgDisplay, maxDisplayLine, maxDisplayMax);
 #endif    
 #if INFO_DISPLAY == 0
-        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "M%d,%d Q%.0f%%", my.nMissed[1], my.nMissed[0], my.queueFill);
+        textBuffer[1][0] = 0;
 #endif        
         if (strlen(textBuffer[1]) < CHAR_PER_LINE_16)
             strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));

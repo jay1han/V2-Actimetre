@@ -12,8 +12,8 @@
 #define STATIC_STACK
 #define TIGHT_QUEUE
 //#define LOG_QUEUE
-#define INFO_DISPLAY       3   // 0 = normal, 1 = fifo, 2 = stack, 3 = display
-#define STOP_FATAL
+#define INFO_DISPLAY       0   // 0 = none, 1 = fifo, 2 = stack, 3 = display
+//#define STOP_FATAL
 
 static void _test(int);
 #define TEST_LOCAL(t)     _test(t)
