@@ -3,7 +3,7 @@
 
 #define VERSION_STR "331"
 
-#define PROFILE_DISPLAY
+//#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
 //#define PROFILE_NETWORK
 //#define LOG_HEARTBEAT
@@ -16,8 +16,8 @@
 //#define STOP_FATAL
 
 static void _test(int);
-#define TEST_LOCAL(t)     _test(t)
-//#define TEST_LOCAL(t)
+//#define TEST_LOCAL(t)     _test(t)
+#define TEST_LOCAL(t)
 
 // CONSTANTS
 
