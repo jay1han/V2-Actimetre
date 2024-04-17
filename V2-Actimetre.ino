@@ -70,7 +70,9 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
     }
     message[3] = count | (port << 7) | (address << 6);
     message[4] = ((byte)my.rssi << 5) | ((byte)my.sensor[port][address].samplingMode << 3) | (byte)my.frequencyCode;
-    message[5] = (msgMicros >> 16) & 0xFF;
+    message[5] = (msgMicros >> 16) & 0x0F;
+    if (my.sensor[port][address].type == WAI_6500)
+        message[5] |= 0x80;
     message[6] = (msgMicros >> 8) & 0xFF;
     message[7] = msgMicros & 0xFF;
     return (int64_t)msgBootEpoch * 1000000 + msgMicros;

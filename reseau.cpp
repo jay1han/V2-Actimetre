@@ -128,7 +128,10 @@ void queueIndex(int index) {
         ERROR_FATAL1(error);
     }
     if (xQueueSend(msgQueue, &index, 0) != pdTRUE) {
+        xQueueReset(msgQueue);
+#ifdef TIGHT_QUEUE        
         ERROR_FATAL1("Queue full");
+#endif        
     }
 }
 

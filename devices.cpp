@@ -13,6 +13,17 @@
 
 // GENERAL
 
+static char *sensorName(int port, int address) {
+    static char name[3] = "01";
+    name[0] = port + '1';
+    if (my.sensor[port][address].type == WAI_6050) {
+        name[1] = address + 'A';
+    } else if (my.sensor[port][address].type == WAI_6500) {
+        name[1] = address + 'a';
+    } else name[1] = 'X' + address;
+    return name;
+}
+
 void writeByte(int port, int address, int memory, unsigned char cmd) {
     if (!my.hasI2C[port]) {
         Serial.printf("writeByte(port=%d, address=%d)\n", port, address);
@@ -64,13 +75,13 @@ int readWord(int port, int address, int memory) {
 
 // SENSORS (MPU-6050)
 
-static void initSensor(int port, int address) {
-    Serial.printf("Initializing %d%c", port + 1, 'A' + address);
+static int initSensor(int port, int address) {
+    Serial.printf("Initializing %s", sensorName(port, address));
     writeByte(port, address, 0x6B, 0x80);    // Reset
     delay(100);
     
     byte sensorType = readByte(port, address, 0x75);
-    Serial.printf(" WAI=0x%02X,", sensorType);
+    Serial.printf(" WAI=0x%02X, ", sensorType);
     if (sensorType != WAI_6050 && sensorType != WAI_6500) {
         Serial.println("BAD. Rebooting");
         RESTART(2);
@@ -79,6 +90,7 @@ static void initSensor(int port, int address) {
     my.sensor[port][address].lastMessage = 0;
     my.sensor[port][address].nSamples = 0;
     my.sensor[port][address].nCycles = 0;
+    Serial.printf(sensorName(port, address));
 
     if (sensorType == WAI_6050) {
         my.sensor[port][address].fifoOverflow = 1000;
@@ -111,6 +123,7 @@ static void initSensor(int port, int address) {
     Serial.printf(" -> %d", fifoCount);
     
     Serial.println(" OK!");
+    return sensorType;
 }
 
 static int clear1Sensor(int port, int address) {
@@ -122,7 +135,7 @@ static int clear1Sensor(int port, int address) {
     wire.setClock(MPU_BAUDRATE);
 
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    Serial.printf("Reset sensor %d%c FIFO %d", port + 1, address + 'A', fifoCount);
+    Serial.printf("Reset sensor %s FIFO %d", sensorName(port, address), fifoCount);
     
     writeByte(port, address, 0x6A, 0x04); // reset FIFO
     writeByte(port, address, 0x6A, 0x40); // enable FIFO
@@ -183,7 +196,7 @@ static void setSensor1Frequency(int port, int address) {
                 writeByte(port, address, 0x1D, 0x08); // A_FCHOICE_B = b1, Disable A_DLPF
                 writeByte(port, address, 0x23, 0x60); // enable FIFO for gx, gy (4 bytes per sample)
             } else {
-                Serial.printf("Sensor %d%c unhandled frequency %d\n", 1 + port, 'A' + address, my.sampleFrequency);
+                Serial.printf("Sensor %s unhandled frequency %d\n", sensorName(port, address), my.sampleFrequency);
                 RESTART(2);
             }
             
@@ -246,8 +259,9 @@ int setSamplingMode() {
             if (my.sensor[port][address].type)
                 budget += my.sampleFrequency * my.sensor[port][address].dataLength;
 
-            Serial.printf("Sensor %d%c type %02X ",
-                          port + 1, 'A' + address, my.sensor[port][address].type);
+            Serial.printf("Sensor %s type %02X ",
+                          sensorName(port, address),
+                          my.sensor[port][address].type);
             Serial.printf("mode %d (max %d, sample %d bytes)\n",
                           my.sensor[port][address].samplingMode,
                           my.sensor[port][address].maxMeasures,
@@ -281,9 +295,7 @@ static int detectSensor(int port, int address) {
     
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.endTransmission(true) == 0) {
-        Serial.printf("Found sensor %d%c ", port + 1, 'A' + address);
-        initSensor(port, address);
-        return 1;
+        return initSensor(port, address);
     } else {
         return 0;
     }
@@ -303,7 +315,7 @@ int readFifo(int port, int address, byte *message) {
     int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     if (fifoCount > my.sensor[port][address].fifoOverflow) {
         char error[64];
-        sprintf(error, "FIFO overflow %d%c", port + 1, address + 'A');
+        sprintf(error, "FIFO overflow %s", sensorName(port, address));
         Serial.println(error);
         ERROR_REPORT(error);
         my.nMissed[Core1I2C]++;
@@ -357,7 +369,7 @@ int readFifo(int port, int address, byte *message) {
         }
     
         if (moreToRead / dataLength > my.sensor[port][address].fifoThreshold) {
-//            Serial.printf("FIFO %d%c more to read %d\n", port + 1, address + 'A', fifoCount / dataLength);
+//            Serial.printf("FIFO %s more to read %d\n", sensorName(port, address), fifoCount / dataLength);
             return 2;
         }
     }
@@ -400,6 +412,8 @@ void deviceScanInit() {
         for (address = 0; address <= 1; address++)
             if (detectSensor(port, address)) {
                 my.sensorBits |= 1 << (port * 4 + address);
+                if (my.sensor[port][address].type == WAI_6500)
+                    my.sensorBits |= 1 << (port * 4 + address + 2);
                 my.nSensors++;
             }
 
@@ -412,10 +426,16 @@ void deviceScanInit() {
     my.sensorList[0] = 0;
     for (port = 0; port < 2; port++) {
         if (my.sensor[port][0].type || my.sensor[port][1].type)
+        {
             sprintf(my.sensorList + strlen(my.sensorList), "%d", port + 1);
-        for (address = 0; address < 2; address++)
-            if (my.sensor[port][address].type)
-                sprintf(my.sensorList + strlen(my.sensorList), "%c", 'A' + address);
+            for (address = 0; address < 2; address++) {
+                if (my.sensor[port][address].type == WAI_6050) {
+                    sprintf(my.sensorList + strlen(my.sensorList), "%c", 'A' + address);
+                } else if (my.sensor[port][address].type == WAI_6500) {
+                    sprintf(my.sensorList + strlen(my.sensorList), "%c", 'a' + address);
+                }
+            }
+        }
     }
 
     Serial.printf("Sensors %s\n", my.sensorList);
