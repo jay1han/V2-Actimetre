@@ -125,12 +125,12 @@ void queueIndex(int index) {
         char error[16];
         sprintf(error, "Q %X", index);
         Serial.println(error);
-        ERROR_FATAL1(error);
+        ERROR_FATAL(error);
     }
     if (xQueueSend(msgQueue, &index, 0) != pdTRUE) {
         xQueueReset(msgQueue);
 #ifdef TIGHT_QUEUE        
-        ERROR_FATAL1("Queue full");
+        ERROR_FATAL("Queue full");
 #endif        
     }
 }
@@ -174,7 +174,7 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 #ifdef STATIC_QUEUE            
             dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
 #endif            
-            ERROR_FATAL0(error);
+            ERROR_FATAL(error);
         }
         sendMessage(msgQueueStore[index]);
 
@@ -378,7 +378,7 @@ static void _test(int type) {
     switch (type) {
     case 1:
         if (getAbsMicros() > 10000000) {
-            ERROR_FATAL0("Test FATAL0");
+            ERROR_FATAL("Test FATAL0");
         }
         break;
     }
