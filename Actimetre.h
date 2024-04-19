@@ -39,7 +39,7 @@ static void _test(int);
 #define MEASURE_SECS     60
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
-#define BUFFER_LENGTH    (250 + HEADER_LENGTH)
+#define BUFFER_LENGTH    (240 + HEADER_LENGTH)
 #define QUEUE_SIZE       800
 
 #define SAMPLE_ACCEL     1
