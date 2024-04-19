@@ -94,16 +94,16 @@ static int initSensor(int port, int address) {
 
     if (sensorType == WAI_6050) {
         my.sensor[port][address].fifoOverflow = 1000;
-        writeByte(port, address, 0x6C, 0x01); // Disable gz
+//        writeByte(port, address, 0x6C, 0x01); // Disable gz
         writeByte(port, address, 0x6B, 0x09); // Disable temp, Gx clock source
         writeByte(port, address, 0x19, 7);   // Sampling rate divider = 7 (1kHz)
         writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
-        writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
+        writeByte(port, address, 0x23, 0x78); // enable FIFO for gx, gy, gz, accel (12 bytes per sample)
 //        writeByte(port, address, 0x38, 0x11); // enable interrupts
 //        writeByte(port, address, 0x6A, 0x40); // enable FIFO
     } else {
         my.sensor[port][address].fifoOverflow = 500;
-        writeByte(port, address, 0x6C, 0x01); // Disable gz
+//        writeByte(port, address, 0x6C, 0x01); // Disable gz
 //        writeByte(port, address, 0x6B, 0x08); // Disable temperature, osc clock source
         writeByte(port, address, 0x6B, 0x09); // Disable temperature, Gx clock source
         writeByte(port, address, 0x19, 0);    // Sampling rate divider
@@ -111,7 +111,7 @@ static int initSensor(int port, int address) {
         writeByte(port, address, 0x1A, 0x01); // DLPF = 1
         writeByte(port, address, 0x1B, 0x00); // FCHOICE_B = b00
         writeByte(port, address, 0x1D, 0x00); // A_FCHOICE_B = b0, A_DLPF = 0
-        writeByte(port, address, 0x23, 0x68); // enable FIFO for gx, gy, accel (10 bytes per sample)
+        writeByte(port, address, 0x23, 0x78); // enable FIFO for gx, gy, gz, accel (12 bytes per sample)
 //        writeByte(port, address, 0x38, 0x11); // enable interrupts
 //        writeByte(port, address, 0x6A, 0x40); // enable FIFO
     }
@@ -154,7 +154,7 @@ static void setSensor1Frequency(int port, int address) {
         writeByte(port, address, 0x6A, 0x04); // reset FIFO
         if (my.sampleFrequency <= 1000) {
             writeByte(port, address, 0x1C, 0x08); // Accel range +/-4g
-            writeByte(port, address, 0x23, 0x78); // enable FIFO for gx, gy, accel (12 bytes per sample)
+            writeByte(port, address, 0x23, 0x78); // enable FIFO for gx, gy, gz, accel (12 bytes per sample)
         } else {
             writeByte(port, address, 0x6C, 0x38); // Disable accel
             writeByte(port, address, 0x23, 0x70); // enable FIFO for gx, gy, gz (6 bytes per sample)
