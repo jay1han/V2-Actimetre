@@ -24,7 +24,7 @@ static void _test(int);
 #define ACTISERVER  "Actis"
 #define LONGPRESS_MILLIS  2000L
 
-#define MPU_BAUDRATE     800000
+#define MPU_BAUDRATE     400000
 #define DISPLAY_BAUDRATE 400000
 #define LOW_BAUDRATE     400000
 
