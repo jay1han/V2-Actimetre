@@ -322,6 +322,8 @@ int readFifo(int port, int address, byte *message) {
         fifoCount = clear1Sensor(port, address);
     }
 
+    if (fifoCount == 0) return 0;
+
     int dataLength = my.sensor[port][address].dataLength;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
