@@ -316,9 +316,7 @@ int readFifo(int port, int address, byte *message) {
     }
 
     int dataLength = my.sensor[port][address].dataLength;
-    if (fifoBytes < dataLength) return 0;
-
-    if (fifoCount < dataLength) {
+    if (fifoBytes < dataLength) {
         Serial.printf("No data on %d%c\n", port + 1, 'A' + address);
         return 0;
     }
