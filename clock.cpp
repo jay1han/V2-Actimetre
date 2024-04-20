@@ -4,10 +4,8 @@
 #include <esp_sleep.h>
 #include "Actimetre.h"
 
-#define ONE_KILO    1000L
 #define TEN_KILO    10000L
 #define ONE_MEGA    1000000L
-#define TEN_MEGA    10000000L
 
 #define ROLLOVER_MILLIS      296L
 #define ROLLOVER_TEN_MILLIS  7296L
