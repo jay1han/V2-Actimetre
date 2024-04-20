@@ -312,42 +312,49 @@ int readFifo(int port, int address, byte *message) {
     
     byte *buffer = message + HEADER_LENGTH;
 
-    int fifoCount = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    if (fifoCount > my.sensor[port][address].fifoOverflow) {
+    int fifoBytes = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
+    if (fifoBytes > my.sensor[port][address].fifoOverflow) {
         char error[64];
         sprintf(error, "FIFO overflow %s", sensorName(port, address));
         Serial.println(error);
         ERROR_REPORT(error);
         my.nMissed[Core1I2C]++;
-        fifoCount = clear1Sensor(port, address);
+        fifoBytes = clear1Sensor(port, address);
     }
 
-    if (fifoCount == 0) return 0;
+    if (fifoBytes == 0) return 0;
 
     int dataLength = my.sensor[port][address].dataLength;
     int maxMeasures = my.sensor[port][address].maxMeasures;
     int timeOffset = 0;
-    int moreToRead = fifoCount - maxMeasures * dataLength;
+    int moreToRead = fifoBytes - maxMeasures * dataLength;
     if (moreToRead > 0) {
         timeOffset = (moreToRead / dataLength) * (1000000 / my.sampleFrequency) ;
-        fifoCount = maxMeasures * dataLength;
+        fifoBytes = maxMeasures * dataLength;
     } else {
-        fifoCount = (fifoCount / dataLength) * dataLength;
+        fifoBytes = (fifoBytes / dataLength) * dataLength;
     }
-    int64_t now = formatHeader(port, address, message, fifoCount / dataLength, timeOffset);
+    int fifoCount = fifoBytes / dataLength;
+    int64_t now = formatHeader(port, address, message, fifoCount, timeOffset);
 
     int64_t points;
     if (my.sensor[port][address].lastMessage != 0) {
         points = (now - my.sensor[port][address].lastMessage) / (1000000 / my.sampleFrequency);
+        if (fifoCount > points + 1) {
+            char error[64];
+            sprintf(error, "FIFO mix-up %s: %d samples / %d cycles", sensorName(port, address), fifoCount, points);
+            Serial.println(error);
+            ERROR_FATAL(error);
+        }
         my.sensor[port][address].lastMessage += points * (1000000 / my.sampleFrequency);
     } else {
-        points = fifoCount / dataLength;
+        points = fifoCount;
         my.sensor[port][address].lastMessage = now;
     }
     my.sensor[port][address].nCycles += points;
-    my.sensor[port][address].nSamples += fifoCount / dataLength;
+    my.sensor[port][address].nSamples += fifoCount;
 
-    if (fifoCount > 0) {
+    if (fifoBytes > 0) {
         wire.beginTransmission(MPU6050_ADDR + address);
         if (wire.write(MPU6050_FIFO_DATA) != 1) {
             ERROR_FATAL("readFifo() -> write");
@@ -357,11 +364,11 @@ int readFifo(int port, int address, byte *message) {
             ERROR_FATAL("readFifo() -> endTransmission0");
             return 0;
         }
-        if (wire.requestFrom(MPU6050_ADDR + address, fifoCount) != fifoCount) {
+        if (wire.requestFrom(MPU6050_ADDR + address, fifoBytes) != fifoBytes) {
             ERROR_FATAL("readFifo() -> requestFrom");
             return 0;
         }
-        if (wire.readBytes(buffer, fifoCount) != fifoCount) {
+        if (wire.readBytes(buffer, fifoBytes) != fifoBytes) {
             ERROR_FATAL("readFifo() -> readBytes");
             return 0;
         }
@@ -371,7 +378,7 @@ int readFifo(int port, int address, byte *message) {
         }
     
         if (moreToRead / dataLength > my.sensor[port][address].fifoThreshold) {
-//            Serial.printf("FIFO %s more to read %d\n", sensorName(port, address), fifoCount / dataLength);
+//            Serial.printf("FIFO %s more to read %d\n", sensorName(port, address), fifoCount);
             return 2;
         }
     }
