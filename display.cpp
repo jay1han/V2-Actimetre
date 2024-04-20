@@ -238,7 +238,8 @@ static void textPanel(int step) {
                  avgDisplay, maxDisplayLine, maxDisplayMax);
 #endif    
 #if INFO_DISPLAY == 0
-        textBuffer[1][0] = 0;
+        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%dms %dkB",
+                 my.cycleMicroseconds / 1000, my.I2Cbudget / 1000);
 #endif        
         if (strlen(textBuffer[1]) < CHAR_PER_LINE_16)
             strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));

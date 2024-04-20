@@ -267,6 +267,7 @@ int setSamplingMode() {
     Serial.printf("Sampling frequency %dHz(code %d), cycle time %dus.",
                   my.sampleFrequency, my.frequencyCode, my.cycleMicroseconds);
     Serial.printf(" Req. %d baud\n", budget);
+    my.I2Cbudget = budget;
     return budget;
 }
 
@@ -441,4 +442,5 @@ void deviceScanInit() {
     }
 
     Serial.printf("Sensors %s\n", my.sensorList);
+    setSamplingMode();
 }

@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "341"
+#define VERSION_STR "342"
 
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -91,6 +91,7 @@ typedef struct {
     int frequencyCode;
     int sampleFrequency;
     unsigned long cycleMicroseconds;
+    int I2Cbudget;
     
     int displayPort;
     SensorDesc sensor[2][2];
