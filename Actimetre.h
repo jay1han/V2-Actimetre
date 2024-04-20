@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "340"
+#define VERSION_STR "341"
 
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -70,6 +70,7 @@ typedef struct {
     uint64_t nSamples;
     uint64_t nCycles;
     int64_t lastMessage;
+    int64_t startClock;
 } SensorDesc;
 
 typedef struct {
