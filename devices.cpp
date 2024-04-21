@@ -340,7 +340,7 @@ int readFifo(int port, int address, byte *message) {
             char error[64];
             sprintf(error, "FIFO mix-up %s: %d samples / %d cycles", sensorName(port, address), fifoCount, (int)span);
             Serial.println(error);
-            ERROR_REPORT(error);
+            ERROR_FATAL(error);
         }
         my.sensor[port][address].nCycles = (now - my.sensor[port][address].startClock) / (1000000 / my.sampleFrequency);
     } else {
