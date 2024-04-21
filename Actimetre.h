@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "342"
+#define VERSION_STR "345"
 
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -10,7 +10,7 @@
 //#define LOG_STACK
 #define STATIC_QUEUE
 #define STATIC_STACK
-#define TIGHT_QUEUE
+//#define TIGHT_QUEUE
 //#define LOG_QUEUE
 #define INFO_DISPLAY       0   // 0 = none, 1 = fifo, 2 = stack, 3 = display
 //#define STOP_FATAL
@@ -37,6 +37,8 @@ static void _test(int);
 #define LCD_V_RES 64
 
 #define MEASURE_SECS     60
+#define MAX_MISSED1      30
+#define MAX_MISSED0      3
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (240 + HEADER_LENGTH)

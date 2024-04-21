@@ -336,7 +336,7 @@ int readFifo(int port, int address, byte *message) {
 
     if (my.sensor[port][address].lastMessage != 0) {
         int64_t span = (now - my.sensor[port][address].lastMessage) / (1000000 / my.sampleFrequency);
-        if (fifoCount > (int)span + 2) {
+        if (fifoCount > (int)span + my.sensor[port][address].fifoThreshold) {
             char error[64];
             sprintf(error, "FIFO mix-up %s: %d samples / %d cycles", sensorName(port, address), fifoCount, (int)span);
             Serial.println(error);
