@@ -128,9 +128,12 @@ void queueIndex(int index) {
         ERROR_FATAL(error);
     }
     if (xQueueSend(msgQueue, &index, 0) != pdTRUE) {
-        xQueueReset(msgQueue);
 #ifdef TIGHT_QUEUE        
         ERROR_FATAL("Queue full");
+#else        
+        my.nMissed[Core0Net] ++;
+        xQueueReset(msgQueue);
+        Serial.println("Queue full, cleared");
 #endif        
     }
 }
