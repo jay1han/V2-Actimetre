@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "345"
+#define VERSION_STR "351"
 
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -37,7 +37,7 @@ static void _test(int);
 #define LCD_V_RES 64
 
 #define MEASURE_SECS     60
-#define MAX_MISSED1      30
+#define MAX_MISSED1      3
 #define MAX_MISSED0      3
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
