@@ -32,9 +32,9 @@ void writeByte(int port, int address, int memory, unsigned char cmd) {
     TwoWire &wire = (port == 0) ? Wire : Wire1;
 
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("writeByte() -> write(memory)");
-    if (wire.write(cmd) != 1) ERROR_FATAL("writeByte() -> write(cmd)");
-    if (wire.endTransmission(true) != 0) ERROR_FATAL("writeByte() -> endTransmission");
+    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL3(port, address, "writeByte() -> write(memory)");
+    if (wire.write(cmd) != 1) ERROR_FATAL3("writeByte() -> write(cmd)");
+    if (wire.endTransmission(true) != 0) ERROR_FATAL3("writeByte() -> endTransmission");
 }
 
 unsigned char readByte(int port, int address, int memory) {
@@ -46,11 +46,11 @@ unsigned char readByte(int port, int address, int memory) {
 
     unsigned char data;
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("readByte() -> write");
-    if (wire.endTransmission(false) != 0) ERROR_FATAL("readByte() -> endTransmission0");
-    if (wire.requestFrom(MPU6050_ADDR + address, 1) != 1) ERROR_FATAL("readByte() -> requestFrom");
+    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL3("readByte() -> write");
+    if (wire.endTransmission(false) != 0) ERROR_FATAL3("readByte() -> endTransmission0");
+    if (wire.requestFrom(MPU6050_ADDR + address, 1) != 1) ERROR_FATAL3("readByte() -> requestFrom");
     data = wire.read();
-    if (wire.endTransmission(true) != 0) ERROR_FATAL("readByte() -> endTransmission1");
+    if (wire.endTransmission(true) != 0) ERROR_FATAL3("readByte() -> endTransmission1");
 
     return data;
 }
@@ -64,11 +64,11 @@ int readWord(int port, int address, int memory) {
 
     byte bytes[2];
     wire.beginTransmission(MPU6050_ADDR + address);
-    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL("readWord() -> write");
-    if (wire.endTransmission(false) != 0) ERROR_FATAL("readWord() -> endTransmission0");
-    if (wire.requestFrom(MPU6050_ADDR + address, 2) != 2) ERROR_FATAL("readWord() -> requestFrom");
-    if (wire.readBytes(bytes, 2) != 2) ERROR_FATAL("readWord() -> readBytes");
-    if (wire.endTransmission(true) != 0) ERROR_FATAL("readWord() -> endTransmission1");
+    if (wire.write((unsigned char)memory) != 1) ERROR_FATAL3("readWord() -> write");
+    if (wire.endTransmission(false) != 0) ERROR_FATAL3("readWord() -> endTransmission0");
+    if (wire.requestFrom(MPU6050_ADDR + address, 2) != 2) ERROR_FATAL3("readWord() -> requestFrom");
+    if (wire.readBytes(bytes, 2) != 2) ERROR_FATAL3("readWord() -> readBytes");
+    if (wire.endTransmission(true) != 0) ERROR_FATAL3("readWord() -> endTransmission1");
 
     return (int)bytes[0] << 8 | bytes[1];
 }
@@ -369,23 +369,23 @@ int readFifo(int port, int address, byte *message) {
 
     wire.beginTransmission(MPU6050_ADDR + address);
     if (wire.write(MPU6050_FIFO_DATA) != 1) {
-        ERROR_FATAL("readFifo() -> write");
+        ERROR_FATAL3("readFifo() -> write");
         return 0;
     }
     if (wire.endTransmission(false) != 0) {
-        ERROR_FATAL("readFifo() -> endTransmission0");
+        ERROR_FATAL3("readFifo() -> endTransmission0");
         return 0;
     }
     if (wire.requestFrom(MPU6050_ADDR + address, fifoBytes) != fifoBytes) {
-        ERROR_FATAL("readFifo() -> requestFrom");
+        ERROR_FATAL3("readFifo() -> requestFrom");
         return 0;
     }
     if (wire.readBytes(buffer, fifoBytes) != fifoBytes) {
-        ERROR_FATAL("readFifo() -> readBytes");
+        ERROR_FATAL3("readFifo() -> readBytes");
         return 0;
     }
     if (wire.endTransmission(true) != 0) {
-        ERROR_FATAL("readFifo() -> endTransmission1");
+        ERROR_FATAL3("readFifo() -> endTransmission1");
         return 0;
     }
     if (fifoBytes >= sizeof(FIFO_ERROR) &&

@@ -66,7 +66,9 @@ int64_t formatHeader(int port, int address, byte *message, int count, int timeOf
     message[2] = msgBootEpoch & 0xFF;
 
     if (count > 63) {
-        ERROR_FATAL("Fifo count > 63");
+        char error[64];
+        sprintf(error, "FIFO %d%c count %d > 64", 1 + port, 'A' + address, count);
+        ERROR_FATAL(error);
     }
     message[3] = count | (port << 7) | (address << 6);
     message[4] = ((byte)my.rssi << 5) | ((byte)my.sensor[port][address].samplingMode << 3) | (byte)my.frequencyCode;
@@ -151,6 +153,17 @@ void ERROR_REPORT(char *what) {
     queueIndex(index);
 }
 
+void ERROR_REPORT3(int port, int address, char *what) {
+    Serial.printf("REPORT(%d%c):%s\n", 1 + port, 'A' + address, what);
+    
+    int index = nextIndex();
+    byte *message = msgQueueStore[index];
+    message[0] = 0xFF;
+    message[3] = strlen(what);
+    sprintf((char*)message + HEADER_LENGTH, "%d%c %s", 1 + port, 'A' + address, what);
+    queueIndex(index);
+}
+
 void ERROR_FATAL(char *where) {
     int coreId = xPortGetCoreID();
     if (coreId == 1) { // no re-rentry for main loop
@@ -171,6 +184,30 @@ void ERROR_FATAL(char *where) {
     while (true) delay(1);
 #else
     if (coreId == 1) ERROR_REPORT(where);
+    RESTART(5);
+#endif    
+}
+
+void ERROR_FATAL3(int port, int address, char *where) {
+    int coreId = xPortGetCoreID();
+    if (coreId == 1) { // no re-rentry for main loop
+        while (FATAL_ERROR) delay(1);
+    }
+    
+    FATAL_ERROR = true;
+    Serial.printf("FATAL#%d\n", coreId);
+    
+#ifdef STOP_FATAL
+    memset(errorDisplay, 0, sizeof(errorDisplay));
+    sprintf(errorDisplay, "FATAL#%d", coreId);
+    strcpy(errorDisplay + 8, where);
+    blinkLed(COLOR_RED);
+    Wire.endTransmission(true);
+    Wire1.endTransmission(true);
+    if (coreId == 1) processError();
+    while (true) delay(1);
+#else
+    if (coreId == 1) ERROR_REPORT3(port, address, where);
     RESTART(5);
 #endif    
 }
