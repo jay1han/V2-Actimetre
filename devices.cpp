@@ -295,7 +295,15 @@ static int detectSensor(int port, int address) {
     }
 }
 
-byte FIFO_ERROR[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+// return -1 if OK, >=0 code otherwise
+int fifoError(byte *buffer, int fifoBytes) {
+    if (fifoBytes < 12) return -1;
+    byte *span = buffer + fifoBytes - 12;
+    byte check = span[0];
+    for (int i = 1; span[i] == check && i < 12; i++);
+    if (i >= 12) return check;
+    else return -1;
+}
 
 int readFifo(int port, int address, byte *message) {
     if (!my.hasI2C[port]) {
@@ -388,12 +396,12 @@ int readFifo(int port, int address, byte *message) {
         ERROR_FATAL3(port, address, "readFifo() -> endTransmission1");
         return 0;
     }
-    if (fifoBytes >= sizeof(FIFO_ERROR) &&
-        memcmp(buffer + fifoBytes - sizeof(FIFO_ERROR), FIFO_ERROR, sizeof(FIFO_ERROR)) == 0) {
+    int errorCode = fifoError(buffer, fifoBytes);
+    if (errorCode >= 0) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
         char error[64];
-        sprintf(error, "FIFO %s data %d bytes 0xFF", sensorName(port, address), sizeof(FIFO_ERROR));
+        sprintf(error, "FIFO %s data %d bytes 0x%X", sensorName(port, address), fifoBytes, errorCode);
         Serial.println(error);
         ERROR_REPORT(error);
         return 0;
