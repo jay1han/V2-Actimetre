@@ -330,10 +330,8 @@ static char *checkData(byte *buffer, int samplingMode, int count) {
             int az = makeInt14(dataPoint[4], dataPoint[5]);
             int vector = ax * ax + ay * ay + az * az;
             if (vector > 0x4000000) {
-                Serial.printf("Acceleration %X %X %X -> %X\n", ax, ay, az, vector);
                 result = "Acceleration > 4g";
             } else if (vector < 0x40000) {
-                Serial.printf("Acceleration %X %X %X -> %X\n", ax, ay, az, vector);
                 result = "Acceleration < 0.25g";
             }
             break;
@@ -439,9 +437,9 @@ int readFifo(int port, int address, byte *message) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
         char error[64];
-        sprintf(error, "FIFO %s data %d bytes 0x%X", sensorName(port, address), fifoBytes, errorCode);
+        sprintf(error, "FIFO data %d bytes 0x%X", fifoBytes, errorCode);
         Serial.println(error);
-        ERROR_REPORT(error);
+        ERROR_REPORT3(port, address, error);
         return 0;
     }
 
@@ -449,10 +447,8 @@ int readFifo(int port, int address, byte *message) {
     if (dataSanity != NULL) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
-        char error[64];
-        sprintf(error, "Sensor %s %s", sensorName(port, address), dataSanity);
-        Serial.println(error);
-        ERROR_REPORT(error);
+        Serial.println(dataSanity);
+        ERROR_REPORT3(port, address, dataSanity);
         return 0;
     }
     
