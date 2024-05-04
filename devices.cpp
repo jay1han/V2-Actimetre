@@ -11,6 +11,8 @@
 #define MPU6050_DATA_RDY    0x01
 #define MPU6050_FIFO_OVER   0x10
 
+int DATA_LENGTH[] = {12, 6, 6, 12};
+
 // GENERAL
 
 static char *sensorName(int port, int address) {
@@ -306,6 +308,40 @@ int fifoError(byte *buffer, int fifoBytes) {
     else return -1;
 }
 
+static int makeInt14(byte msb, byte lsb) {
+    int word = msb * 256 + lsb;
+    if (word >= 32768) word -= 65536;
+    return word / 4;
+}
+
+static char *checkData(byte *buffer, int samplingMode, int count) {
+    int dataLength = DATA_LENGTH[samplingMode];
+    char *result = NULL;
+    for (int i = 0; i < count; i++) {
+        byte *dataPoint = buffer + i * dataLength;
+        switch(samplingMode) {
+        case SAMPLE_GYRO:
+            break;
+            
+        case SAMPLE_ACCEL:
+        default:
+            int ax = makeInt14(dataPoint[0], dataPoint[1]);
+            int ay = makeInt14(dataPoint[2], dataPoint[3]);
+            int az = makeInt14(dataPoint[4], dataPoint[5]);
+            int vector = ax * ax + ay * ay + az * az;
+            if (vector > 0x4000000) {
+                Serial.printf("Acceleration %X %X %X -> %X\n", ax, ay, az, vector);
+                result = "Acceleration > 4g";
+            } else if (vector < 0x40000) {
+                Serial.printf("Acceleration %X %X %X -> %X\n", ax, ay, az, vector);
+                result = "Acceleration < 0.25g";
+            }
+            break;
+        }
+    }
+    return result;
+}
+
 int readFifo(int port, int address, byte *message) {
     if (!my.hasI2C[port]) {
         Serial.printf("readFifo(port=%d, address=%d)\n", port, address);
@@ -397,12 +433,24 @@ int readFifo(int port, int address, byte *message) {
         ERROR_FATAL3(port, address, "readFifo() -> endTransmission1");
         return 0;
     }
+    
     int errorCode = fifoError(buffer, fifoBytes);
     if (errorCode >= 0) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
         char error[64];
         sprintf(error, "FIFO %s data %d bytes 0x%X", sensorName(port, address), fifoBytes, errorCode);
+        Serial.println(error);
+        ERROR_REPORT(error);
+        return 0;
+    }
+
+    char *dataSanity = checkData(buffer, my.sensor[port][address].samplingMode, fifoCount);
+    if (dataSanity != NULL) {
+        clear1Sensor(port, address);
+        my.nMissed[Core1I2C]++;
+        char error[64];
+        sprintf(error, "Sensor %s %s", sensorName(port, address), dataSanity);
         Serial.println(error);
         ERROR_REPORT(error);
         return 0;

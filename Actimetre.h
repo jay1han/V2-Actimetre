@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "361"
+#define VERSION_STR "362"
 
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -47,6 +47,7 @@ static void _test(int);
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
 #define SAMPLE_ALL       0
+extern int DATA_LENGTH[];
 
 // TYPES
 

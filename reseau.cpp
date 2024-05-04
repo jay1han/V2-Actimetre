@@ -66,8 +66,6 @@ static time_t getActimIdAndTime() {
 
 // Messaging functions
 
-static int DATA_LENGTH[] = {12, 6, 6, 12};
-
 static void sendMessage(byte *message) {
     int timeout = micros();
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
