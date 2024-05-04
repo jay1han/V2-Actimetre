@@ -147,9 +147,14 @@ void ERROR_REPORT(char *what) {
     
     int index = nextIndex();
     byte *message = msgQueueStore[index];
-    message[0] = 0xFF;
-    message[3] = strlen(what);
+    int msgLength = strlen(what);
+    if (msgLength > 62) {
+        what[62] = 0;
+        msgLength = 62;
+    }
+    formatHeader(0, 0, message, 1 + msgLength / 4, 0);
     strcpy((char*)message + HEADER_LENGTH, what);
+    memset(message + HEADER_LENGTH + msgLength, 0, 4 - msgLength % 4);
     queueIndex(index);
 }
 
@@ -158,9 +163,15 @@ void ERROR_REPORT3(int port, int address, char *what) {
     
     int index = nextIndex();
     byte *message = msgQueueStore[index];
-    message[0] = 0xFF;
-    message[3] = strlen(what);
+    int msgLength = strlen(what) + 3;
+    if (msgLength > 255) {
+        what[252] = 0;
+        msgLength = 255;
+    }
+    formatHeader(port, address, message, msgLength / 4, 0);
+    message[5] |= 0x10;
     sprintf((char*)message + HEADER_LENGTH, "%d%c %s", 1 + port, 'A' + address, what);
+    memset(message + HEADER_LENGTH + msgLength, 0, 4 - msgLength % 4);
     queueIndex(index);
 }
 

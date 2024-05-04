@@ -300,7 +300,8 @@ int fifoError(byte *buffer, int fifoBytes) {
     if (fifoBytes < 12) return -1;
     byte *span = buffer + fifoBytes - 12;
     byte check = span[0];
-    for (int i = 1; span[i] == check && i < 12; i++);
+    int i;
+    for (i = 1; span[i] == check && i < 12; i++);
     if (i >= 12) return check;
     else return -1;
 }

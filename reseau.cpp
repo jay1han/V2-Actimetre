@@ -76,6 +76,8 @@ static void sendMessage(byte *message) {
     if (message[0] == 0xFF) {
         msgLength = HEADER_LENGTH + count;
         Serial.printf("REPORT message length %d\n", msgLength);
+    } else if (message[5] & 0x10) {
+        msgLength = HEADER_LENGTH + (count + 1) * 4;
     } else {
         int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
         msgLength = HEADER_LENGTH + dataLength * count;
