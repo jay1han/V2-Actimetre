@@ -308,34 +308,47 @@ int fifoError(byte *buffer, int fifoBytes) {
     else return -1;
 }
 
-static int makeInt14(byte msb, byte lsb) {
+static int makeInt12(byte msb, byte lsb) {
     int word = msb * 256 + lsb;
     if (word >= 32768) word -= 65536;
-    return word / 4;
+    return word / (1 << 4);
 }
 
 static char *checkData(byte *buffer, int samplingMode, int count) {
     int dataLength = DATA_LENGTH[samplingMode];
     char *result = NULL;
+    int ax, ay, az, vector = 0;
+    int rx = 0, ry = 0, rz = 0;
     for (int i = 0; i < count; i++) {
         byte *dataPoint = buffer + i * dataLength;
         switch(samplingMode) {
-        case SAMPLE_GYRO:
-            break;
-            
         case SAMPLE_ACCEL:
         default:
-            int ax = makeInt14(dataPoint[0], dataPoint[1]);
-            int ay = makeInt14(dataPoint[2], dataPoint[3]);
-            int az = makeInt14(dataPoint[4], dataPoint[5]);
-            int vector = ax * ax + ay * ay + az * az;
-            if (vector > 0x4000000) {
-                result = "Acceleration > 4g";
-            } else if (vector < 0x40000) {
-                result = "Acceleration < 0.25g";
+            ax = makeInt12(dataPoint[0], dataPoint[1]);
+            ay = makeInt12(dataPoint[2], dataPoint[3]);
+            az = makeInt12(dataPoint[4], dataPoint[5]);
+            vector += ax * ax + ay * ay + az * az;
+            dataPoint += 6;
+
+        case SAMPLE_GYRO:
+            if (samplingMode != SAMPLE_ACCEL) {
+                rx += makeInt12(dataPoint[0], dataPoint[1]);
+                ry += makeInt12(dataPoint[2], dataPoint[3]);
+                rz += makeInt12(dataPoint[4], dataPoint[5]);
             }
-            break;
         }
+    }
+    
+    if (vector > 0) {
+        if (vector > 0x400000 * count) {
+            result = "Accel > 4g";
+        } else if (vector < 0x1000 * count) {
+            result = "Accel < 0.125g";
+        }
+    }
+    if (abs(rx) > 410 * count || abs(ry) > 410 * count || abs(rz) > 410 * count) {
+        if (result != NULL) result = "Acc & Rot > limits";
+        else result = "Rotation > 50deg/s";
     }
     return result;
 }
