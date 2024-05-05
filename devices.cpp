@@ -437,7 +437,7 @@ int readFifo(int port, int address, byte *message) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
         char error[64];
-        sprintf(error, "FIFO data %d bytes 0x%X", fifoBytes, errorCode);
+        sprintf(error, "FIFO data 12/%d bytes 0x%X", fifoBytes, errorCode);
         Serial.println(error);
         ERROR_REPORT3(port, address, error);
         return 0;

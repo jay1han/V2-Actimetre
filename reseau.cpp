@@ -76,6 +76,8 @@ static void sendMessage(byte *message) {
         Serial.printf("REPORT message length %d\n", msgLength);
     } else if (message[5] & 0x10) {
         msgLength = HEADER_LENGTH + (count + 1) * 4;
+    } else if (message[5] & 0x40) {
+        msgLength = HEADER_LENGTH;
     } else {
         int dataLength = DATA_LENGTH[(message[4] >> 3) & 0x03];
         msgLength = HEADER_LENGTH + dataLength * count;
@@ -159,6 +161,8 @@ int isConnected() {
     return 1;
 }
 
+static byte heartbeatMessage[HEADER_LENGTH];
+
 static void Core0Loop(void *dummy_to_match_argument_signature) {
     Serial.printf("Core %d started\n", xPortGetCoreID());
 
@@ -170,38 +174,49 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
         }
         startWork = micros();
 
-        if (index <= 0 || index >= QUEUE_SIZE) {
-            char error[16];
-            sprintf(error, "0 %X", index);
-            Serial.println(error);
+        if (my.isStopped) {
+            static time_t heartbeat = time(NULL);
+            if (time(NULL) != heartbeat) {
+                formatHeader(0, 0, heartbeatMessage, 0, 0);
+                heartbeatMessage[5] |= 0x40;
+                sendMessage(heartbeatMessage);
+                heartbeat = time(NULL);
+                Serial.println("Heartbeat");
+            }
+        } else {
+            if (index <= 0 || index >= QUEUE_SIZE) {
+                char error[16];
+                sprintf(error, "0 %X", index);
+                Serial.println(error);
 #ifdef STATIC_QUEUE            
-            dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
+                dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
 #endif            
-            ERROR_FATAL(error);
-        }
-        sendMessage(msgQueueStore[index]);
+                ERROR_FATAL(error);
+            }
+            sendMessage(msgQueueStore[index]);
 
 #ifndef TIGHT_QUEUE        
-        int availableSpaces = uxQueueSpacesAvailable(msgQueue);
-        if (availableSpaces < QUEUE_SIZE / 5) {
-            my.nMissed[Core0Net] ++;
-            xQueueReset(msgQueue);
-            Serial.println("Queue more than 80%, cleared");
-            my.queueFill = 0.0;
-        } else {
-            my.queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
-        }
+            int availableSpaces = uxQueueSpacesAvailable(msgQueue);
+            if (availableSpaces < QUEUE_SIZE / 5) {
+                my.nMissed[Core0Net] ++;
+                xQueueReset(msgQueue);
+                Serial.println("Queue more than 80%, cleared");
+                my.queueFill = 0.0;
+            } else {
+                my.queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
+            }
 #endif        
 
 #ifdef LOG_QUEUE
-        static time_t timer = 0;
-        if (time(NULL) != timer) {
-            timer = time(NULL);
-            Serial.printf("===== Dump at %d\n", timer);
-            dump(msgQueueItems, 32 * sizeof(int));
-        }
+            static time_t timer = 0;
+            if (time(NULL) != timer) {
+                timer = time(NULL);
+                Serial.printf("===== Dump at %d\n", timer);
+                dump(msgQueueItems, 32 * sizeof(int));
+            }
 #endif        
-
+        }
+        
         int command = wifiClient.read();
         if (command >= 0) {
             Serial.printf("Remote command 0x%02X\n", command);
@@ -210,10 +225,15 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
                 Serial.println("Simulated button press");
                 manageButton(1);
                 break;
+
+            case REMOTE_STOP:
+                my.isStopped = true;
+                break;
                 
             case REMOTE_RESTART:
                 Serial.println("Remote restart");
                 RESTART(5);
+                break;
             }
         }
         

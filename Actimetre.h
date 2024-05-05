@@ -1,7 +1,7 @@
 #ifndef ACTIMETRE_H
 #define ACTIMETRE_H
 
-#define VERSION_STR "362"
+#define VERSION_STR "382"
 
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
@@ -107,6 +107,8 @@ typedef struct {
     float avgCycleTime[2];
     unsigned int upTime;
     TaskHandle_t core0Task, core1Task;
+
+    bool isStopped;
 } MyInfo;
 
 extern MyInfo my;
@@ -136,6 +138,7 @@ void deviceScanInit();
 
 #define REMOTE_COMMAND   0xF0
 #define REMOTE_BUTTON    0x10
+#define REMOTE_STOP      0x30
 #define REMOTE_RESTART   0xF0
 
 // boards.cpp

@@ -214,33 +214,37 @@ static void textPanel(int step) {
         break;
         
     case 1:
+        if (my.isStopped) {
+            strcpy(textBuffer[1], "Stopped");
+        } else {
 #if INFO_DISPLAY == 1
-        float rating = 0.0;
-        for (int port = 0; port < 2; port++) {
-            for (int address = 0; address < 2; address++) {
-                if (my.sensor[port][address].type) {
-                    if (my.sensor[port][address].nCycles > 0 &&
-                        my.sensor[port][address].nSamples <= my.sensor[port][address].nCycles) 
-                        rating += 1.0 - (float)my.sensor[port][address].nSamples / my.sensor[port][address].nCycles;
+            float rating = 0.0;
+            for (int port = 0; port < 2; port++) {
+                for (int address = 0; address < 2; address++) {
+                    if (my.sensor[port][address].type) {
+                        if (my.sensor[port][address].nCycles > 0 &&
+                            my.sensor[port][address].nSamples <= my.sensor[port][address].nCycles) 
+                            rating += 1.0 - (float)my.sensor[port][address].nSamples / my.sensor[port][address].nCycles;
+                    }
                 }
             }
-        }
-        rating /= my.nSensors;
-        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
+            rating /= my.nSensors;
+            snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.3f%% M%d Q%.0f%%", rating, my.nMissed[1], my.queueFill);
 #endif    
 #if INFO_DISPLAY == 2
-        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%d %d",
-                uxTaskGetStackHighWaterMark(my.core1Task),
-                uxTaskGetStackHighWaterMark(my.core0Task));
+            snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%d %d",
+                     uxTaskGetStackHighWaterMark(my.core1Task),
+                     uxTaskGetStackHighWaterMark(my.core0Task));
 #endif    
 #if INFO_DISPLAY == 3
-        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.0f %d:%d",
-                 avgDisplay, maxDisplayLine, maxDisplayMax);
+            snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%.0f %d:%d",
+                     avgDisplay, maxDisplayLine, maxDisplayMax);
 #endif    
 #if INFO_DISPLAY == 0
-        snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%dms %dkB",
-                 my.cycleMicroseconds / 1000, my.I2Cbudget / 1000);
-#endif        
+            snprintf(textBuffer[1], CHAR_PER_LINE_16 + 1, "%dms %dkB",
+                     my.cycleMicroseconds / 1000, my.I2Cbudget / 1000);
+#endif
+        }
         if (strlen(textBuffer[1]) < CHAR_PER_LINE_16)
             strncat(textBuffer[1], EMPTY_LINE, CHAR_PER_LINE_16 - strlen(textBuffer[1]));
         break;
