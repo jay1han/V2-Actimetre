@@ -6,6 +6,7 @@
 #include "Actimetre.h"
 
 #define ACTI_PORT 2883
+#define SIDE_PORT 2882
 
 static WiFiClient wifiClient;
 static QueueHandle_t msgQueue;
@@ -17,52 +18,6 @@ static byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
 
 #define INIT_LENGTH      13   // boardName = 3, MAC = 6, Sensors = 1, version = 3 : Total 13
 #define RESPONSE_LENGTH  6    // actimId = 2, time = 4 : Total 6
-
-static time_t getActimIdAndTime() {
-    byte initMessage[INIT_LENGTH];
-    Serial.print("Getting name and time ");
-
-    memcpy(initMessage, my.boardName, 3);
-    memcpy(initMessage + 3, my.mac, 6);
-    initMessage[9] = my.sensorBits;
-    memcpy(initMessage + 10, VERSION_STR, 3);
-
-    int err = 0;
-    err = wifiClient.write(initMessage, INIT_LENGTH);
-    if (err < INIT_LENGTH) {
-	Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
-	writeLine("Init failed");
-        RESTART(2);
-    }
-    byte response[RESPONSE_LENGTH];
-
-    err = 0;
-    time_t timeout = time(NULL);
-    while (err < 6) {
-        err += wifiClient.read(response + err, RESPONSE_LENGTH - err);
-        if ((time(NULL) - timeout) > 10) {
-            Serial.println("No response from Actiserver");
-	    writeLine("No response");
-            RESTART(2);
-        }
-    }
-
-    Serial.printf("read: %d bytes, response=%02X%02X, %02X %02X %02X %02X\n",
-                  err, response[0], response[1],
-                  response[2], response[3], response[4], response[5]);
-    
-    my.clientId = response[0] * 256 + response[1];
-    time_t bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
-    
-    sprintf(my.clientName, "Actim%04d", my.clientId);
-    Serial.println(my.clientName);
-
-    char message[16];
-    sprintf(message, "v%s>%04d  %03d", VERSION_STR, my.clientId, my.serverId);
-    displayTitle(message);
-
-    return bootTime;
-}
 
 // Messaging functions
 
@@ -269,18 +224,28 @@ static int scanNetworks() {
     return nScan;
 }
 
-static char ssidList[5][10];
+typedef struct {
+    char ssid[12];
+    int serverId;
+    int rssi;
+    int channel;
+} ActisItem;
+static ActisItem actisList[10];
+
 static int nActis = 0;
-static void findSsid(int nScan) {
+static void findActis(int nScan) {
     int i;
     char ssid[10];
     for (i = 0; i < nScan; i++) {
         strncpy(ssid, WiFi.SSID(i).c_str(), 9);
         ssid[9] = 0;  // always careful
         if (strncmp(ACTISERVER, ssid, 5) == 0) {
-            strcpy(ssidList[nActis], ssid);
+            strcpy(actisList[nActis].ssid, ssid);
+            sscanf(ssid + 5, "%d", &actisList[nActis].serverId);
+            actisList[nActis].rssi = -WiFi.RSSI(i);
+            actisList[nActis].channel = WiFi.channel(i);
             nActis ++;
-            if (nActis == 5) break;
+            if (nActis == 10) break;
         }
     }
     if (nActis == 0) {
@@ -290,22 +255,32 @@ static void findSsid(int nScan) {
     }
 }
 
-static int waitConnected() {
+static bool tryConnect(int index) {
     int wait = 0;
+
+    char *ssid = actisList[index].ssid;
+    my.serverId = actisList[index].serverId;
+    
+    Serial.print(ssid);
+    writeLine(ssid);
+    strcpy(my.ssid, ssid);
+
+    char pass[] = "000animalerie";
+    memcpy(pass, my.ssid + 5, 3);
+    WiFi.begin(my.ssid, pass);
+
     while (WiFi.status() != WL_CONNECTED) {
-        Serial.printf("%d ", WiFi.status());
+        Serial.printf(" %d", WiFi.status());
         blinkLed(COLOR_SWAP);
         wait++;
         if (wait > 10) {
-            Serial.println("Failed!");
-            return 0;
+            Serial.println(" Failed!");
+            writeLine("Failed");
+            return false;
         }
         delay(1000);
     }
-    return 1;
-}
-
-static int printAndSaveNetwork() {
+    
     Serial.print(" Connected! IP=");
     Serial.print(WiFi.localIP());
     strcpy(my.serverIP, WiFi.gatewayIP().toString().c_str());
@@ -321,16 +296,121 @@ static int printAndSaveNetwork() {
     strcpy(myIPstring, ipString.substring(trail + 1).c_str());
     writeLine(myIPstring);
     readRssi();
+    return true;
+}
 
+#define QUERY_LENGTH 1 + 10 * (2 + 1)
+static byte assignQuery[QUERY_LENGTH];
+
+void buildQuery() {
+    int i;
+    assignQuery[0] = nActis;
+    byte *query = &assignQuery[1];
+    for (i = 0; i < nActis; i++) {
+        query[0] = actisList[i].serverId >> 8;
+        query[1] = actisList[i].serverId & 0xFF;
+        query[2] = actisList[i].rssi;
+        query += 3;
+    }
+}
+
+static int getAssigned() {
+    writeLine("Req assign");
+    Serial.printf("Socket to %s:%d\n", my.serverIP, SIDE_PORT);
+    int err = wifiClient.connect(my.serverIP, SIDE_PORT);
+    Serial.printf("connect() returned %d\n", err);
+    if (err == 0) {
+        Serial.println("Connection refused");
+	writeLine("Can't connect");
+        return -1;
+    }
+    wifiClient.setNoDelay(false);
+
+    Serial.println("Sending assignment request");
+
+    err = wifiClient.write(assignQuery, QUERY_LENGTH);
+    if (err < QUERY_LENGTH) {
+	Serial.printf("Sent %d bytes != %d\n", err, QUERY_LENGTH);
+	writeLine("Query failed");
+        return -1;
+    }
+    
+    int assigned;
+    time_t timeout = time(NULL);
+    do {
+        assigned = wifiClient.read();
+    } while (assigned < 0 && (time(NULL) - timeout) < 10);
+    wifiClient.stop();
+    
+    if (assigned == -1) {
+        Serial.println("No response from Actiserver");
+        writeLine("No response");
+    } else {
+        Serial.printf("Assigned %d: %s\n", assigned, actisList[assigned].ssid);
+        writeLine(actisList[assigned].ssid);
+    }
+
+    return assigned;
+}
+
+static bool connectServer() {
     Serial.printf("Socket to %s:%d\n", my.serverIP, ACTI_PORT);
     int err = wifiClient.connect(my.serverIP, ACTI_PORT);
     Serial.printf("connect() returned %d\n", err);
     if (err == 0) {
         Serial.println("Connection refused");
-        return 0;
+        writeLine("Refused");
+        return false;
     }
     wifiClient.setNoDelay(false);
-    return 1;
+    writeLine("Connected");
+    return true;
+}
+
+static time_t getActimIdAndTime() {
+    byte initMessage[INIT_LENGTH];
+    Serial.print("Getting name and time ");
+
+    memcpy(initMessage, my.boardName, 3);
+    memcpy(initMessage + 3, my.mac, 6);
+    initMessage[9] = my.sensorBits;
+    memcpy(initMessage + 10, VERSION_STR, 3);
+
+    int err = 0;
+    err = wifiClient.write(initMessage, INIT_LENGTH);
+    if (err < INIT_LENGTH) {
+	Serial.printf("\nSent %d bytes != %d\n", err, INIT_LENGTH);
+	writeLine("Init failed");
+        RESTART(2);
+    }
+    byte response[RESPONSE_LENGTH];
+
+    err = 0;
+    time_t timeout = time(NULL);
+    while (err < 6) {
+        err += wifiClient.read(response + err, RESPONSE_LENGTH - err);
+        if ((time(NULL) - timeout) > 10) {
+            Serial.println("No response from Actiserver");
+	    writeLine("No response");
+            RESTART(2);
+        }
+    }
+
+    Serial.printf("read: %d bytes, response=%02X%02X, %02X %02X %02X %02X\n",
+                  err, response[0], response[1],
+                  response[2], response[3], response[4], response[5]);
+    
+    my.clientId = response[0] * 256 + response[1];
+    time_t bootTime = (response[2] << 24) + (response[3] << 16) + (response[4] << 8) + response[5];
+    
+    sprintf(my.clientName, "Actim%04d", my.clientId);
+    Serial.println(my.clientName);
+
+    char message[16];
+    sprintf(message, "v%s>%04d  %03d", VERSION_STR, my.clientId, my.serverId);
+    displayTitle(message);
+
+    return bootTime;
 }
 
 // Huge and ugly but that's the way it is.
@@ -348,37 +428,38 @@ void netInit() {
     int nScan;
     nScan = scanNetworks();
     
-    findSsid(nScan);
+    findActis(nScan);
     WiFi.scanDelete();
     WiFi.disconnect(true, true);
-    delay(100);
 
-    int i;
+    buildQuery();
+
+    int i, indexChoice;
     for (i = 0; i < nActis; i++) {
         blinkLed(COLOR_SWAP);
-        Serial.print(ssidList[i]);
-        writeLine(ssidList[i]);
-        strcpy(my.ssid, ssidList[i]);
-        sscanf(my.ssid + 5, "%d", &my.serverId);
-
-        char pass[] = "000animalerie";
-        memcpy(pass, my.ssid + 5, 3);
-        WiFi.begin(my.ssid, pass);
-        Serial.print(" Connecting ");
-        writeLine("Connecting");
-
-        if (!waitConnected()) continue;
-        if (printAndSaveNetwork()) break;
+        if (!tryConnect(i)) continue;
+        indexChoice = getAssigned();
+        WiFi.disconnect(true, true);
+        if (indexChoice >= 0) break;
     }
     if (i == nActis) {
-        Serial.println("\nCan't connect to any server, rebooting");
-	writeLine("No server");
+        Serial.println("Can't get assigned, choose first");
+	writeLine("Self-assign");
+        indexChoice = 0;
+    }
+
+    Serial.printf("Selected %s\n", actisList[indexChoice].ssid);
+    
+    if (!tryConnect(indexChoice)) {
+        Serial.println("Can't connect to chosen server, rebooting");
+	writeLine("Can't connect");
         esp_wifi_stop();
         RESTART(2);
     }
 
     WiFi.setAutoReconnect(true);
-    
+    connectServer();
+
     time_t bootEpoch = getActimIdAndTime();
     initClock(bootEpoch);
 
