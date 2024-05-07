@@ -443,7 +443,6 @@ void netInit() {
         blinkLed(COLOR_SWAP);
         if (!tryConnect(i)) continue;
         indexChoice = getAssigned();
-        WiFi.disconnect(true, true);
         if (indexChoice >= 0) break;
     }
     if (i == nActis) {
@@ -453,12 +452,16 @@ void netInit() {
     }
 
     Serial.printf("Selected %s\n", actisList[indexChoice].ssid);
-    
-    if (!tryConnect(indexChoice)) {
-        Serial.println("Can't connect to chosen server, rebooting");
-	writeLine("Can't connect");
-        esp_wifi_stop();
-        RESTART(2);
+
+    if (actisList[indexChoice].serverId != my.serverId) {
+        WiFi.disconnect(true, true);
+        Serial.println("Switch AP");
+        if (!tryConnect(indexChoice)) {
+            Serial.println("Can't connect to chosen server, rebooting");
+            writeLine("Can't connect");
+            esp_wifi_stop();
+            RESTART(2);
+        }
     }
 
     WiFi.setAutoReconnect(true);
