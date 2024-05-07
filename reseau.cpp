@@ -345,6 +345,10 @@ static int getAssigned() {
     if (assigned == -1) {
         Serial.println("No response from Actiserver");
         writeLine("No response");
+    } else if (assigned >= 100) {
+        Serial.printf("Error relayed %d\n", assigned);
+        writeLine("Not assigned");
+        assigned = -1;
     } else {
         Serial.printf("Assigned %d: %s\n", assigned, actisList[assigned].ssid);
         writeLine(actisList[assigned].ssid);
