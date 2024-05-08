@@ -247,7 +247,7 @@ void blinkLed(int command) {
 void setupBoard() {
     Serial.setTxTimeoutMs(0);
     Serial.begin(921600);
-    while(!Serial);
+    delay(2000);
 
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
