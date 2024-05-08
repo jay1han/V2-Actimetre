@@ -346,13 +346,15 @@ static char *checkData(byte *buffer, int samplingMode, int count) {
             result = "Accel < 0.125g";
         }
     }
-#if 0    
+
     if (abs(rx) > 410 * count || abs(ry) > 410 * count || abs(rz) > 410 * count) {
         if (result != NULL) result = "Acc & Rot > limits";
         else result = "Rotation > 50deg/s";
     }
-#endif    
-    return result;
+
+    // return result;
+    // Unverified, so no check for Prod
+    return NULL;
 }
 
 int readFifo(int port, int address, byte *message) {
