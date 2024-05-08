@@ -539,5 +539,12 @@ void deviceScanInit() {
     }
 
     Serial.printf("Sensors %s\n", my.sensorList);
-    setSamplingMode();
+    int budget = setSamplingMode();
+    if (budget > (my.dualCore ? MPU_BAUDRATE : (MPU_BAUDRATE / 2))) {
+        Serial.printf("Requires %d baud > %d. Stop\n", budget,
+                      (my.dualCore ? MPU_BAUDRATE : (MPU_BAUDRATE / 2)));
+        displayTitle("Too many sens");
+        blinkLed(COLOR_RED);
+        while(true) delay(1);
+    }
 }
