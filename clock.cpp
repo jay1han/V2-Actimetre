@@ -21,13 +21,18 @@ int64_t getAbsMicros() {
     return (int64_t)timeofday.tv_sec * 1000000L + (int64_t)timeofday.tv_usec;
 }
 
-int timeRemaining() {
+static int timeRemaining() {
     int64_t remain = nextMicros - getAbsMicros();
     return (int)remain;
 }
 
 void waitNextCycle() {
+    blinkLed(COLOR_BLINK);
     my.upTime = (time(NULL) - my.bootTime) / 60;
+    if (!my.dualCore) {
+        netWork();
+        while (timeRemaining() > 2500) netWork();
+    }
     while (timeRemaining() > 500) displayLoop(0);
     while (timeRemaining() > 5);
     nextMicros = getAbsMicros() + (int64_t)my.cycleMicroseconds;
@@ -94,7 +99,7 @@ void logCycleTime(CoreNum coreNum, unsigned long time_spent) {
     nCycles[coreNum] ++;
 
     if (coreNum == Core1I2C &&
-        (my.nMissed[1] >= MAX_MISSED1 || my.nMissed[0] >= MAX_MISSED0)) {
+        (my.nMissed[1] >= MAX_MISSED1 || my.nMissed[0] >= (my.dualCore ? MAX_MISSED0 : MAX_MISSED0_SINGLE))) {
         char error[64];
         sprintf(error, "M%d,%d Q%.1f Avg %.1f,%.1f",
                 my.nMissed[1], my.nMissed[0], my.queueFill,

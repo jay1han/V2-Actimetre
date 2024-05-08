@@ -251,16 +251,16 @@ int setSamplingMode() {
                 if (perCycle > 15) perCycle = 15;
                 break;
             }
-            if (my.sensor[port][address].type)
+            if (my.sensor[port][address].type) {
                 budget += my.sampleFrequency * my.sensor[port][address].dataLength;
-
-            Serial.printf("Sensor %s type %02X ",
-                          sensorName(port, address),
-                          my.sensor[port][address].type);
-            Serial.printf("mode %d (max %d, sample %d bytes)\n",
-                          my.sensor[port][address].samplingMode,
-                          my.sensor[port][address].maxMeasures,
-                          my.sensor[port][address].dataLength);
+                Serial.printf("Sensor %s type %02X ",
+                              sensorName(port, address),
+                              my.sensor[port][address].type);
+                Serial.printf("mode %d (max %d, sample %d bytes)\n",
+                              my.sensor[port][address].samplingMode,
+                              my.sensor[port][address].maxMeasures,
+                              my.sensor[port][address].dataLength);
+            }
         }
     }
     budget *= 8 * 2;
@@ -371,7 +371,7 @@ int readFifo(int port, int address, byte *message) {
 
     int fifoBytes = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     int fifoCheck = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    if (fifoCheck < fifoBytes || (fifoCheck - fifoBytes) > 2 * dataLength) {
+    if (fifoCheck < fifoBytes) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
         char error[64];
@@ -520,6 +520,7 @@ void deviceScanInit() {
     if (my.nSensors == 0) {
         Serial.println("No sensors found, rebooting");
         displayTitle("No sensors");
+        blinkLed(COLOR_RED);
         RESTART(5);
     }
 
@@ -539,5 +540,12 @@ void deviceScanInit() {
     }
 
     Serial.printf("Sensors %s\n", my.sensorList);
-    setSamplingMode();
+    int budget = setSamplingMode();
+    if (budget > (my.dualCore ? MPU_BAUDRATE : (MPU_BAUDRATE / 2))) {
+        Serial.printf("Requires %d baud > %d. Stop\n", budget,
+                      (my.dualCore ? MPU_BAUDRATE : (MPU_BAUDRATE / 2)));
+        displayTitle("Too many sens");
+        blinkLed(COLOR_RED);
+        RESTART(5);
+    }
 }

@@ -342,7 +342,20 @@ void displayScan(int scanLine) {
 }    
 
 void displayLoop(int force) {
-    if (my.displayPort < 0) return;
+    if (my.displayPort < 0) {
+#ifdef LOG_HEARTBEAT        
+        static time_t logTimer = 0;
+        if (time(NULL) != logTimer) {
+            logTimer = time(NULL);
+            Serial.printf("%dh%02d %.1f %.1f (%.1f) ",
+                          my.upTime / 60, my.upTime % 60,
+                          my.avgCycleTime[1] / 1000.0, my.avgCycleTime[0] / 1000.0,
+                          (float)my.cycleMicroseconds / 1000.0);
+            Serial.printf("M%d,%d Q%.0f%%\n", my.nMissed[1], my.nMissed[0], my.queueFill);
+        }
+#endif        
+        return;
+    }
     TwoWire &wire = (my.displayPort == 0) ? Wire : Wire1;
 
     wire.setClock(DISPLAY_BAUDRATE);
