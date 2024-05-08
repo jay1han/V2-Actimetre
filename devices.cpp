@@ -520,6 +520,7 @@ void deviceScanInit() {
     if (my.nSensors == 0) {
         Serial.println("No sensors found, rebooting");
         displayTitle("No sensors");
+        blinkLed(COLOR_RED);
         RESTART(5);
     }
 
@@ -545,6 +546,6 @@ void deviceScanInit() {
                       (my.dualCore ? MPU_BAUDRATE : (MPU_BAUDRATE / 2)));
         displayTitle("Too many sens");
         blinkLed(COLOR_RED);
-        while(true) delay(1);
+        RESTART(5);
     }
 }
