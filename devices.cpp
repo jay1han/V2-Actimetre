@@ -251,16 +251,16 @@ int setSamplingMode() {
                 if (perCycle > 15) perCycle = 15;
                 break;
             }
-            if (my.sensor[port][address].type)
+            if (my.sensor[port][address].type) {
                 budget += my.sampleFrequency * my.sensor[port][address].dataLength;
-
-            Serial.printf("Sensor %s type %02X ",
-                          sensorName(port, address),
-                          my.sensor[port][address].type);
-            Serial.printf("mode %d (max %d, sample %d bytes)\n",
-                          my.sensor[port][address].samplingMode,
-                          my.sensor[port][address].maxMeasures,
-                          my.sensor[port][address].dataLength);
+                Serial.printf("Sensor %s type %02X ",
+                              sensorName(port, address),
+                              my.sensor[port][address].type);
+                Serial.printf("mode %d (max %d, sample %d bytes)\n",
+                              my.sensor[port][address].samplingMode,
+                              my.sensor[port][address].maxMeasures,
+                              my.sensor[port][address].dataLength);
+            }
         }
     }
     budget *= 8 * 2;
