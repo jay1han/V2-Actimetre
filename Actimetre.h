@@ -6,10 +6,10 @@
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
 //#define PROFILE_NETWORK
-//#define LOG_HEARTBEAT
+#define LOG_HEARTBEAT
 //#define LOG_STACK
-#define STATIC_QUEUE
 #define STATIC_STACK
+#define STATIC_QUEUE
 //#define TIGHT_QUEUE
 //#define LOG_QUEUE
 #define INFO_DISPLAY       0   // 0 = none, 1 = fifo, 2 = stack, 3 = display
@@ -36,13 +36,18 @@ static void _test(int);
 #define LCD_H_RES 128
 #define LCD_V_RES 64
 
-#define MEASURE_SECS     60
-#define MAX_MISSED1      3
-#define MAX_MISSED0      3
+#define MEASURE_SECS       60
+#define MAX_MISSED1        3
+#define MAX_MISSED0        3
+#define MAX_MISSED0_SINGLE 30
 
 #define HEADER_LENGTH    8     // epoch(3), count(1), rssi(high)+freq(low) (1), usec(3)
 #define BUFFER_LENGTH    (240 + HEADER_LENGTH)
+#if CONFIG_IDF_TARGET_ESP32S3
 #define QUEUE_SIZE       800
+#else
+#define QUEUE_SIZE       100
+#endif
 
 #define SAMPLE_ACCEL     1
 #define SAMPLE_GYRO      2
@@ -54,10 +59,14 @@ extern int DATA_LENGTH[];
 typedef enum {Core0Net, Core1I2C, CoreNumMax} CoreNum;
 
 typedef enum {
-    BOARD_S3_I2C = 0,
+    BOARD_BAD = 0,
+    BOARD_S3_I2C,
     BOARD_S3_NEWBOX,
     BOARD_S3_ZERO,
-    BOARD_BAD,
+    BOARD_S3_NEWBOX2,
+    BOARD_S2_SOLO,
+    BOARD_C3_SOLO,
+    BOARD_S3_SOLO,
     BOARD_TYPES
 } BoardType;
 
@@ -85,6 +94,7 @@ typedef struct {
     char macString[15];
     unsigned int clientId;
     char clientName[12];
+    bool dualCore;
 
     unsigned int serverId;
     char ssid[10];
@@ -126,6 +136,7 @@ void writeLine(char *message);
 void netInit();
 int isConnected();
 void queueIndex(int);
+void netWork();
 void netCore0(void *dummy_to_match_argument_signature);
 extern byte msgQueueStore[QUEUE_SIZE][BUFFER_LENGTH];
 
@@ -156,6 +167,7 @@ void setupCore0(void (*core0Loop)(void*));
 #define COLOR_BLACK   0x000000
 #define COLOR_SWAP    (-1)
 #define COLOR_FREQ    0x1000000
+#define COLOR_BLINK   0x2000000
 
 // clock.cpp
 void initClock(time_t bootEpoch);

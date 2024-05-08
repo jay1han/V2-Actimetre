@@ -12,8 +12,10 @@ MyInfo my;
 
 // MAIN SETUP
 
+#ifdef STATIC_STACK
 static StaticTask_t core1Task;
 static StackType_t core1Stack[16384];
+#endif
 
 void setup() {
     memset(&my, 0x00, sizeof(MyInfo));
@@ -42,7 +44,11 @@ void setup() {
     blinkLed(COLOR_FREQ | 1);
 
 #ifdef STATIC_STACK
-    my.core1Task = xTaskCreateStaticPinnedToCore(Core1Loop, "Core1", 16384, NULL, 2, core1Stack, &core1Task, 1);
+    if (my.dualCore) {
+        my.core1Task = xTaskCreateStaticPinnedToCore(Core1Loop, "Core1", 16384, NULL, 2, core1Stack, &core1Task, 1);
+    } else {
+        my.core1Task = xTaskCreateStatic(Core1Loop, "Core", 16384, NULL, 2, core1Stack, &core1Task);
+    }
     if (my.core1Task == NULL) {
         Serial.println("Error starting Main task");
         ESP.restart();
@@ -131,6 +137,7 @@ void loop()
     }
     
     logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
+    netWork();
 }
 
 // UTILITY FUNCTION

@@ -21,8 +21,7 @@ static byte msgQueueItems[QUEUE_SIZE * sizeof(int)];
 
 // Messaging functions
 
-static void sendMessage(byte *message) {
-    int timeout = micros();
+static bool sendMessage(byte *message) {
     int epochSec = message[0] << 16 | message[1] << 8 | message[2];
     int count = message[3] & 0x3F;
     int msgLength;
@@ -39,20 +38,25 @@ static void sendMessage(byte *message) {
     }
     
     int sent = 0;
-    while (sent < msgLength && micros_diff(micros(), timeout) < 1000000L) {
+    unsigned long timeout = micros();
+    while (sent < msgLength && micros_diff(micros(), timeout) < (my.dualCore ? 1000000L : my.cycleMicroseconds / 3)) {
         sent += wifiClient.write(message + sent, msgLength - sent);
     }
 
-    if (message[0] == 0xFF) {
-        if (sent != msgLength)
-            Serial.printf("Timeout sending message\n");
-        return;
-    }
-
     if (sent != msgLength) {
-        Serial.printf("Timeout sending data\n");
-        writeLine("Timeout");
-        RESTART(2);
+        my.nMissed[Core0Net] ++;
+        if (message[0] == 0xFF) {
+            Serial.printf("Timeout sending message\n");
+            return false;
+        } else {
+            Serial.printf("Timeout sending data\n");
+            if (my.dualCore) {
+                writeLine("Timeout");
+                RESTART(2);
+            } else {
+                return false;
+            }
+        }
     }
 
 #ifdef PROFILE_NETWORK
@@ -72,9 +76,21 @@ static void sendMessage(byte *message) {
         nMessages[port][address] = 0;
         thisSec[port][address] = epochSec;
     }
-#endif    
+#endif
+    return true;
+}
 
-    logCycleTime(Core0Net, micros_diff(micros(), timeout));
+static byte heartbeatMessage[HEADER_LENGTH];
+
+static void sendHeartbeat() {
+    static time_t heartbeat = time(NULL);
+    if (time(NULL) != heartbeat) {
+        formatHeader(0, 0, heartbeatMessage, 0, 0);
+        heartbeatMessage[5] |= 0x40;
+        sendMessage(heartbeatMessage);
+        heartbeat = time(NULL);
+        Serial.println("Heartbeat");
+    }
 }
 
 void queueIndex(int index) {
@@ -84,6 +100,7 @@ void queueIndex(int index) {
         Serial.println(error);
         ERROR_FATAL(error);
     }
+
     if (xQueueSend(msgQueue, &index, 0) != pdTRUE) {
 #ifdef TIGHT_QUEUE        
         ERROR_FATAL("Queue full");
@@ -91,7 +108,7 @@ void queueIndex(int index) {
         my.nMissed[Core0Net] ++;
         xQueueReset(msgQueue);
         Serial.println("Queue full, cleared");
-#endif        
+#endif
     }
 }
 
@@ -116,85 +133,86 @@ int isConnected() {
     return 1;
 }
 
-static byte heartbeatMessage[HEADER_LENGTH];
+static void netWorkOn(int index) {
+    unsigned long startWork = micros();
+
+    if (my.isStopped) sendHeartbeat();
+    else {
+        if (index <= 0 || index >= QUEUE_SIZE) {
+            char error[16];
+            sprintf(error, "0 %X", index);
+            Serial.println(error);
+#ifdef STATIC_QUEUE            
+            dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
+#endif            
+            ERROR_FATAL(error);
+        }
+        if (!sendMessage(msgQueueStore[index]) && !my.dualCore) {
+            Serial.println("Requeued message");
+            xQueueSendToFront(msgQueue, &index, 0);
+        }
+
+#ifndef TIGHT_QUEUE        
+        int availableSpaces = uxQueueSpacesAvailable(msgQueue);
+        if (availableSpaces < QUEUE_SIZE / 5) {
+            my.nMissed[Core0Net] ++;
+            xQueueReset(msgQueue);
+            Serial.println("Queue more than 80%, cleared");
+            my.queueFill = 0.0;
+        } else {
+            my.queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
+        }
+#endif        
+
+#ifdef LOG_QUEUE
+        static time_t timer = 0;
+        if (time(NULL) != timer) {
+            timer = time(NULL);
+            Serial.printf("===== Dump at %d\n", timer);
+            dump(msgQueueItems, 32 * sizeof(int));
+        }
+#endif        
+    }
+        
+    int command = wifiClient.read();
+    if (command >= 0) {
+        Serial.printf("Remote command 0x%02X\n", command);
+        switch(command & REMOTE_COMMAND) {
+        case REMOTE_BUTTON:
+            Serial.println("Simulated button press");
+            manageButton(1);
+            break;
+
+        case REMOTE_STOP:
+            my.isStopped = true;
+            break;
+                
+        case REMOTE_RESTART:
+            Serial.println("Remote restart");
+            RESTART(5);
+            break;
+        }
+    }
+        
+    readRssi();
+    logCycleTime(Core0Net, micros_diff(micros(), startWork));
+}
 
 static void Core0Loop(void *dummy_to_match_argument_signature) {
     Serial.printf("Core %d started\n", xPortGetCoreID());
 
-    unsigned long startWork;
     for (;;) {
 //        TEST_LOCAL(1);
         int index;
-        while (xQueueReceive(msgQueue, &index, 1) != pdTRUE) {
-        }
-        startWork = micros();
-
-        if (my.isStopped) {
-            static time_t heartbeat = time(NULL);
-            if (time(NULL) != heartbeat) {
-                formatHeader(0, 0, heartbeatMessage, 0, 0);
-                heartbeatMessage[5] |= 0x40;
-                sendMessage(heartbeatMessage);
-                heartbeat = time(NULL);
-                Serial.println("Heartbeat");
-            }
-        } else {
-            if (index <= 0 || index >= QUEUE_SIZE) {
-                char error[16];
-                sprintf(error, "0 %X", index);
-                Serial.println(error);
-#ifdef STATIC_QUEUE            
-                dump(msgQueueItems, QUEUE_SIZE * sizeof(int));
-#endif            
-                ERROR_FATAL(error);
-            }
-            sendMessage(msgQueueStore[index]);
-
-#ifndef TIGHT_QUEUE        
-            int availableSpaces = uxQueueSpacesAvailable(msgQueue);
-            if (availableSpaces < QUEUE_SIZE / 5) {
-                my.nMissed[Core0Net] ++;
-                xQueueReset(msgQueue);
-                Serial.println("Queue more than 80%, cleared");
-                my.queueFill = 0.0;
-            } else {
-                my.queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
-            }
-#endif        
-
-#ifdef LOG_QUEUE
-            static time_t timer = 0;
-            if (time(NULL) != timer) {
-                timer = time(NULL);
-                Serial.printf("===== Dump at %d\n", timer);
-                dump(msgQueueItems, 32 * sizeof(int));
-            }
-#endif        
-        }
-        
-        int command = wifiClient.read();
-        if (command >= 0) {
-            Serial.printf("Remote command 0x%02X\n", command);
-            switch(command & REMOTE_COMMAND) {
-            case REMOTE_BUTTON:
-                Serial.println("Simulated button press");
-                manageButton(1);
-                break;
-
-            case REMOTE_STOP:
-                my.isStopped = true;
-                break;
-                
-            case REMOTE_RESTART:
-                Serial.println("Remote restart");
-                RESTART(5);
-                break;
-            }
-        }
-        
-        readRssi();
-        logCycleTime(Core0Net, micros_diff(micros(), startWork));
+        while (xQueueReceive(msgQueue, &index, 1) != pdTRUE);
+        netWorkOn(index);
     }
+}
+
+void netWork() {
+    int index;
+    if (xQueueReceive(msgQueue, &index, 0) == pdTRUE)
+        netWorkOn(index);
 }
 
 // Network initializations
@@ -477,12 +495,13 @@ void netInit() {
 #endif    
     if (msgQueue == 0) {
         Serial.println("Error creating queue, rebooting");
-	writeLine("OS error");
+        writeLine("OS error");
         RESTART(1);
     }
     my.queueFill = 0.0;
 
-    setupCore0(Core0Loop);
+    if (my.dualCore)
+        setupCore0(Core0Loop);
 }
 
 static void _test(int type) {
