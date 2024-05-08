@@ -258,11 +258,11 @@ void setupBoard() {
         pinMode(14, INPUT_PULLDOWN);
         pinMode(15, INPUT_PULLDOWN);
         pinMode(1, INPUT_PULLDOWN);
-        pinMode(16, INPUT_PULLUP);
+        pinMode(17, INPUT_PULLUP);
         if (digitalRead(14) == 1 and digitalRead(15) == 1) my.boardType = BOARD_S3_I2C;
         else if (digitalRead(14) == 0 and digitalRead(15) == 0) my.boardType = BOARD_S3_NEWBOX;
         else if (digitalRead(14) == 1 and digitalRead(15) == 0) my.boardType = BOARD_S3_NEWBOX2;
-        else if (digitalRead(16) == 0) my.boardType = BOARD_S3_SOLO;
+        else if (digitalRead(17) == 0) my.boardType = BOARD_S3_SOLO;
         else if (digitalRead(1) == 1) {
             my.boardType = BOARD_S3_ZERO;
             my.ledRGB = LED_GRB;
