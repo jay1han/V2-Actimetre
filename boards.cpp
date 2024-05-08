@@ -55,7 +55,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      40, 38, 36, 34,
      0xFF, 0xFF, 0xFF, 0xFF}, 
     // Board Type 6 (C3 Solo) C3o
-    {0, 8,
+    {9, 8,
      9, 10, 20, 21,
      0xFF, 0xFF, 0xFF, 0xFF}, 
     // Board Type 7 (S3 mini Solo) S3o
@@ -82,7 +82,7 @@ static void switchFrequency() {
         freqCode = (freqCode + 1) % FREQ_COUNT;
         my.frequencyCode = FrequencyCode[freqCode];
         my.sampleFrequency = Frequencies[my.frequencyCode];
-    } while (setSamplingMode() > MPU_BAUDRATE);
+    } while (setSamplingMode() > (my.dualCore ? MPU_BAUDRATE : (MPU_BAUDRATE / 2)));
     
     setSensorsFrequency();
     displaySensors();

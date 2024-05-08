@@ -21,7 +21,7 @@ int64_t getAbsMicros() {
     return (int64_t)timeofday.tv_sec * 1000000L + (int64_t)timeofday.tv_usec;
 }
 
-int timeRemaining() {
+static int timeRemaining() {
     int64_t remain = nextMicros - getAbsMicros();
     return (int)remain;
 }
@@ -29,6 +29,10 @@ int timeRemaining() {
 void waitNextCycle() {
     blinkLed(COLOR_BLINK);
     my.upTime = (time(NULL) - my.bootTime) / 60;
+    if (!my.dualCore) {
+        netWork();
+        while (timeRemaining() > 2500) netWork();
+    }
     while (timeRemaining() > 500) displayLoop(0);
     while (timeRemaining() > 5);
     nextMicros = getAbsMicros() + (int64_t)my.cycleMicroseconds;

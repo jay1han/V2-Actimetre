@@ -211,8 +211,9 @@ static void Core0Loop(void *dummy_to_match_argument_signature) {
 
 void netWork() {
     int index;
-    if (xQueueReceive(msgQueue, &index, 0) == pdTRUE)
+    if (xQueueReceive(msgQueue, &index, 0) == pdTRUE) {
         netWorkOn(index);
+    }
 }
 
 // Network initializations

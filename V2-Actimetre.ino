@@ -137,7 +137,6 @@ void loop()
     }
     
     logCycleTime(Core1I2C, micros_diff(micros(), cycle_time));
-    netWork();
 }
 
 // UTILITY FUNCTION
