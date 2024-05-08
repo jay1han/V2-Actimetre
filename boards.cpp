@@ -63,11 +63,6 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      33, 37, 38, 34,
      0xFF, 0xFF, 0xFF, 0xFF}, 
 };
-#define PIN_DETECT_12 14 // if pulled HIGH then type 1 else type 2
-#define PIN_DETECT_32 1  // if pulled HIGH then type 3 else type 2
-#define PIN_DETECT_42 10 // if pulled HIGH then type 4 else type 2
-#define PIN_DETECT_27 15 // if pulled LOW then type 7 else type 2
-
 static uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
     PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC;
@@ -260,15 +255,20 @@ void setupBoard() {
     case CHIP_ESP32S3:
         my.dualCore = true;
         my.ledRGB = LED_RGB;
-        pinMode(PIN_DETECT_12, INPUT_PULLDOWN);
-        pinMode(PIN_DETECT_32, INPUT_PULLDOWN);
-        pinMode(PIN_DETECT_42, INPUT_PULLDOWN);
-        if (digitalRead(PIN_DETECT_12) == 1) my.boardType = BOARD_S3_I2C;
-        else if (digitalRead(PIN_DETECT_42) == 1) my.boardType = BOARD_S3_NEWBOX2;
-        else if (digitalRead(PIN_DETECT_32) == 1) {
+        pinMode(14, INPUT_PULLDOWN);
+        pinMode(15, INPUT_PULLDOWN);
+        pinMode(1, INPUT_PULLDOWN);
+        pinMode(16, INPUT_PULLUP);
+        if (digitalRead(14) == 1 and digitalRead(15) == 1) my.boardType = BOARD_S3_I2C;
+        else if (digitalRead(14) == 0 and digitalRead(15) == 0) my.boardType = BOARD_S3_NEWBOX;
+        else if (digitalRead(14) == 1 and digitalRead(15) == 0) my.boardType = BOARD_S3_NEWBOX2;
+        else if (digitalRead(16) == 0) my.boardType = BOARD_S3_SOLO;
+        else if (digitalRead(1) == 1) {
             my.boardType = BOARD_S3_ZERO;
             my.ledRGB = LED_GRB;
-        } else my.boardType = BOARD_S3_NEWBOX;
+        } else {
+            my.boardType = BOARD_BAD;
+        }
         break;
 
     case CHIP_ESP32S2:
