@@ -371,8 +371,7 @@ int readFifo(int port, int address, byte *message) {
 
     int fifoBytes = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
     int fifoCheck = readWord(port, address, MPU6050_FIFO_CNT_H) & 0x1FFF;
-    if (fifoCheck < fifoBytes ||
-        ((fifoCheck - fifoBytes) > dataLength && ((fifoCheck - fifoBytes) % dataLength) != 0)) {
+    if (fifoCheck < fifoBytes) {
         clear1Sensor(port, address);
         my.nMissed[Core1I2C]++;
         char error[64];

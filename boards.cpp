@@ -34,31 +34,31 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     {0xFF, 0xFF,
      0xFF, 0xFF, 0xFF, 0xFF,
      0xFF, 0xFF, 0xFF, 0xFF},
-    // Board Type 1 (S3 mini with I2C)
+    // Board Type 1 (S3 mini with I2C) S3i
     {0, 47,
      21, 17, 0xFF, 15,
      7, 8, 9, 14},  // Pin 10 is also GND for the display
-    // Board Type 2 (S3 mini with new box)
+    // Board Type 2 (S3 mini with new box) S3n
     {0, 47,
      13, 11, 10, 0xFF, 
      44, 36, 35, 18}, 
-    // Board Type 3 (S3 zero)
+    // Board Type 3 (S3 zero) S3z
     {0, 21,
      3, 4, 5, 6,
      10, 9, 8, 7},
-    // Board Type 4 (S3 mini alternate for new box)
+    // Board Type 4 (S3 mini alternate for new box) S3m
     {0, 47,
      2, 4, 12, 13,
      44, 36, 35, 18}, 
-    // Board Type 5 (S2 mini Solo)
+    // Board Type 5 (S2 mini Solo) S2o
     {0, 15,
      40, 38, 36, 34,
      0xFF, 0xFF, 0xFF, 0xFF}, 
-    // Board Type 6 (C3 Solo)
+    // Board Type 6 (C3 Solo) C3o
     {0, 8,
      9, 10, 20, 21,
      0xFF, 0xFF, 0xFF, 0xFF}, 
-    // Board Type 7 (S3 mini Solo)
+    // Board Type 7 (S3 mini Solo) S3o
     {0, 47,
      33, 37, 38, 34,
      0xFF, 0xFF, 0xFF, 0xFF}, 
@@ -72,10 +72,10 @@ static uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
     PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC;
 
-#define FREQ_COUNT   4
+#define FREQ_COUNT   3
 int freqCode =  0;
 static int Frequencies[8] = {100, 500, 1000, 2000, 4000, 8000};
-static int FrequencyCode[FREQ_COUNT] = {2, 3, 4, 5};
+static int FrequencyCode[FREQ_COUNT] = {2, 4, 5};
 
 static void switchFrequency() {
     do {
@@ -201,22 +201,22 @@ static int BLINK_MILLIS[] = {2000,     1000,     500,      200,      100     };
 
 void blinkLed(int command) {
     static int saved = COLOR_WHITE;
-    static int frequency;
+    static int frequency = 1;
     static bool state = false;
     static unsigned long blinkTime = millis();
     int color;
 
-    if (my.ledRGB == LED_MONO && command == COLOR_BLINK) {
+    if (command == COLOR_BLINK) {
         if (millis_diff_10(millis(), blinkTime) > BLINK_MILLIS[frequency]) {
             blinkTime = millis();
-            state != state;
-            if (state) color = COLOR_WHITE;
+            state = !state;
+            if (state) color = saved;
             else color = COLOR_BLACK;
         }
     } else if (command == COLOR_SWAP) {
-        if (state) color = COLOR_BLACK;
-        else color = saved;
         state = !state;
+        if (state) color = saved;
+        else color = COLOR_BLACK;
     } else if (command & COLOR_FREQ) {
         frequency = command & 0x07;
         color = saved = COLORS[frequency];
@@ -239,8 +239,8 @@ void blinkLed(int command) {
         data = stuffBits(data, color >> 16);
         rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
     } else {
-        if (color == COLOR_BLACK) digitalWrite(PIN_LED, 0);
-        else digitalWrite(PIN_LED, 1);
+        if (state) digitalWrite(PIN_LED, 1);
+        else digitalWrite(PIN_LED, 0);
     }
 }
 
