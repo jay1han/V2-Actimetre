@@ -6,7 +6,7 @@
 //#define PROFILE_DISPLAY
 //#define LOG_DISPLAY
 //#define PROFILE_NETWORK
-#define LOG_HEARTBEAT
+//#define LOG_HEARTBEAT
 //#define LOG_STACK
 #define STATIC_STACK
 #define STATIC_QUEUE
