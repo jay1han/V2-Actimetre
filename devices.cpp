@@ -353,7 +353,7 @@ static char *checkData(byte *buffer, int samplingMode, int count) {
     }
 
     // return result;
-    // Unverified yet, so don't check anything
+    // Unverified, so no check for Prod
     return NULL;
 }
 
