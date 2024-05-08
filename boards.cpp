@@ -44,8 +44,8 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
      44, 36, 35, 18}, 
     // Board Type 3 (S3 zero) S3z
     {0, 21,
-     3, 4, 5, 6,
-     10, 9, 8, 7},
+     10, 9, 8, 7,
+     3, 4, 5, 6},
     // Board Type 4 (S3 mini alternate for new box) S3m
     {0, 47,
      2, 4, 12, 13,
