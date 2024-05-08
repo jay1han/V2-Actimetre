@@ -165,7 +165,7 @@ void setupCore0(void (*core0Loop)(void*));
 #define COLOR_GREEN   0x003F00
 #define COLOR_BLUE    0x3F0000
 #define COLOR_BLACK   0x000000
-#define COLOR_SWAP    (-1)
+#define COLOR_SWAP    0x8000000
 #define COLOR_FREQ    0x1000000
 #define COLOR_BLINK   0x2000000
 

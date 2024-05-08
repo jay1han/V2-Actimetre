@@ -222,8 +222,13 @@ void blinkLed(int command) {
         color = saved = COLORS[frequency];
         state = true;
     } else {
-        color = saved = command;
-        state = true;
+        color = command;
+        if (color == COLOR_BLACK) {
+            state = false;
+        } else {
+            saved = color;
+            state = true;
+        }
     }
     
     if (my.ledRGB == LED_RGB) {
