@@ -186,10 +186,10 @@ static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
     return data;
 }
 
-//                           <1K,      1K,       2K,       4K,       8K
-//                           magenta,  yellow,   cyan,     green,    blue
-static int COLORS[]       = {0x0F0007, 0x00070F, 0x0F0700, 0x000F00, 0x170000};
-static int BLINK_MILLIS[] = {2000,     1000,     500,      200,      100     };
+//                                     <1K,      1K,       2K,       4K,       8K
+//                                     magenta,  yellow,   cyan,     green,    blue
+static int COLORS[]                 = {0x0F0007, 0x00070F, 0x0F0700, 0x000F00, 0x170000};
+static unsigned long BLINK_MILLIS[] = {2000,     1000,     500,      200,      200     };
 #define LED_MONO  0
 #define LED_RGB   1
 #define LED_GRB   2
@@ -202,12 +202,14 @@ void blinkLed(int command) {
     int color;
 
     if (command == COLOR_BLINK) {
-        if (millis_diff_10(millis(), blinkTime) > BLINK_MILLIS[frequency]) {
+        unsigned long blinkPeriod = (my.ledRGB != LED_MONO) ? 1000 : BLINK_MILLIS[frequency];
+        if (my.isStopped) blinkPeriod = 50;
+        if (millis_diff_10(millis(), blinkTime) > blinkPeriod) {
             blinkTime = millis();
             state = !state;
             if (state) color = saved;
             else color = COLOR_BLACK;
-        }
+        } else return;
     } else if (command == COLOR_SWAP) {
         state = !state;
         if (state) color = saved;
@@ -230,13 +232,13 @@ void blinkLed(int command) {
         rmt_data_t *data = RmtBuffer;
         data = stuffBits(data, color & 0xFF);
         data = stuffBits(data, (color >> 8) & 0xFF);
-        data = stuffBits(data, color >> 16);
+        data = stuffBits(data, (color >> 16) & 0xFF);
         rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
     } else if (my.ledRGB == LED_GRB) {
         rmt_data_t *data = RmtBuffer;
         data = stuffBits(data, (color >> 8) & 0xFF);
         data = stuffBits(data, color & 0xFF);
-        data = stuffBits(data, color >> 16);
+        data = stuffBits(data, (color >> 16) & 0xFF);
         rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
     } else {
         if (state) digitalWrite(PIN_LED, 1);

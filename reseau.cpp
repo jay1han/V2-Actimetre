@@ -185,6 +185,7 @@ static void netWorkOn(int index) {
 
         case REMOTE_STOP:
             my.isStopped = true;
+            blinkLed(COLOR_WHITE);
             break;
                 
         case REMOTE_RESTART:
