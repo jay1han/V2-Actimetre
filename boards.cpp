@@ -53,15 +53,15 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     // Board Type 5 (S2 mini Solo) S2o
     {0, 15,
      40, 38, 36, 34,
-     0xFF, 0xFF, 0xFF, 0xFF}, 
+     1, 2, 4, 6},
     // Board Type 6 (C3 Solo) C3o
     {9, 8,
-     9, 10, 20, 21,
-     0xFF, 0xFF, 0xFF, 0xFF}, 
+     7, 10, 20, 21,
+     1, 3, 4, 0xFF},
     // Board Type 7 (S3 mini Solo) S3o
     {0, 47,
      33, 37, 38, 34,
-     0xFF, 0xFF, 0xFF, 0xFF}, 
+     1, 3, 5, 6},
 };
 static uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
@@ -305,10 +305,14 @@ void setupBoard() {
         PIN_I2C0_SCL                = PINS[my.boardType][_PIN_I2C0_SCL];
         PIN_I2C0_GND                = PINS[my.boardType][_PIN_I2C0_GND];
         PIN_I2C0_VCC                = PINS[my.boardType][_PIN_I2C0_VCC];
-        pinMode(PIN_I2C0_GND, OUTPUT);
-        digitalWrite(PIN_I2C0_GND, 0);
-        pinMode(PIN_I2C0_VCC, OUTPUT);
-        digitalWrite(PIN_I2C0_VCC, 1); 
+        if (PIN_I2C0_GND != 0xFF) {
+            pinMode(PIN_I2C0_GND, OUTPUT);
+            digitalWrite(PIN_I2C0_GND, 0);
+        }
+        if (PIN_I2C0_VCC != 0xFF) {
+            pinMode(PIN_I2C0_VCC, OUTPUT);
+            digitalWrite(PIN_I2C0_VCC, 1);
+        }
         Wire.begin(PIN_I2C0_SDA, PIN_I2C0_SCL, LOW_BAUDRATE);
         Wire.setTimeout(0);
         Serial.printf("I2C0 started %d baud\n", Wire.getClock());
@@ -322,10 +326,14 @@ void setupBoard() {
         PIN_I2C1_SCL                = PINS[my.boardType][_PIN_I2C1_SCL];
         PIN_I2C1_GND                = PINS[my.boardType][_PIN_I2C1_GND];
         PIN_I2C1_VCC                = PINS[my.boardType][_PIN_I2C1_VCC];
-        pinMode(PIN_I2C1_GND, OUTPUT);
-        digitalWrite(PIN_I2C1_GND, 0);
-        pinMode(PIN_I2C1_VCC, OUTPUT);
-        digitalWrite(PIN_I2C1_VCC, 1);
+        if (PIN_I2C1_GND != 0xFF) {
+            pinMode(PIN_I2C1_GND, OUTPUT);
+            digitalWrite(PIN_I2C1_GND, 0);
+        }
+        if (PIN_I2C1_VCC != 0xFF) {
+            pinMode(PIN_I2C1_VCC, OUTPUT);
+            digitalWrite(PIN_I2C1_VCC, 1);
+        }
         Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, LOW_BAUDRATE);
         Wire1.setTimeout(0);
         Serial.printf("I2C1 started %d baud\n", Wire1.getClock());
