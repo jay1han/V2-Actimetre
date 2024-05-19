@@ -68,7 +68,7 @@ static uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC;
 
 #define FREQ_COUNT   3
-int freqCode =  0;
+static int freqCode =  0;
 static int Frequencies[8] = {100, 500, 1000, 2000, 4000, 8000};
 static int FrequencyCode[FREQ_COUNT] = {2, 4, 5};
 
@@ -94,16 +94,12 @@ static void switchFrequency() {
 
 // LED AND BUTTON
 
-int buttonPressed() {
-    return 1 - digitalRead(PIN_BUTTON);
-}
-
-void longPress() {
+static void longPress() {
     Serial.println("Button long-press");
     // Do nothing
 }
 
-void shortPress() {
+static void shortPress() {
     Serial.println("Button press");
     switchFrequency();
 }

@@ -103,7 +103,7 @@ static void Core1Loop(void *dummy_to_match_argument_signature) {
     }
 }
 void loop() {}
-void MainLoop()
+static void MainLoop()
 #else
 void loop()    
 #endif

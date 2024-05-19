@@ -195,9 +195,9 @@ static void write_block(int x, int y) {
 
 #define TOTAL_SCAN_LINE  (RSSI_STEPS + TEXT_STEPS + CHAR_PER_LINE_16 * 2 * 3 + 1)
 #ifdef PROFILE_DISPLAY
-float avgDisplay;
-int maxDisplay[TOTAL_SCAN_LINE];
-int maxDisplayMax, maxDisplayLine;
+static float avgDisplay;
+static int maxDisplay[TOTAL_SCAN_LINE];
+static int maxDisplayMax, maxDisplayLine;
 #endif
 
 static void textPanel(int step) {
@@ -308,7 +308,7 @@ static void displayScanLine(int scanLine) {
     }
 }
 
-void displayScan(int scanLine) {
+static void displayScan(int scanLine) {
     if (scanLine < TOTAL_SCAN_LINE - 1) {
         if (scanLine < RSSI_STEPS) displayRssi(scanLine);
         else if (scanLine < RSSI_STEPS + TEXT_STEPS) textPanel(scanLine - RSSI_STEPS);

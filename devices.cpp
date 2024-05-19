@@ -26,7 +26,7 @@ static char *sensorName(int port, int address) {
     return name;
 }
 
-void writeByte(int port, int address, int memory, unsigned char cmd) {
+static void writeByte(int port, int address, int memory, unsigned char cmd) {
     if (!my.hasI2C[port]) {
         Serial.printf("writeByte(port=%d, address=%d)\n", port, address);
         return;
@@ -39,7 +39,7 @@ void writeByte(int port, int address, int memory, unsigned char cmd) {
     if (wire.endTransmission(true) != 0) ERROR_FATAL3(port, address, "writeByte() -> endTransmission");
 }
 
-unsigned char readByte(int port, int address, int memory) {
+static unsigned char readByte(int port, int address, int memory) {
     if (!my.hasI2C[port]) {
         Serial.printf("readByte(port=%d, address=%d)\n", port, address);
         return 0;
@@ -57,7 +57,7 @@ unsigned char readByte(int port, int address, int memory) {
     return data;
 }
 
-int readWord(int port, int address, int memory) {
+static int readWord(int port, int address, int memory) {
     if (!my.hasI2C[port]) {
         Serial.printf("readWord(port=%d, address=%d)\n", port, address);
         return 0;
@@ -298,7 +298,7 @@ static int detectSensor(int port, int address) {
 }
 
 // return -1 if OK, >=0 code otherwise
-int fifoError(byte *buffer, int fifoBytes) {
+static int fifoError(byte *buffer, int fifoBytes) {
     if (fifoBytes < 12) return -1;
     byte *span = buffer + fifoBytes - 12;
     byte check = span[0];

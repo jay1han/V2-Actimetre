@@ -155,9 +155,10 @@ void deviceScanInit();
 // boards.cpp
 void setupBoard();
 void blinkLed(int color);
-int buttonPressed();
 void manageButton(int set);
 void setupCore0(void (*core0Loop)(void*));
+//void longPress();
+//void shortPress();
 
 //                      BBGGRR
 #define COLOR_WHITE   0x3F3F3F
@@ -188,8 +189,6 @@ void ERROR_FATAL(char *where);
 void ERROR_FATAL3(int port, int address, char *where);
 extern bool FATAL_ERROR;
 void RESTART(int);
-void longPress();
-void shortPress();
 int64_t formatHeader(int port, int address, unsigned char *message, int count, int timeOffset);
 
 #endif //ACTIMETRE_H

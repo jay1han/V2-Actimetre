@@ -112,7 +112,7 @@ void queueIndex(int index) {
     }
 }
 
-void readRssi() {
+static void readRssi() {
     int rssi = WiFi.RSSI();
     if (rssi != 0) {
         if (rssi > -28) my.rssi = 7;
@@ -322,7 +322,7 @@ static bool tryConnect(int index) {
 #define QUERY_LENGTH 1 + 10 * (2 + 1)
 static byte assignQuery[QUERY_LENGTH];
 
-void buildQuery() {
+static void buildQuery() {
     int i;
     assignQuery[0] = nActis;
     byte *query = &assignQuery[1];
