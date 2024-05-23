@@ -391,8 +391,8 @@ int readFifo(int port, int address, byte *message) {
         return 0;
     }
 
-    if (fifoBytes < dataLength) {
-        Serial.printf("No data on %d%c\n", port + 1, 'A' + address);
+    if (fifoBytes < 2 * dataLength) {
+        Serial.printf("Too little data on %d%c\n", port + 1, 'A' + address);
         return 0;
     }
     
@@ -404,7 +404,9 @@ int readFifo(int port, int address, byte *message) {
         fifoBytes = maxMeasures * dataLength;
     } else {
         fifoBytes = (fifoBytes / dataLength) * dataLength;
+        fifoBytes -= dataLength;
     }
+    
     int fifoCount = fifoBytes / dataLength;
     int64_t now = formatHeader(port, address, message, fifoCount, timeOffset);
 
