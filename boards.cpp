@@ -53,7 +53,7 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     // Board Type 5 (S2 mini Solo) S2o
     {0, 15,
      40, 38, 36, 34,
-     1, 2, 4, 6},
+     6, 4, 2, 1},
     // Board Type 6 (C3 Solo) C3o
     {9, 8,
      7, 10, 20, 21,
