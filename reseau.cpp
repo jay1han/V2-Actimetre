@@ -276,6 +276,10 @@ static void findActis(int nScan) {
 }
 
 static bool tryConnect(int index) {
+    WiFi.disconnect(true, true);
+    delay(1000);
+    WiFi.mode(WIFI_STA);
+    
     int wait = 0;
 
     char *ssid = actisList[index].ssid;
@@ -443,7 +447,6 @@ void netInit() {
     blinkLed(COLOR_SWAP);
     WiFi.disconnect(true, true);
     delay(100);
-    esp_wifi_set_max_tx_power(84);  // Max power 20dB
     WiFi.mode(WIFI_STA);
 
     storeMacAddress();
@@ -454,7 +457,6 @@ void netInit() {
     
     findActis(nScan);
     WiFi.scanDelete();
-    WiFi.disconnect(true, true);
 
     buildQuery();
 
@@ -469,12 +471,14 @@ void netInit() {
         Serial.println("Can't get assigned, choose first");
 	writeLine("Self-assign");
         indexChoice = 0;
+        my.serverId = 0;
     }
 
     Serial.printf("Selected %s\n", actisList[indexChoice].ssid);
 
     if (actisList[indexChoice].serverId != my.serverId) {
         WiFi.disconnect(true, true);
+        delay(1000);
         Serial.println("Switch AP");
         if (!tryConnect(indexChoice)) {
             Serial.println("Can't connect to chosen server, rebooting");

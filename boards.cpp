@@ -19,6 +19,9 @@ typedef enum {
     _PIN_I2C1_GND,
     _PIN_I2C1_VCC,
 
+    _PIN_MORE_GND,
+    _PIN_MORE_VCC,
+
     PIN_MAX
 } PinName;
 
@@ -33,39 +36,48 @@ const uint8_t PINS[BOARD_TYPES][PIN_MAX] = {
     // Dummy for bad
     {0xFF, 0xFF,
      0xFF, 0xFF, 0xFF, 0xFF,
-     0xFF, 0xFF, 0xFF, 0xFF},
+     0xFF, 0xFF, 0xFF, 0xFF,
+     0xFF, 0xFF},
     // Board Type 1 (S3 mini with I2C) S3i
     {0, 47,
      21, 17, 0xFF, 15,
-     7, 8, 9, 14},  // Pin 10 is also GND for the display
+     7, 8, 9, 14,
+     10, 0xFF},  // Pin 10 is also GND for the display
     // Board Type 2 (S3 mini with new box) S3n
     {0, 47,
      13, 11, 10, 0xFF, 
-     44, 36, 35, 18}, 
+     44, 36, 35, 18,
+     0xFF, 0xFF}, 
     // Board Type 3 (S3 zero) S3z
     {0, 21,
      10, 9, 8, 7,
-     3, 4, 5, 6},
+     3, 4, 5, 6,
+     11, 12},
     // Board Type 4 (S3 mini alternate for new box) S3m
     {0, 47,
      2, 4, 12, 13,
-     44, 36, 35, 18}, 
+     44, 36, 35, 18,
+     0xFF, 16},   // Pin 16 is also 3V
     // Board Type 5 (S2 mini Solo) S2o
     {0, 15,
      40, 38, 36, 34,
-     6, 4, 2, 1},
+     6, 4, 2, 1,
+     0xFF, 0xFF},
     // Board Type 6 (C3 Solo) C3o
     {9, 8,
-     7, 10, 20, 21,
-     0xFF, 0xFF, 0xFF, 0xFF},
+     9, 10, 20, 21,
+     0xFF, 0xFF, 0xFF, 0xFF,
+     0xFF, 0xFF},
     // Board Type 7 (S3 mini Solo) S3o
     {0, 47,
      33, 37, 38, 34,
-     1, 3, 5, 6},
+     1, 3, 5, 6,
+     0xFF, 0xFF},
 };
 static uint8_t PIN_BUTTON, PIN_LED,
     PIN_I2C0_SDA, PIN_I2C0_SCL, PIN_I2C0_GND, PIN_I2C0_VCC,
-    PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC;
+    PIN_I2C1_SDA, PIN_I2C1_SCL, PIN_I2C1_GND, PIN_I2C1_VCC,
+    PIN_MORE_GND, PIN_MORE_VCC;
 
 #define FREQ_COUNT   3
 static int freqCode =  0;
@@ -333,6 +345,15 @@ void setupBoard() {
         Wire1.begin(PIN_I2C1_SDA, PIN_I2C1_SCL, LOW_BAUDRATE);
         Wire1.setTimeout(0);
         Serial.printf("I2C1 started %d baud\n", Wire1.getClock());
+    }
+
+    if ((PIN_MORE_GND = PINS[my.boardType][_PIN_MORE_GND]) != 0xFF) {
+        pinMode(PIN_MORE_GND, OUTPUT);
+        digitalWrite(PIN_MORE_GND, 0);
+    }
+    if ((PIN_MORE_VCC = PINS[my.boardType][_PIN_MORE_VCC]) != 0xFF) {
+        pinMode(PIN_MORE_VCC, OUTPUT);
+        digitalWrite(PIN_MORE_VCC, 1);
     }
     
     blinkLed(COLOR_WHITE);
