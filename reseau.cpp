@@ -3,6 +3,7 @@
 #include <esp_task_wdt.h>
 #include <time.h>
 #include <esp_wifi.h>
+#include <esp_mac.h>
 #include "Actimetre.h"
 
 #define ACTI_PORT 2883
@@ -222,8 +223,8 @@ void netWork() {
 // Network initializations
 
 static void storeMacAddress() {
-    unsigned char mac[6];
-    WiFi.macAddress(mac);
+    unsigned char mac[8];
+    esp_efuse_mac_get_default(mac);
     memcpy(my.mac, mac, 6);
     sprintf(my.macString, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     Serial.print("MAC address ");
@@ -446,13 +447,14 @@ static time_t getActimIdAndTime() {
 // Huge and ugly but that's the way it is.
 
 void netInit() {
+    storeMacAddress();
+    
     blinkLed(COLOR_SWAP);
+    WiFi.useStaticBuffers(true);
     WiFi.disconnect(true, true);
     delay(100);
     WiFi.mode(WIFI_STA);
-
-    storeMacAddress();
-
+    
     blinkLed(COLOR_SWAP);
     int nScan;
     nScan = scanNetworks();
