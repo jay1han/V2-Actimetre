@@ -163,9 +163,10 @@ void ERROR_REPORT(char *what) {
         what[62] = 0;
         msgLength = 62;
     }
-    formatHeader(0, 0, message, 1 + msgLength / 4, 0);
+    formatHeader(0, 0, message, msgLength / 4, 0);
     strcpy((char*)message + HEADER_LENGTH, what);
     memset(message + HEADER_LENGTH + msgLength, 0, 4 - msgLength % 4);
+    message[0] = 0xFF;
     queueIndex(index);
 }
 

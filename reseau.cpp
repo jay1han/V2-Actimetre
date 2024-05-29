@@ -26,7 +26,7 @@ static bool sendMessage(byte *message) {
     int count = message[3] & 0x3F;
     int msgLength;
     if (message[0] == 0xFF) {
-        msgLength = HEADER_LENGTH + count;
+        msgLength = HEADER_LENGTH + (count + 1) * 4;
         Serial.printf("REPORT message length %d\n", msgLength);
     } else if (message[5] & 0x10) {
         msgLength = HEADER_LENGTH + (count + 1) * 4;
@@ -108,6 +108,7 @@ void queueIndex(int index) {
         my.nMissed[Core0Net] ++;
         xQueueReset(msgQueue);
         Serial.println("Queue full, cleared");
+        ERROR_REPORT("Queue full, cleared");
 #endif
     }
 }
@@ -159,6 +160,7 @@ static void netWorkOn(int index) {
             xQueueReset(msgQueue);
             Serial.println("Queue more than 80%, cleared");
             my.queueFill = 0.0;
+            ERROR_REPORT("Queue filling, cleared");
         } else {
             my.queueFill = 100.0 * (QUEUE_SIZE - availableSpaces) / QUEUE_SIZE;
         }

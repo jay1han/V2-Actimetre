@@ -3,6 +3,7 @@
 #include <esp_cpu.h>
 #include <Esp.h>
 #include <esp32-hal.h>
+#include <esp_chip_info.h>
 #include "Actimetre.h"
 
 typedef enum {
@@ -108,11 +109,13 @@ static void switchFrequency() {
 
 static void longPress() {
     Serial.println("Button long-press");
+    ERROR_REPORT("Long press");
     // Do nothing
 }
 
 static void shortPress() {
     Serial.println("Button press");
+    ERROR_REPORT("Button press");
     switchFrequency();
 }
 
@@ -158,22 +161,12 @@ void manageButton(int set) {
 }
 
 #define RMT_SIZE (8 * 3)
-static rmt_obj_t *RmtObject;
 static rmt_data_t RmtBuffer[RMT_SIZE];
 static void setupLED() {
     Serial.printf("RGB pin %d init ", PIN_LED);
-    RmtObject = rmtInit(PIN_LED, RMT_TX_MODE, RMT_MEM_64);
-    if (RmtObject == NULL) {
+    if (!rmtInit(PIN_LED, RMT_TX_MODE, RMT_MEM_NUM_BLOCKS_1, 20000000))
         Serial.println("FAILED");
-        return;
-    } else {
-        float tick = rmtSetTick(RmtObject, 50.0);
-        if (abs(tick - 50.0) > 1.0) {
-            Serial.printf("tick set %.0fns!\n", tick);
-            return;
-        }
-    }
-    Serial.println("OK");
+    else Serial.println("OK");
 }
     
 static rmt_data_t *stuffBits(rmt_data_t *data, int level) {
@@ -241,13 +234,13 @@ void blinkLed(int command) {
         data = stuffBits(data, color & 0xFF);
         data = stuffBits(data, (color >> 8) & 0xFF);
         data = stuffBits(data, (color >> 16) & 0xFF);
-        rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
+        rmtWrite(PIN_LED, RmtBuffer, RMT_SIZE, RMT_WAIT_FOR_EVER);
     } else if (my.ledRGB == LED_GRB) {
         rmt_data_t *data = RmtBuffer;
         data = stuffBits(data, (color >> 8) & 0xFF);
         data = stuffBits(data, color & 0xFF);
         data = stuffBits(data, (color >> 16) & 0xFF);
-        rmtWrite(RmtObject, RmtBuffer, RMT_SIZE);
+        rmtWrite(PIN_LED, RmtBuffer, RMT_SIZE, RMT_WAIT_FOR_EVER);
     } else {
         if (state) digitalWrite(PIN_LED, 1);
         else digitalWrite(PIN_LED, 0);
