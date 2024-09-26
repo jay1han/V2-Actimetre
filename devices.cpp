@@ -84,10 +84,12 @@ static int initSensor(int port, int address) {
     
     byte sensorType = readByte(port, address, 0x75);
     Serial.printf(" WAI=0x%02X, ", sensorType);
+    if (sensorType == 0x74) sensorType = WAI_6500;
     if (sensorType != WAI_6050 && sensorType != WAI_6500) {
         Serial.println("BAD. Rebooting");
         RESTART(2);
     }
+
     my.sensor[port][address].type = sensorType;
     my.sensor[port][address].lastMessage = 0;
     my.sensor[port][address].nSamples = 0;
